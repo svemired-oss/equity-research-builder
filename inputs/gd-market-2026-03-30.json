@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-03-30",
+  "price_type": "unadjusted_close",
+  "year_end_close": 336.66,
+  "year_end_close_date": "2025-12-31",
+  "source": {
+    "kind": "market_data",
+    "citation": "General Dynamics 2026 definitive proxy statement, page 84, footnotes to potential payments upon termination or change in control.",
+    "available_on": "2026-03-27",
+    "url": "https://www.sec.gov/Archives/edgar/data/40533/000130817926000168/gd014595-def14a.htm"
+  }
+}

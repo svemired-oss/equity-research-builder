@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "price_type": "unadjusted_close",
+  "year_end_close": 336.66,
+  "year_end_close_date": "2025-12-31",
+  "source": {
+    "kind": "market_data",
+    "citation": "GD 2026 definitive proxy statement, page 84, December 31, 2025 closing price used for equity awards.",
+    "available_on": "2026-03-27",
+    "url": "https://www.sec.gov/Archives/edgar/data/40533/000130817926000168/gd014595-def14a.htm"
+  },
+  "valuation_close": {
+    "price": 354.06,
+    "observed_on": "2026-11-06",
+    "price_type": "unadjusted_close",
+    "source": {
+      "kind": "market_data",
+      "citation": "Stock Analysis daily history, S&P Global Market Intelligence feed, November 6 regular-session Close. Cross-checked against ChartExchange's November 6 historical Close.",
+      "available_on": "2026-11-09",
+      "url": "https://stockanalysis.com/stocks/gd/history/"
+    }
+  }
+}

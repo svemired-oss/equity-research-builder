@@ -1,0 +1,68 @@
+{
+  "as_of": "2026-11-12",
+  "balance_sheet_date": "2026-09-30",
+  "sources": {
+    "september_10q": {
+      "available_on": "2026-10-28",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000131/fdx-20260930.htm"
+    },
+    "fdxf_13g": {
+      "available_on": "2026-08-07",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000110465926092744/xslSCHEDULE_13G_X02/primary_doc.xml"
+    },
+    "fdx_price_history": {
+      "available_on": "2026-11-11",
+      "url": "https://investors.fedex.com/stock-information/stock-quote-and-chart/default.aspx"
+    },
+    "fdxf_price_history": {
+      "available_on": "2026-11-11",
+      "url": "https://stockanalysis.com/stocks/fdxf/history/"
+    },
+    "fdx_price_crosscheck": {
+      "available_on": "2026-11-11",
+      "url": "https://chartexchange.com/symbol/nyse-fdx/historical"
+    },
+    "fdxf_price_crosscheck": {
+      "available_on": "2026-11-11",
+      "url": "https://markets.ptc.ft.markitdigital.com/data/equities/tearsheet/historical?s=FDXF%3ANYQ"
+    }
+  },
+  "september_30": {
+    "source": "september_10q",
+    "customer_tariff_refund_obligations_millions": 2700,
+    "finance_lease_liability_millions": 1718,
+    "operating_lease_liability_millions": 14773,
+    "debt_securities_in_prepaids_millions": 266,
+    "other_equity_securities_millions": 576,
+    "supply_chain_held_for_sale_current_assets_millions": 375,
+    "supply_chain_held_for_sale_noncurrent_assets_millions": 292,
+    "supply_chain_held_for_sale_current_liabilities_millions": 222,
+    "supply_chain_held_for_sale_noncurrent_liabilities_millions": 181,
+    "inpost_indirect_vehicle_ownership": 0.37,
+    "fdxf_ownership": 0.199,
+    "note": "Notes 1, 4 and 10. Current debt and long-term debt include finance leases. Tariff obligations are approximate. Treat the cash and offsetting refund liability consistently when normalizing cash flow and working capital."
+  },
+  "supply_chain_sale": {
+    "source": "september_10q",
+    "completed_on": "2026-10-01",
+    "net_cash_proceeds_millions": 1400,
+    "note": "Note 14. Approximate net proceeds. Recognize once as subsequent investing cash flow. The filing did not provide a final disposal gain, sale tax or standalone operating results."
+  },
+  "shares": {
+    "fdx": {"source": "september_10q", "observed_on": "2026-10-26", "count": 234199353},
+    "fdxf_retained": {"source": "fdxf_13g", "observed_on": "2026-06-30", "count": 29751545}
+  },
+  "quotes": {
+    "date": "2026-11-11",
+    "fdx_close_usd": 322.63,
+    "fdxf_close_usd": 132.64,
+    "source_ids": ["fdx_price_history", "fdxf_price_history", "fdx_price_crosscheck", "fdxf_price_crosscheck"],
+    "note": "Latest common dated closes confirmed by the listed providers for this snapshot. November 12 FDX close differed across the observed data providers."
+  },
+  "limitations": [
+    "Reported September cash adjusted for the disclosed customer obligation is a measure before any operating cash reserve. It is not excess cash or a November cash balance.",
+    "The FDXF mark uses the previously disclosed share count and the dated close. It is an indicative gross mark without a sale or tax assumption.",
+    "FedEx paid $2,501 million for the InPost investment in September. September cash already reflects it. Use the separate equity-method asset only if its earnings and cash flows stay out of the core forecast.",
+    "The Freight dividend and related tender predate the September balance sheet. Use the reported debt and cash starting balances without repeating those transactions."
+  ]
+}

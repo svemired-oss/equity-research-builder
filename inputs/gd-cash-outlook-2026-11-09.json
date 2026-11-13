@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "capex_share_of_sales": [0.035, 0.04],
+  "fcf_conversion": 1.05,
+  "source": {
+    "kind": "issuer_call",
+    "citation": "GD CFO prepared remarks on the October 30, 2026 Q3 call. Full-year cash capex of 3.5% to 4.0% of sales and approximate issuer free cash flow conversion of 105% of net earnings. Quartr transcript via Stock Analysis, cross-checked against The Motley Fool transcript.",
+    "available_on": "2026-10-30",
+    "url": "https://stockanalysis.com/stocks/gd/transcripts/718470-q3-2026/"
+  },
+  "timing_cases": {
+    "base": {
+      "operating_cash_share_shift": 0,
+      "capex_share_shift": 0,
+      "rationale": "Allocate both operating cash and capex using the share of calendar days remaining in Q4."
+    },
+    "lower_remaining_cash": {
+      "operating_cash_share_shift": -0.1,
+      "capex_share_shift": 0.1,
+      "rationale": "Stress-test 10 percentage points less operating cash and 10 points more capex after the cutoff."
+    },
+    "higher_remaining_cash": {
+      "operating_cash_share_shift": 0.1,
+      "capex_share_shift": -0.1,
+      "rationale": "Stress-test 10 percentage points more operating cash and 10 points less capex after the cutoff."
+    }
+  }
+}

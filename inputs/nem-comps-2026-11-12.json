@@ -1,0 +1,23 @@
+{
+  "ticker": "NEM",
+  "as_of": "2026-11-12",
+  "currency": "USD",
+  "close_date": "2026-11-11",
+  "sources": {
+    "aem_close": {"title": "Agnico Eagle NYSE unadjusted closing price", "available_on": "2026-11-11", "url": "https://chartexchange.com/symbol/nyse-aem/historical/"},
+    "aem_q4": {"title": "Agnico Eagle Q4 2025 results and diluted EPS", "available_on": "2026-02-12", "url": "https://www.sec.gov/Archives/edgar/data/2809/000110465926014451/aem-20251231xex99d1.htm"},
+    "aem_ytd": {"title": "Agnico Eagle Q3 2026 interim financial statements, Note 11", "available_on": "2026-10-28", "url": "https://www.sec.gov/Archives/edgar/data/2809/000110465926119671/tm2628160d2_ex99-1.htm"},
+    "b_close": {"title": "Barrick NYSE unadjusted closing price", "available_on": "2026-11-11", "url": "https://chartexchange.com/symbol/nyse-b/historical/"},
+    "b_q4": {"title": "Barrick Q4 2025 results, key operating and financial results", "available_on": "2026-02-05", "url": "https://www.sec.gov/Archives/edgar/data/756894/000119312526039501/d10712dex991.htm"},
+    "b_ytd": {"title": "Barrick Q3 2026 results, key operating and financial results", "available_on": "2026-11-09", "url": "https://www.sec.gov/Archives/edgar/data/756894/000119312526453391/d141003dex991.htm"},
+    "kgc_close": {"title": "Kinross NYSE unadjusted closing price", "available_on": "2026-11-11", "url": "https://chartexchange.com/symbol/nyse-kgc/historical/"},
+    "kgc_q4": {"title": "Kinross Q4 2025 results, quarterly operating and financial summary", "available_on": "2026-02-18", "url": "https://www.sec.gov/Archives/edgar/data/701818/000117184326000896/exh_991.htm"},
+    "kgc_ytd": {"title": "Kinross Q3 2026 interim consolidated financial statements", "available_on": "2026-10-28", "url": "https://www.sec.gov/Archives/edgar/data/701818/000110465926119698/tm2628014d1_ex99-1.htm"}
+  },
+  "peers": {
+    "AEM": {"company": "Agnico Eagle", "close_usd": 185.96, "close_source": "aem_close", "q4_2025_eps": 3.04, "q4_source": "aem_q4", "ytd_2026_eps": 9.24, "ytd_source": "aem_ytd"},
+    "B": {"company": "Barrick Mining", "close_usd": 39.06, "close_source": "b_close", "q4_2025_eps": 1.43, "q4_source": "b_q4", "ytd_2026_eps": 2.49, "ytd_source": "b_ytd"},
+    "KGC": {"company": "Kinross Gold", "close_usd": 21.47, "close_source": "kgc_close", "q4_2025_eps": 0.75, "q4_source": "kgc_q4", "ytd_2026_eps": 1.90, "ytd_source": "kgc_ytd"}
+  },
+  "basis": "Sum published Q4 2025 and nine-month 2026 reported diluted EPS. Period share denominators and rounding mean this can differ from recomputing exact trailing EPS. Newmont reports US GAAP and the peers use IFRS. Reported earnings include taxes, disposal gains, impairments and other issuer-specific items. The peer comparison does not set the NAV target."
+}

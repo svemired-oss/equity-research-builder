@@ -1,0 +1,40 @@
+{
+  "as_of": "2026-11-12",
+  "sources": {
+    "september_10q": {
+      "available_on": "2026-10-28",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000131/fdx-20260930.htm"
+    },
+    "may_10k": {
+      "available_on": "2026-07-20",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000105/fdx-20260531.htm"
+    },
+    "q3_earnings": {
+      "available_on": "2026-10-28",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000128/fdx-earningsreleasety2026q3.htm"
+    },
+    "investor_day": {
+      "available_on": "2026-02-12",
+      "url": "https://investors.fedex.com/news-and-events/investor-news/investor-news-details/2026/FedEx-Corporation-Hosts-2026-Investor-Day/default.aspx"
+    }
+  },
+  "q3_stock_compensation_millions": {"value": 37, "source": "september_10q", "note": "Note 1. Use the Q3 cost as a Q4 proxy and its share of Q3 revenue for forward cash-flow and equity reconciliation."},
+  "dilutive_stock_awards_millions": {"value": 3, "source": "september_10q", "note": "Note 8. Carry the Q3 difference between diluted and basic weighted-average shares as a forward diluted EPS proxy."},
+  "june_september_finance_lease_additions_millions": {"value": 813, "source": "september_10q", "note": "Note 12. Use with the change in continuing gross PP&E and cash capital expenditures to estimate the pace of property retirements and other gross carrying adjustments."},
+  "may_net_intangibles_millions": {"value": 153, "source": "may_10k", "note": "Note 4. May net definite-lived intangible assets are the available proxy for continuing intangibles at separation. Roll forward using scheduled amortization."},
+  "may_fiscal_amortization_millions": {
+    "source": "may_10k",
+    "values": {"2027": 53, "2028": 51, "2029": 11, "2030": 10, "2031": 9},
+    "note": "Note 4. Approximate calendar-year expense by weighting five months from the current May fiscal year and seven months from the next. Carry the last disclosed rate through December 2031. This allocates known expense timing and does not add intangible purchases."
+  },
+  "normalized_tax_rate": {"value": 0.225, "source": "q3_earnings", "note": "Hold the October normalized tax guidance as a proxy for cash taxes on core earnings. Disposal-specific tax is unavailable."},
+  "annual_pension_contribution_millions": {"value": 475, "source": "q3_earnings", "note": "Hold the calendar 2026 voluntary U.S. pension contribution outlook as an editable funding proxy. This is neither a required minimum nor a later-year company forecast."},
+  "capex_target_share_of_revenue": {"value": 0.04, "source": "investor_day", "note": "Use CY2026 estimated cash capex intensity in 2027, move halfway to the Investor Day target in 2028, and use the target from 2029."},
+  "limitations": [
+    "The balance sheets are analytical continuing-operations forecasts. They exclude customer pass-through cash and the matching refund obligation. The Q4 operating working-capital change is implied by the independent cash guidance bridge, with current asset mix estimated from last December. The resulting accrued-liability total includes any unquantified cash conversion differences.",
+    "The October Supply Chain net cash proceeds are modeled once. Proceeds less the September carrying amount is a provisional pretax disposal differential for the equity bridge. Final gain, taxes and closing adjustments were not disclosed by the cutoff.",
+    "Future debt proceeds, lease-financed additions, discretionary repurchases and equity cash issuance are omitted unless separately supported. Contracted debt and finance lease payments roll through financing. Lease rentals remain operating expenses and operating lease balances are held at their September levels.",
+    "Stock compensation remains an operating expense in unlevered free cash flow. It is added back for the book cash and equity roll-forward. Basic shares use the last reported count. The model holds other nonoperating investments at their September carrying amounts while keeping their earnings out of core forecasts.",
+    "The forecast uses the latest dated capital events and a modeled seasonal timing convention. The cutoff and year-end cash estimates are before any operating reserve. No final valuation or recommendation is calculated in this step."
+  ]
+}

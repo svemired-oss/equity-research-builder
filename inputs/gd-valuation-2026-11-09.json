@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "risk_free_rate": {
+    "value": 0.0486,
+    "observed_on": "2026-11-06",
+    "source": {
+      "kind": "market_data",
+      "citation": "U.S. Treasury 10-year constant-maturity nominal par yield on November 6, the last completed trading session before the November 9 pre-open cutoff.",
+      "available_on": "2026-11-06",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?field_tdr_date_value_month=202611&type=daily_treasury_yield_curve"
+    }
+  },
+  "equity_risk_premium": {
+    "value": 0.0441,
+    "observed_on": "2026-11-01",
+    "source": {
+      "kind": "market_data",
+      "citation": "Aswath Damodaran's November 1 U.S. implied equity risk premium, trailing 12-month adjusted payout with the unadjusted Treasury convention. His calculation uses a separate 5.29% Treasury input. The dated estimate is used as the latest monthly observation before the cutoff. Exact publication time is unverified.",
+      "available_on": "2026-11-09",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/home.htm"
+    }
+  },
+  "unlevered_beta": {
+    "value": 0.87,
+    "observed_on": "2026-01-09",
+    "source": {
+      "kind": "market_data",
+      "citation": "Aswath Damodaran's January 2026 U.S. Aerospace/Defense dataset, 79 firms, unlevered beta corrected for cash. January 9 is the dated annual update. Relever using GD's modeled cutoff carrying debt and market equity based on the November 6 close and modeled cutoff common shares.",
+      "available_on": "2026-01-09",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/Betas.html"
+    }
+  },
+  "relevering_tax_rate": 0.21,
+  "terminal_growth": 0.025,
+  "operating_cash_share": 0.04,
+  "cost_of_equity_step": 0.005,
+  "terminal_growth_step": 0.005,
+  "sources": {
+    "relevering_tax_rate": {
+      "kind": "model_assumption",
+      "citation": "Use the 21% U.S. federal corporate rate as the marginal tax proxy for beta relevering. Forward cash taxes use the separate effective rate assumptions in the financial statements.",
+      "available_on": "2026-11-09",
+      "url": "https://www.irs.gov/publications/p542"
+    },
+    "terminal_growth": {
+      "kind": "model_assumption",
+      "citation": "Analyst base case of 2.5% nominal perpetual growth after the explicit GD forecast. Bound terminal growth below the nominal risk-free rate and the cost of equity. The 0.5 percentage point sensitivity steps are scenario choices.",
+      "available_on": "2026-11-09",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/littlebook/terminalvalue.htm"
+    },
+    "operating_cash_share": {
+      "kind": "model_assumption",
+      "citation": "Assume an operating cash reserve of 4% of sales. For context GD reported about $2.3 billion cash against $52.55 billion of FY2025 revenue and about $1.7 billion against $47.72 billion in FY2024. These balance-sheet observations inform the modeled reserve. The company does not disclose a minimum operating cash requirement.",
+      "available_on": "2026-11-09",
+      "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000006/gd-20251231.htm"
+    },
+    "normalization": {
+      "kind": "model_assumption",
+      "citation": "Scale net PP&E, core operating working capital, minimum operating cash and remaining Note H debt with sales in the stable period. Carry the FY2031 operating margin and effective tax rate. Treat depreciation of finance lease assets and amortization of intangible assets as economic expenses in the terminal period. Refinance surviving debt at its blended coupon and keep cash interest on the operating cash reserve only. These are model assumptions.",
+      "available_on": "2026-11-09",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/lectures/fcfe.html"
+    },
+    "equity_awards": {
+      "kind": "sec_filing",
+      "citation": "FY2025 Form 10-K Note R disclosed $1.075 billion of aggregate outstanding option intrinsic value at December 31, 2025. A current option roll-forward is unavailable. Model SBC as an economic cost and disclose outstanding option overhang as a remaining valuation limitation.",
+      "available_on": "2026-01-30",
+      "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000006/gd-20251231.htm"
+    }
+  }
+}

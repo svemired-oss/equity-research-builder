@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "period_end": "2026-10-04",
+  "products_ytd": {
+    "8": 7230,
+    "9": 3110,
+    "23": 10624,
+    "24": 2458,
+    "25": 881,
+    "36": 3503,
+    "37": 2417,
+    "38": 1039,
+    "49": 7182,
+    "50": 3697
+  },
+  "prior_products_ytd": {
+    "8": 6590,
+    "9": 2732,
+    "23": 9054,
+    "24": 2012,
+    "25": 839,
+    "36": 3730,
+    "37": 2169,
+    "38": 812,
+    "49": 6912,
+    "50": 3321
+  },
+  "q3_segment_revenue": {
+    "aerospace": 3536,
+    "marine_systems": 4960,
+    "combat_systems": 2386,
+    "technologies": 3684
+  },
+  "q3_consolidated_revenue": 14566,
+  "july_guidance": {
+    "segments": {
+      "aerospace": {"revenue": 13800, "operating_margin": 0.147},
+      "marine_systems": {"revenue": 18000, "operating_margin": 0.074},
+      "combat_systems": {"revenue": 9800, "operating_margin": 0.138},
+      "technologies": {"revenue": 14100, "operating_margin": 0.094}
+    },
+    "annual_deliveries": 160,
+    "corporate_costs": 180
+  },
+  "sources": {
+    "products": {
+      "kind": "sec_filing",
+      "citation": "General Dynamics Form 10-Q, Note B, Revenue by Category. Major products and services for the nine months ended October 4, 2026 and September 28, 2025, and segment totals for the three months ended October 4, 2026. Q3 consolidated revenue is from the three-month statement of earnings. Amounts in USD millions.",
+      "available_on": "2026-10-30",
+      "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000038/gd-20261004.htm"
+    },
+    "july_guidance": {
+      "kind": "issuer_release",
+      "citation": "General Dynamics Second-Quarter 2026 Highlights and Outlook Update, July 29, 2026, slide 9. Approximate FY2026 segment revenue, operating margins, and Gulfstream deliveries. Approximate USD 180 million in FY2026 corporate operating costs comes from the Corporate discussion in the Q2 Form 10-Q filed July 29, 2026 (https://www.sec.gov/Archives/edgar/data/40533/000004053326000032/gd-20260705.htm).",
+      "available_on": "2026-07-29",
+      "url": "https://s22.q4cdn.com/891946778/files/doc_financials/2026/q2/2Q26-Highlights-and-Outlook.pdf"
+    }
+  }
+}

@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Explore dated equity research, financial models, and valuation scenarios for GD, FDX, and NEM.">
+  <title>Equity Research Builder</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="./" aria-label="Equity Research Builder home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Equity Research Builder</a>
+      <a class="toplink" href="#method">Methodology <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <main class="page">
+    <div class="masthead">
+      <h1>Research workspace</h1>
+      <p>Explore company-specific forecasts, valuation scenarios, and the models behind them.</p>
+    </div>
+
+    <div class="workspace">
+      <aside class="panel setup" aria-labelledby="setup-title">
+        <h2 id="setup-title">Build a research package</h2>
+        <form id="run-form">
+          <label for="ticker">Stock ticker</label>
+          <div class="ticker-field"><input type="text" id="ticker" name="ticker" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter ticker" required></div>
+          <div class="ticker-options" id="tickers" aria-label="Available tickers"></div>
+          <p class="error" id="ticker-error" hidden></p>
+
+          <fieldset class="mode-field">
+            <legend>Research mode</legend>
+            <div class="mode-switch">
+              <label><input type="radio" name="mode" value="automated" checked><span>Automated</span></label>
+              <label><input type="radio" name="mode" value="guided"><span>Guided</span></label>
+            </div>
+          </fieldset>
+          <p class="mode-note" id="mode-note">Open the verified model and report from the selected research date.</p>
+          <div id="guided-controls" hidden>
+            <label for="driver">Forecast input</label>
+            <select id="driver" name="driver"></select>
+            <div class="input-pair">
+              <div><label for="driver-value">New value</label><input id="driver-value" name="value" type="number" step="any"></div>
+              <div class="case-control"><label for="run-case">Case</label><select id="run-case" name="case"><option value="base">Base</option><option value="bear">Bear</option><option value="bull">Bull</option></select></div>
+            </div>
+            <label for="reason">Reason for change</label>
+            <input type="text" id="reason" name="reason" placeholder="e.g. Higher expected gold prices" maxlength="240">
+          </div>
+          <button id="run-button" class="run" type="submit" disabled>Open research <span aria-hidden="true">→</span></button>
+          <p class="run-status" id="run-status" aria-live="polite"></p>
+        </form>
+        <div class="coverage" id="coverage" hidden>
+          <h3>Coverage</h3>
+          <ul id="coverage-list"></ul>
+        </div>
+      </aside>
+
+      <section class="panel results" id="results" aria-labelledby="company" aria-busy="true">
+        <div class="result-heading">
+          <div>
+            <p class="sector" id="company-sector"></p>
+            <h2 id="company">Loading research</h2>
+            <p class="date" id="snapshot-date"></p>
+          </div>
+          <span id="rating" class="rating" hidden></span>
+        </div>
+        <div id="result-content" hidden>
+          <dl class="metrics">
+            <div><dt>Reference close</dt><dd id="close">—</dd></div>
+            <div><dt>Spot value</dt><dd id="spot">—</dd></div>
+            <div class="target-metric"><dt>12-month target</dt><dd id="target">—</dd></div>
+            <div><dt>Modeled total return</dt><dd id="total-return">—</dd></div>
+          </dl>
+          <section class="scenarios" id="scenario-section" aria-labelledby="scenario-title">
+            <div class="section-heading"><h3 id="scenario-title">12-month target by case</h3><span id="scenario-caption">USD per share</span></div>
+            <div id="scenario-chart" class="scenario-chart"></div>
+            <div class="chart-key"><span aria-hidden="true"></span> Reference close</div>
+          </section>
+          <section class="downloads" aria-labelledby="downloads-title">
+            <div class="section-heading"><h3 id="downloads-title">Research package</h3><span id="download-status">Verified snapshot</span></div>
+            <div class="download-grid" id="downloads"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel method" id="method" aria-labelledby="method-title">
+      <h2 id="method-title">From filings to valuation</h2>
+      <div class="method-grid">
+        <section><h3>Source the inputs</h3><p>Each snapshot records its cutoff and uses dated filings, earnings materials, and market data.</p></section>
+        <section><h3>Model the business</h3><p>Aircraft and backlog drive GD, shipment volume and yield drive FDX, and mine production and metal prices drive NEM.</p></section>
+        <section><h3>Verify the outputs</h3><p>The model reconciles financial statements and valuation calculations. Each report is checked against its paired workbook.</p></section>
+      </div>
+    </section>
+  </main>
+  <footer class="footer"><span>Equity Research Builder</span><span>Dated portfolio research</span></footer>
+</body>
+</html>

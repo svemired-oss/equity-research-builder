@@ -1,0 +1,16 @@
+{
+  "ticker": "NEM",
+  "as_of": "2026-11-12",
+  "currency": "USD",
+  "sources": {
+    "world_bank_october_outlook": {
+      "title": "World Bank Commodity Markets Outlook October 2026, Table 1, 2028 annual nominal prices",
+      "available_on": "2026-10-28",
+      "url": "https://thedocs.worldbank.org/en/doc/2ac43f46629cf90c2ea5b8929a343593-0050012026/related/CMO-October-2026-Forecasts.pdf"
+    }
+  },
+  "source": "world_bank_october_outlook",
+  "world_bank_2028_prices": {"gold": 4000, "silver": 58, "copper": 12500, "lead": 1950, "zinc": 2800},
+  "units": {"gold": "USD/troy_ounce", "silver": "USD/troy_ounce", "copper": "USD/metric_tonne", "lead": "USD/metric_tonne", "zinc": "USD/metric_tonne"},
+  "method": "Apply the published 2028 benchmark and carry its purchasing power forward at the model inflation rate. The resulting long-dated prices are analyst assumptions. The issuer's observed realization and contractual silver stream adjust the benchmark."
+}

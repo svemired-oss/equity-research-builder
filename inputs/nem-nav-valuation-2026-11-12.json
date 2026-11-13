@@ -1,0 +1,297 @@
+{
+  "as_of": "2026-11-12",
+  "ticker": "NEM",
+  "currency": "USD",
+  "cutoff_basis": "pre_open",
+  "target_date": "2027-11-12",
+  "sources": {
+    "treasury_10_year": {
+      "title": "U.S. Treasury daily par yield curve, November 2026, 10-year column",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value_month=202611",
+      "available_on": "2026-11-10"
+    },
+    "damodaran_november_erp": {
+      "title": "Aswath Damodaran, November 1, 2026 U.S. implied equity risk premium, adjusted payout",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/home.htm",
+      "available_on": "2026-11-01"
+    },
+    "damodaran_precious_metals_beta": {
+      "title": "Aswath Damodaran, January 2026 Betas by Sector (U.S.), Precious Metals",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/Betas.html",
+      "available_on": "2026-01-09"
+    },
+    "ice_single_a_yield": {
+      "title": "ICE BofA Single-A U.S. Corporate Index Effective Yield, November 11 close, ALFRED series BAMLC0A3CAEY",
+      "url": "https://alfred.stlouisfed.org/series?seid=BAMLC0A3CAEY",
+      "available_on": "2026-11-12",
+      "available_at_et": "08:51"
+    },
+    "irs_corporate_tax_rate": {
+      "title": "IRS Publication 542, Corporations, federal corporate tax rate",
+      "url": "https://www.irs.gov/publications/p542",
+      "available_on": "2024-01-01"
+    },
+    "fomc_long_run": {
+      "title": "Federal Reserve September 2026 Summary of Economic Projections, median longer-run PCE inflation",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
+      "available_on": "2026-09-16"
+    },
+    "newmont_q3_10q": {
+      "title": "Newmont September 2026 Form 10-Q, cover, balance sheet and equity statement, Notes 1, 4, 6, 10, 12 and 15",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000043/nem-20260930.htm",
+      "available_on": "2026-10-22"
+    },
+    "newmont_q3_release": {
+      "title": "Newmont October 22, 2026 earnings release, capital allocation framework and balance sheet discussion",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000041/newmontq32026earningsrelea.htm",
+      "available_on": "2026-10-22"
+    },
+    "newmont_fy25_10k": {
+      "title": "Newmont 2025 Form 10-K, credit ratings and Merian ownership and consolidation",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000010/nem-20251231.htm",
+      "available_on": "2026-02-19"
+    },
+    "newmont_2034_note_terms": {
+      "title": "Newmont March 7, 2024 Form 8-K, issuance of 5.35% senior unsecured notes due March 15, 2034",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000110465924032016/tm248224d1_8k.htm",
+      "available_on": "2024-03-07"
+    },
+    "newmont_2034_note_yield": {
+      "title": "bondScovery USD 5.35% Newmont/Newcrest senior notes, yield to worst on October 27, 2026",
+      "url": "https://bondscovery.com/bond/US65163LAR06",
+      "available_on": "2026-10-27"
+    },
+    "newmont_stock_history": {
+      "title": "Newmont investor relations NYSE historical stock prices, November 11 close",
+      "url": "https://www.newmont.com/investors/stock-information/",
+      "available_on": "2026-11-11"
+    },
+    "lug_circular": {
+      "title": "Lundin Gold March 20, 2026 Management Information Circular, 2026 AGM, voting ownership table p. 4, SEDAR+ filing copy",
+      "url": "https://newsfile.moomoo.com/public/NN-PersistNoticeAttachment/7781/20260326/SEDAR_PLUS/CSA_SEDAR_PLUS_NOTICE_RECORD_ID_2354560.pdf",
+      "available_on": "2026-03-26"
+    },
+    "lug_q3_results": {
+      "title": "Lundin Gold September 2026 shareholder report, Notes 8 and 9",
+      "url": "https://lundingold.com/site/assets/files/111855/q3_2026_shareholder_report.pdf",
+      "available_on": "2026-11-04"
+    },
+    "lug_stock_history": {
+      "title": "Desjardins Securities quote history, TSX:LUG, November 11 unadjusted close",
+      "url": "https://www.disnat.com/en/learning/quotes-and-market-data/LUG-C",
+      "available_on": "2026-11-11"
+    },
+    "lug_stock_history_crosscheck": {
+      "title": "Stock Analysis TSX:LUG daily historical data, September 30 and November 11 unadjusted closes",
+      "url": "https://stockanalysis.com/quote/tsx/LUG/history/",
+      "available_on": "2026-11-11"
+    },
+    "boc_fx_november": {
+      "title": "Bank of Canada indicative daily exchange rates, USD to CAD November 10 and November 11 holiday",
+      "url": "https://www.bankofcanada.ca/rates/exchange/daily-exchange-rates-lookup/?dF=2026-11-06&dT=2026-11-13&lP=lookup_daily_exchange_rates_2017.php&rangeType=dates&rangeValue=&sR=2009-03-06&se=FXUSDCAD",
+      "available_on": "2026-11-10"
+    },
+    "boc_fx_september": {
+      "title": "Bank of Canada indicative daily exchange rates, USD to CAD September 29 and September 30 holiday",
+      "url": "https://www.bankofcanada.ca/rates/exchange/daily-exchange-rates-lookup/?dF=2026-09-16&dT=2026-09-30&lP=lookup_daily_exchange_rates_2017.php&rangeType=dates&rangeValue=&sR=2009-03-06&se=FXUSDCAD",
+      "available_on": "2026-09-29"
+    },
+    "newmont_lunr_early_warning": {
+      "title": "Newmont June 12, 2026 early-warning announcement, receipt of LunR common shares, issuer statement distributed by Business Wire",
+      "url": "https://finance.yahoo.com/markets/stocks/articles/newmont-announces-receipt-common-shares-161300393.html",
+      "available_on": "2026-06-12"
+    },
+    "lunr_investor_presentation": {
+      "title": "LunR Royalties September 8, 2026 corporate presentation, capitalization and shareholder table p. 8",
+      "url": "https://www.lunrroyalties.com/_resources/presentations/investor-presentation.pdf?v=031003",
+      "available_on": "2026-09-08"
+    },
+    "lunr_stock_history": {
+      "title": "Stock Analysis TSX:LUNR daily historical data, September 30 and November 11 unadjusted closes",
+      "url": "https://stockanalysis.com/quote/tsx/LUNR/history/",
+      "available_on": "2026-11-11"
+    },
+    "pueblo_viejo_trs": {
+      "title": "American Barrick November 10 Form S-1 Exhibit 96.2, Pueblo Viejo Technical Report Summary dated May 14, 2026, §§12.1.2 and 19.1–19.4",
+      "url": "https://www.sec.gov/Archives/edgar/data/2162540/000119312526455481/d338869dex962.htm",
+      "available_on": "2026-11-10"
+    },
+    "american_barrick_s1": {
+      "title": "American Barrick November 10 preliminary Form S-1, Pueblo Viejo financing, joint-venture ownership and NGM subsequent events",
+      "url": "https://www.sec.gov/Archives/edgar/data/2162540/000119312526455481/d338869ds1.htm",
+      "available_on": "2026-11-10"
+    },
+    "ngm_executed_jv_agreement": {
+      "title": "American Barrick November 10 Form S-1 Exhibit 10.9, August 10 executed Nevada Gold Mines joint venture agreement",
+      "url": "https://www.sec.gov/Archives/edgar/data/2162540/000119312526455481/d338869dex109.htm",
+      "available_on": "2026-11-10"
+    },
+    "fourmile_initial_assessment": {
+      "title": "American Barrick November 10 Form S-1 Exhibit 96.3, Fourmile Initial Assessment, §§1.14 and 19",
+      "url": "https://www.sec.gov/Archives/edgar/data/2162540/000119312526455481/d338869dex963.htm",
+      "available_on": "2026-11-10"
+    }
+  },
+  "risk_free_rate": {
+    "value": 0.0498,
+    "observed_on": "2026-11-10",
+    "source": "treasury_10_year",
+    "note": "Latest 10-year Treasury par yield available before the cutoff. Treasury publishes no Veterans Day observation."
+  },
+  "equity_risk_premium": {
+    "value": 0.0441,
+    "observed_on": "2026-11-01",
+    "source": "damodaran_november_erp",
+    "note": "Use the dated trailing 12-month adjusted-payout implied U.S. equity risk premium with the Treasury risk-free convention."
+  },
+  "unlevered_beta": {
+    "value": 0.83,
+    "observed_on": "2026-01-09",
+    "source": "damodaran_precious_metals_beta",
+    "firm_count": 56,
+    "note": "January 2026 cash-adjusted unlevered beta for the U.S. Precious Metals industry. Relever with gross carrying debt including finance leases and current quoted equity value. A single industry beta proxies the portfolio's systematic risk, with jurisdiction-specific premia left unestimated."
+  },
+  "pretax_cost_of_debt": {
+    "value": 0.0567,
+    "observed_on": "2026-11-11",
+    "source": "ice_single_a_yield",
+    "rating_source": "newmont_fy25_10k",
+    "issuer_ratings": {"moodys": "A3", "fitch": "A-", "sp": "BBB+"},
+    "debt_cross_check": {
+      "issuer_security_isin": "US65163LAR06",
+      "principal_millions_at_issuance": 1000,
+      "coupon": 0.0535,
+      "maturity": "2034-03-15",
+      "market_yield_to_worst": 0.0554,
+      "observed_on": "2026-10-27",
+      "sources": ["newmont_2034_note_terms", "newmont_2034_note_yield"]
+    },
+    "note": "Single-A USD corporate effective yield proxies marginal borrowing cost. Moody's and Fitch were single-A and S&P was BBB+ in the issuer's annual report. The November 11 observation was released at 8:51 a.m. ET November 12. A dated secondary-market yield to worst on Newmont's 2034 unsecured note serves as a company-specific cross-check."
+  },
+  "tax_rate": {
+    "value": 0.21,
+    "source": "irs_corporate_tax_rate",
+    "note": "Use the U.S. federal marginal rate as a tax shield and beta relevering proxy. Mine operating cash taxes use the linked consolidated operating rate as a site-level proxy."
+  },
+  "inflation": {
+    "value": 0.02,
+    "observed_on": "2026-09-16",
+    "source": "fomc_long_run",
+    "note": "Use the September FOMC longer-run PCE median as an analyst assumption for the nominal escalation of flat real commodity prices after the 2028 World Bank anchor."
+  },
+  "scenarios": {
+    "gold_price_step_usd": 500,
+    "byproduct_price_step": 0.10,
+    "site_cost_step": 0.03,
+    "rating_threshold": 0.10,
+    "wacc_step": 0.01,
+    "note": "Scenario shifts and rating threshold are analyst choices. Compare the modeled one-year target plus dividends with the November 11 close."
+  },
+  "capital_structure": {
+    "balance_sheet_on": "2026-09-30",
+    "cash_millions": 8827,
+    "restricted_cash_millions": 49,
+    "minimum_cash_framework_millions": 5000,
+    "repurchases_after_september_millions": 451,
+    "repurchases_known_through": "2026-10-22",
+    "debt_millions": 5087,
+    "debt_fair_value_millions": 4882,
+    "finance_leases_millions": 497,
+    "common_shares_millions": 1039.193185,
+    "shares_observed_on": "2026-10-15",
+    "reference_price_usd": 118.47,
+    "reference_price_on": "2026-11-11",
+    "ngm_cash_obligation_millions": 1950,
+    "ngm_settled_before_cutoff": null,
+    "sources": ["newmont_q3_10q", "newmont_q3_release", "newmont_stock_history", "american_barrick_s1", "ngm_executed_jv_agreement"],
+    "note": "Equity uses latest public exact common shares and November 11 close. Debt weight uses gross carrying notes debt and finance leases. The cash bridge starts with September unrestricted cash and deducts known October repurchases. This is a public-data balance proxy. Other October and early November cash and debt changes are not independently observed. The $5 billion minimum cash framework is a management liquidity objective, with consolidated unrestricted cash treated as a financial asset in the base bridge. Model the NGM cash payment as a separate spot obligation when forecast operating FCFF excludes it. A rolled target using modeled cash that already reflects the payment must omit that obligation. Timing of settlement at the cutoff is unconfirmed."
+  },
+  "affiliates": {
+    "lundin_gold": {
+      "shares": 77089349,
+      "ownership_observed_on": "2026-03-16",
+      "approximate_ownership": 0.32,
+      "price_cad": 96.50,
+      "price_observed_on": "2026-11-11",
+      "cad_per_usd": 1.4181,
+      "fx_observed_on": "2026-11-10",
+      "september_carrying_millions": 572,
+      "september_reported_market_value_millions": 4726,
+      "sources": ["lug_circular", "lug_q3_results", "lug_stock_history", "lug_stock_history_crosscheck", "boc_fx_november", "newmont_q3_10q"],
+      "note": "Use the dated disclosed holding carried forward to cutoff, times November 11 unadjusted TSX close, divided by CAD per USD and by one million. The November 4 report states no shares were issued to Newmont in the first nine months. The exact holding is unverified after the circular. November 11 was a Bank of Canada holiday. The market value already capitalizes expected investee distributions. Do not add a separate projected Lundin distribution to operating FCFF or to the affiliate value."
+    },
+    "pueblo_viejo": {
+      "ownership": 0.40,
+      "mine_npv_100pct_millions": 2780,
+      "technical_real_discount_rate": 0.05,
+      "technical_effective_on": "2025-12-31",
+      "technical_report_on": "2026-05-14",
+      "technical_base_gold_usd_per_oz": 1500,
+      "technical_base_silver_usd_per_oz": 21,
+      "technical_last_cashflow_year": 2049,
+      "september_carrying_millions": 1504,
+      "shareholder_loan_receivable_millions": 483,
+      "shareholder_loan_accrued_interest_millions": 5,
+      "shareholder_loan_total_q2_millions": 1202,
+      "shareholder_loan_newmont_q2_millions": 481,
+      "shareholder_loan_barrick_q2_millions": 721,
+      "shareholder_loan_net_adjustment_millions": 0,
+      "base_value_millions": 1112,
+      "sources": ["pueblo_viejo_trs", "american_barrick_s1", "newmont_q3_10q"],
+      "note": "Use 40% of Barrick's finite after-tax mine NPV at its dated real reserve-price deck, including closure and expansion capital. Carry the technical date and operator assumptions as a conservative valuation proxy. The $483 million claim is included in Newmont's book investment. Barrick's filing confirms pro-rata partner loan funding, so Newmont's lender claim economically offsets its pro-rata debt deduction from unlevered mine value. Exclude future affiliate distributions and funding from consolidated operating FCFF. Barrick's Royal Gold stream attaches to its own 60% interest."
+    },
+    "lunr_royalties": {
+      "shares": 16099564,
+      "ownership_observed_on": "2026-06-11",
+      "approximate_ownership": 0.1332,
+      "price_cad": 17.10,
+      "price_observed_on": "2026-11-11",
+      "cad_per_usd": 1.4181,
+      "fx_observed_on": "2026-11-10",
+      "september_price_cad": 19.26,
+      "september_price_observed_on": "2026-09-30",
+      "september_cad_per_usd": 1.4188,
+      "september_fx_observed_on": "2026-09-29",
+      "sources": ["newmont_lunr_early_warning", "lunr_investor_presentation", "lunr_stock_history", "boc_fx_november", "boc_fx_september", "newmont_q3_10q"],
+      "note": "Use the reported block received in June, corroborated by the September investor presentation's 13.3% ownership, carried forward at the November 11 TSX close. Remove an estimate of the September LunR stake using the same share count and September price and FX before carrying residual marketable securities. Lundin Gold distributed the LunR shares and reported no retained interest. The current stake is therefore separate from Lundin Gold's quoted value."
+    },
+    "other_investments": {
+      "observed_on": "2026-09-30",
+      "nueva_union_carrying_millions": 981,
+      "norte_abierto_carrying_millions": 575,
+      "development_projects_base_millions": 0,
+      "marketable_and_other_carrying_millions": 434,
+      "level_1_marketable_fair_value_millions": 409,
+      "porcupine_deferred_consideration_face_millions": 150,
+      "porcupine_deferred_consideration_annual_payments": 4,
+      "porcupine_deferred_consideration_first_pay_on": "2027-12-31",
+      "source": "newmont_q3_10q",
+      "note": "Show NuevaUnión and Norte Abierto book amounts as an optional sensitivity and omit standalone fair values in base pending project economics. Carry the September $434 million combined book amount less the estimated September LunR mark, then add the cutoff LunR mark separately. Use the $409 million Level 1 disclosure as a coverage control. Porcupine deferred consideration is a separate receivable in other noncurrent assets. Value it by discounting the four contractual payments that remain outside projected cash."
+    }
+  },
+  "merian": {
+    "nci_share": 0.25,
+    "consolidated_nci_book_millions": 175,
+    "book_observed_on": "2026-09-30",
+    "sources": ["newmont_q3_10q", "newmont_fy25_10k"],
+    "note": "Newmont consolidates Merian and owns 75%. Where operating cash flows include 100% of Merian, deduct 25% of the mine's modeled after-tax FCFF and closure cash flows using the same discount convention. Consolidated NCI book equity is for reconciliation only. NGM and Red Chris are already proportionate in the operating valuation."
+  },
+  "fourmile": {
+    "project_ownership_if_contributed": 0.385,
+    "technical_effective_on": "2025-12-31",
+    "technical_gold_usd_per_oz": 2000,
+    "technical_discount_rate": 0.05,
+    "technical_npv_100pct_with_inferred_millions": 4200,
+    "technical_npv_100pct_without_inferred_millions": -400,
+    "share_of_modeled_resources_inferred": 0.83,
+    "base_value_millions": 0,
+    "sources": ["fourmile_initial_assessment", "ngm_executed_jv_agreement", "newmont_q3_10q"],
+    "note": "Standalone preliminary project economics illustrate the value of the pending Fourmile contribution. Both cases include the Nevada net proceeds tax and exclude federal corporate income taxes assessed at consolidated level. The positive case depends on inferred resources. The base valuation omits a standalone Fourmile add-on pending a financeable project model, while retaining the full contractual cash obligation. If valuing Fourmile separately, isolate those flows from existing NGM operations."
+  },
+  "notes": [
+    "Keep investments and associated equity income and distributions outside the consolidated operating mine cash flows to avoid double-counting their economic value.",
+    "Use the November 12, 2027 valuation date for the rolled target, with a partial 2027 cash-flow discount period and a correspondingly timed cash bridge. Investments use cutoff proxies unless a separate forward mark is modeled.",
+    "Include future cash reclamation and remediation payments either in operating FCFF or as separately valued closure cash flows, without subtracting the same liability again in the equity bridge.",
+    "Quote values for large holdings are gross quoted marks without an assumed control premium, liquidation discount, exit tax or execution cost."
+  ]
+}

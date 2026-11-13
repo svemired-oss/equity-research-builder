@@ -1,0 +1,140 @@
+{
+  "as_of": "2026-11-12",
+  "cutoff_basis": "pre_open",
+  "ticker": "NEM",
+  "currency": "USD",
+  "sources": {
+    "september_10q": {
+      "title": "Newmont September 2026 Form 10-Q, balance sheet, statements of cash flows, Notes 4, 6, 13, 14 and 16, and capital expenditures MD&A",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000043/nem-20260930.htm",
+      "available_on": "2026-10-22"
+    },
+    "q3_release": {
+      "title": "Newmont Q3 2026 earnings release, project developments, capital guidance, capitalized interest and reclamation cash outlook",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000041/newmontq32026earningsrelea.htm",
+      "available_on": "2026-10-22"
+    },
+    "fy25_10k": {
+      "title": "Newmont 2025 Form 10-K, accounting policies, reclamation and remediation, property, plant and mine development, and interest",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000010/nem-20251231.htm",
+      "available_on": "2026-02-19"
+    },
+    "imperial_q3": {
+      "title": "Imperial Metals Q3 2026 financial results, Red Chris update",
+      "url": "https://imperialmetals.com/imperial-reports-third-quarter-2026-financial-results/",
+      "available_on": "2026-11-05"
+    },
+    "fasb_230": {
+      "title": "FASB ASU 2016-01, ASC 230-10-45-13(c) and 45-17(d), cash flow classification of capitalized interest",
+      "url": "https://storage.fasb.org/ASU%202016-01.pdf",
+      "available_on": "2016-01-05"
+    }
+  },
+  "fy_2025": {
+    "source": "fy25_10k",
+    "accrued_capex_source": "september_10q",
+    "period_end": "2025-12-31",
+    "gross_ppem_millions": 53537,
+    "accumulated_depreciation_millions": 20227,
+    "net_ppem_millions": 33310,
+    "accrued_capex_millions": 254,
+    "sustaining_capex_accrual_millions": 1755,
+    "development_capex_accrual_millions": 1312,
+    "total_capex_accrual_millions": 3067,
+    "capex_cash_reconciliation_millions": -32,
+    "cash_capex_millions": 3035,
+    "depreciation_millions": 2521,
+    "capitalized_interest_millions": 144,
+    "reclamation_liability_millions": 6800,
+    "remediation_liability_millions": 390,
+    "closure_accretion_millions": 314,
+    "closure_expense_millions": 249,
+    "closure_cash_millions": 803,
+    "yanacocha_reclamation_liability_millions": 3906
+  },
+  "september_2026": {
+    "source": "september_10q",
+    "period_end": "2026-09-30",
+    "net_ppem_millions": 33871,
+    "accrued_capex_millions": 358,
+    "current_closure_liability_millions": 678,
+    "noncurrent_closure_liability_millions": 6095,
+    "closure_expense_millions": 358,
+    "noncash_closure_cfo_adjustment_millions": 339,
+    "yanacocha_reclamation_liability_millions": 3387,
+    "closure": {
+      "reclamation": {
+        "additions_estimate_changes_other_millions": -13,
+        "divestitures_millions": -29,
+        "payments_millions": 667,
+        "accretion_millions": 219,
+        "expense_changes_and_other_millions": 6,
+        "current_millions": 610,
+        "noncurrent_millions": 5700,
+        "total_millions": 6310
+      },
+      "remediation": {
+        "additions_estimate_changes_other_millions": 115,
+        "divestitures_millions": 0,
+        "payments_millions": 47,
+        "accretion_millions": 5,
+        "expense_changes_and_other_millions": 128,
+        "current_millions": 68,
+        "noncurrent_millions": 395,
+        "total_millions": 463
+      }
+    }
+  },
+  "assumptions": {
+    "source_ids": ["september_10q", "q3_release", "fy25_10k", "imperial_q3", "fasb_230"],
+    "q4_2026_finance_lease_additions_millions": 0,
+    "fy_2027_finance_lease_additions_millions": 0,
+    "fy_2027_accretion_growth": 0,
+    "fy_2027_capitalized_interest_growth": 0
+  },
+  "project_context": {
+    "source_ids": ["september_10q", "q3_release", "imperial_q3"],
+    "cost_basis": "Reported development costs since approval and in 9M2026 exclude capitalized interest and capitalized D&A. Other spending on a site's accrual capex line can exceed these project-specific amounts.",
+    "tanami_expansion_2": {
+      "development_cost_since_approval_millions": 1496,
+      "development_cost_9m_2026_millions": 192,
+      "commercial_production_target": "toward the end of the first half of 2027"
+    },
+    "cadia_panel_caves": {
+      "development_cost_since_approval_millions": 677,
+      "development_cost_9m_2026_millions": 161,
+      "milestones": "Material Panel Cave 2-3 development spending is expected to finish in Q4 2026. Panel Cave 1-2 cave establishment resumed after April's seismic event and subsequent regulatory approvals."
+    },
+    "lihir_nearshore_barrier": {
+      "development_cost_since_approval_millions": 67,
+      "development_cost_9m_2026_millions": 67,
+      "milestones": "Management identified construction ramp-up as one driver of higher 2027 development capital. Drought could constrain Q4 operations and affect the cost forecast."
+    },
+    "cerro_negro_expansion": {
+      "development_cost_since_approval_millions": 167,
+      "development_cost_9m_2026_millions": 58
+    },
+    "red_chris_block_cave": {
+      "milestones": "Full-funds decision is expected in early 2027. Construction is targeted for 2027 and commercial production for 2033, conditional on approval. Transition costs from open pit to block cave are outside the announced project estimate.",
+      "total_project_100_percent_real_net_proposed_grant_low_millions": 4200,
+      "total_project_100_percent_real_net_proposed_grant_high_millions": 4800,
+      "proposed_grant_cad_millions": 500
+    },
+    "yanacocha_water_treatment": {
+      "estimated_total_project_cost_millions": 1800,
+      "reported_cumulative_cost_millions": 1300,
+      "target_completion_year": 2027,
+      "classification": "Construction of the two water treatment plants is reported as closure cash within operating activities."
+    }
+  },
+  "limitations": [
+    "Forecast consolidated cash capex uses the nine-month ratio of filed cash capex to attributable capex excluding capitalized interest. The aggregate ratio nets ownership, financing and accrual-to-cash differences. The same ratio applies to each capital category because comparable cash data by category are unavailable.",
+    "Q4 uses management's separately stated rounded capital outlook. The full-year outlook less nine-month attributable capital implies a further $17 million sustaining and $2 million development. The forecast treats accrual additions and cash capex as equal and holds accrued capex flat.",
+    "FY2027 sustaining capital carries forward the FY2026 management outlook. FY2027 development includes the indicative $500 million increase for Lihir and Red Chris conditional on full-funds approval. It includes no potential grant proceeds or separately quantified grant benefit. Red Chris block cave commercial production is targeted for 2033. The NGM property contribution belongs to strategic investing cash flows.",
+    "Capitalized interest is embedded in the consolidated cash capex proxy. Q4 allocates the $175 million FY2026 guide by calendar days because interim capitalized interest is unavailable. FY2027 carries forward the full-year guide. Unlevered capex excludes this amount once.",
+    "Q4 D&A uses the full-year guidance residual and allocates site expense using reported nine-month expense per unit sold and modeled sales volumes. Corporate D&A uses the nine-month monthly run rate. FY2027 uses blended FY2026 site expense per sold unit and carries forward FY2026 corporate expense. Newmont depreciates mine development and mineral interests using reserve-based units of production and generally uses straight-line depreciation for facilities. Reserve-level schedules and depreciation carried in inventory are unavailable. Forecast net property, plant and mine development uses expensed D&A as a proxy for the asset charge and excludes unidentified historical movements.",
+    "Forecast noncash finance lease additions are zero because timing and amounts are unavailable. Cash lease principal and interest can be modeled separately. Positive cash capex figures are outflow magnitudes.",
+    "Q4 reclamation cash includes the $19 million Yanacocha water-treatment residual. FY2027 closure payments use the indicated $200 million decline as construction winds down. Forecast liability changes reflect accretion and payments. The current balance uses the following year's modeled payments as a classification proxy. Future estimate revisions, new obligations and a standalone 2027 Yanacocha project cash estimate are unavailable.",
+    "Closure payments remain in operating cash flow. Any valuation of residual closure after the modeled horizon must reflect amounts already included in the cash forecasts. A separate deduction of the full balance would count modeled payments twice."
+  ]
+}

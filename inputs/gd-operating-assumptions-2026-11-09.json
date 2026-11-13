@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "deliveries": {
+    "bear": [160, 165, 170, 175, 180],
+    "base": [170, 180, 190, 200, 200],
+    "bull": [175, 185, 195, 200, 200]
+  },
+  "delivery_source": {
+    "kind": "model_assumption",
+    "citation": "GD's October 30 earnings call described an intent to reach 200 Gulfstream deliveries in 2030. Model paths assume varying supplier and completion capacity. The base interpolates from 160 in FY2026 to 200 in FY2030 and holds 200 in FY2031.",
+    "available_on": "2026-11-09",
+    "url": "https://stockanalysis.com/stocks/gd/transcripts/718470-q3-2026/"
+  },
+  "segments": {
+    "aerospace": {
+      "growth": {
+        "9": {"first": 0.08, "last": 0.045, "case_spread": 0.025},
+        "15": {"first": 0.025, "last": 0.02, "case_spread": 0.0125}
+      },
+      "final_margin": 0.154,
+      "margin_spread": 0.006,
+      "source": {
+        "kind": "model_assumption",
+        "citation": "Aircraft services demand grows with the installed fleet, FBO activity and maintenance. The model tapers growth as the base expands. Nominal revenue per delivery reflects mix and pricing. Higher terminal margin assumes more mature production and favorable mix.",
+        "available_on": "2026-11-09",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000038/gd-20261004.htm"
+      }
+    },
+    "marine_systems": {
+      "growth": {
+        "23": {"first": 0.14, "last": 0.06, "case_spread": 0.04},
+        "24": {"first": 0.09, "last": 0.04, "case_spread": 0.03},
+        "25": {"first": 0.05, "last": 0.03, "case_spread": 0.02}
+      },
+      "final_margin": 0.081,
+      "margin_spread": 0.006,
+      "source": {
+        "kind": "model_assumption",
+        "citation": "Columbia and Virginia awards support submarine workload. The base tapers growth as the revenue base expands and assumes modest recurring productivity gains. The case range reflects supplier capacity, funding and contract execution. Q3 included a favorable Block IV adjustment.",
+        "available_on": "2026-11-09",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000038/gd-20261004.htm"
+      }
+    },
+    "combat_systems": {
+      "growth": {
+        "36": {"first": 0.03, "last": 0.04, "case_spread": 0.04},
+        "37": {"first": 0.10, "last": 0.06, "case_spread": 0.03},
+        "38": {"first": 0.09, "last": 0.05, "case_spread": 0.035}
+      },
+      "final_margin": 0.142,
+      "margin_spread": 0.006,
+      "source": {
+        "kind": "model_assumption",
+        "citation": "Vehicle growth assumes a gradual recovery through international demand and U.S. program transitions. Munitions and engineering grow faster initially and then slow from current trends. Margin cases vary by production mix and execution.",
+        "available_on": "2026-11-09",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000038/gd-20261004.htm"
+      }
+    },
+    "technologies": {
+      "growth": {
+        "49": {"first": 0.04, "last": 0.035, "case_spread": 0.02},
+        "50": {"first": 0.08, "last": 0.045, "case_spread": 0.03}
+      },
+      "final_margin": 0.096,
+      "margin_spread": 0.005,
+      "source": {
+        "kind": "model_assumption",
+        "citation": "The base uses recent IT services growth and tapers faster C5ISR growth. The case range reflects bookings conversion and contract mix. Contract ceilings and option years are excluded from the annual revenue assumptions.",
+        "available_on": "2026-11-09",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000038/gd-20261004.htm"
+      }
+    }
+  },
+  "corporate_cost_growth": 0.03,
+  "corporate_source": {
+    "kind": "model_assumption",
+    "citation": "Use July's approximate FY2026 corporate cost outlook as the starting amount. Apply a 3% nominal annual growth assumption in each forward year.",
+    "available_on": "2026-11-09",
+    "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000032/gd-20260705.htm"
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "as_of": "2026-11-12",
+  "ticker": "NEM",
+  "currency": "USD",
+  "cutoff_basis": "pre_open",
+  "sources": {
+    "q3_10q": {
+      "title": "Newmont September 2026 Form 10-Q, cover, statements, Notes 1, 8, 10, 15 and 16, Part II Item 2",
+      "available_on": "2026-10-22",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000043/nem-20260930.htm"
+    },
+    "q3_release": {
+      "title": "Newmont October 22 earnings release and quarterly supplemental statements, Form 8-K Exhibit 99.1",
+      "available_on": "2026-10-22",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000041/newmontq32026earningsrelea.htm"
+    },
+    "fy25_10k": {
+      "title": "Newmont 2025 Form 10-K, Notes 20 and 21, debt and lease commitments",
+      "available_on": "2026-02-19",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000116472726000010/nem-20251231.htm"
+    },
+    "ngm_agreement": {
+      "title": "Newmont Form 8-K, August 10 Nevada Gold Mines joint venture agreement and cash terms",
+      "available_on": "2026-08-13",
+      "url": "https://www.sec.gov/Archives/edgar/data/1164727/000110465926095968/tm2623048d1_8k.htm"
+    },
+    "barrick_q3_md_and_a": {
+      "title": "Barrick November 9 Form 6-K Exhibit 99.2, Q3 MD&A, Key Business Developments",
+      "available_on": "2026-11-09",
+      "url": "https://www.sec.gov/Archives/edgar/data/756894/000119312526453391/d141003dex992.htm"
+    },
+    "american_barrick_s1": {
+      "title": "American Barrick November 10 preliminary Form S-1, Nevada Gold Mines and carve-out subsequent-events notes",
+      "available_on": "2026-11-10",
+      "url": "https://www.sec.gov/Archives/edgar/data/2162540/000119312526455481/d338869ds1.htm"
+    },
+    "fourmile_technical_report": {
+      "title": "American Barrick November 10 Form S-1 Exhibit 96.3, Fourmile Technical Report Summary",
+      "available_on": "2026-11-10",
+      "url": "https://www.sec.gov/Archives/edgar/data/2162540/000119312526455481/d338869dex963.htm"
+    },
+    "newmont_stock_history": {
+      "title": "Newmont investor relations NYSE historical prices, November 11, 2026 close",
+      "available_on": "2026-11-11",
+      "url": "https://www.newmont.com/investors/stock-information/"
+    }
+  },
+  "reference_close": {
+    "price_usd": 118.47,
+    "observed_on": "2026-11-11",
+    "source": "newmont_stock_history"
+  },
+  "opening": {
+    "period_end": "2026-09-30",
+    "cash_millions": 8827,
+    "restricted_cash_millions": 49,
+    "cash_including_restricted_millions": 8876,
+    "debt_carrying_millions": 5087,
+    "debt_face_millions": 5301,
+    "unamortized_debt_discount_millions": 214,
+    "debt_fair_value_millions": 4882,
+    "finance_leases_current_millions": 134,
+    "finance_leases_noncurrent_millions": 363,
+    "net_cash_including_leases_millions": 3243,
+    "revolver_limit_millions": 4000,
+    "revolver_drawn_millions": 0,
+    "shares_issued_millions": 1050,
+    "treasury_shares_millions": 7,
+    "latest_shares_outstanding": 1039193185,
+    "latest_shares_observed_on": "2026-10-15",
+    "source": "q3_10q",
+    "note": "September issued and treasury shares are rounded separately in the equity statement. The October 15 cover count is exact at the stated date. The balance sheet debt deduction includes the combined unamortized premiums, discounts and issuance costs. Restricted cash sits in other assets and is excluded from available cash. The undrawn revolver is liquidity rather than cash."
+  },
+  "actuals": {
+    "q4_2025": {
+      "period_end": "2025-12-31",
+      "net_income_millions": 1347,
+      "net_income_attributable_millions": 1301,
+      "nci_income_millions": 46,
+      "equity_income_millions": 171,
+      "interest_expense_net_millions": 33,
+      "lease_principal_paid_millions": 25,
+      "note_cash_repaid_millions": 70,
+      "dividends_paid_millions": 272,
+      "repurchases_cash_millions": 428,
+      "basic_weighted_shares_millions": 1090,
+      "diluted_weighted_shares_millions": 1094,
+      "dilutive_awards_millions": 4,
+      "basic_eps_usd": 1.19,
+      "diluted_eps_usd": 1.19,
+      "source": "q3_release"
+    },
+    "q1_2026": {
+      "period_end": "2026-03-31",
+      "net_income_millions": 3328,
+      "net_income_attributable_millions": 3262,
+      "nci_income_millions": 66,
+      "equity_income_millions": 149,
+      "interest_expense_net_millions": 39,
+      "lease_principal_paid_millions": 27,
+      "note_cash_repaid_millions": 39,
+      "dividends_paid_millions": 282,
+      "repurchases_cash_millions": 1895,
+      "basic_weighted_shares_millions": 1085,
+      "diluted_weighted_shares_millions": 1087,
+      "dilutive_awards_millions": 2,
+      "basic_eps_usd": 3.01,
+      "diluted_eps_usd": 3.00,
+      "source": "q3_release"
+    },
+    "q2_2026": {
+      "period_end": "2026-06-30",
+      "net_income_millions": 2251,
+      "net_income_attributable_millions": 2202,
+      "nci_income_millions": 49,
+      "equity_income_millions": 204,
+      "interest_expense_net_millions": 35,
+      "lease_principal_paid_millions": 26,
+      "note_cash_repaid_millions": 0,
+      "dividends_paid_millions": 277,
+      "repurchases_cash_millions": 1567,
+      "basic_weighted_shares_millions": 1065,
+      "diluted_weighted_shares_millions": 1067,
+      "dilutive_awards_millions": 2,
+      "basic_eps_usd": 2.07,
+      "diluted_eps_usd": 2.06,
+      "source": "q3_release"
+    },
+    "q3_2026": {
+      "period_end": "2026-09-30",
+      "net_income_millions": 2514,
+      "net_income_attributable_millions": 2475,
+      "nci_income_millions": 39,
+      "equity_income_millions": 143,
+      "interest_expense_net_millions": 31,
+      "lease_principal_paid_millions": 25,
+      "note_cash_repaid_millions": 0,
+      "dividends_paid_millions": 272,
+      "repurchases_cash_millions": 1779,
+      "basic_weighted_shares_millions": 1049,
+      "diluted_weighted_shares_millions": 1051,
+      "dilutive_awards_millions": 2,
+      "basic_eps_usd": 2.36,
+      "diluted_eps_usd": 2.35,
+      "source": "q3_release"
+    },
+    "ytd_2026": {
+      "period_end": "2026-09-30",
+      "net_income_millions": 8093,
+      "net_income_attributable_millions": 7939,
+      "nci_income_millions": 154,
+      "equity_income_millions": 496,
+      "interest_expense_net_millions": 105,
+      "lease_principal_paid_millions": 78,
+      "note_cash_repaid_millions": 39,
+      "dividends_paid_millions": 831,
+      "repurchases_cash_millions": 5241,
+      "basic_weighted_shares_millions": 1066,
+      "diluted_weighted_shares_millions": 1069,
+      "dilutive_awards_millions": 3,
+      "basic_eps_usd": 7.45,
+      "diluted_eps_usd": 7.43,
+      "source": "q3_10q"
+    }
+  },
+  "notes_debt": {
+    "scheduled_principal_millions": {
+      "2026": 0,
+      "2027": 0,
+      "2028": 0,
+      "2029": 265,
+      "2030": 655,
+      "thereafter": 4381
+    },
+    "ytd_face_principal_redeemed_millions": 42,
+    "q4_new_note_proceeds_millions": 0,
+    "fy_2027_new_note_proceeds_millions": 0,
+    "q4_discretionary_note_redemptions_millions": 0,
+    "fy_2027_discretionary_note_redemptions_millions": 0,
+    "source": "q3_10q",
+    "note": "The maturity schedule uses face amount as of September 30. Nine-month $42 million face redemptions cost $39 million in cash and are in the opening balance. No new issuance, early redemption or revolver borrowing is modeled. Unamortized debt adjustments stay at the September balance in the short forecast because a period-level amortization schedule is unavailable."
+  },
+  "lease_financing": {
+    "q4_principal_millions": 25,
+    "fy_2027_gross_payment_millions": 88,
+    "discount_rate_proxy": 0.0616,
+    "q4_new_finance_leases_millions": 0,
+    "fy_2027_new_finance_leases_millions": 0,
+    "fy_2025_finance_lease_gross_payment_schedule_millions": {
+      "2026": 119,
+      "2027": 88,
+      "2028": 78,
+      "2029": 53,
+      "2030": 45,
+      "thereafter": 225
+    },
+    "source": "fy25_10k",
+    "source_ids": ["fy25_10k", "q3_release"],
+    "note": "Q4 principal repeats the last reported quarter's $25 million financing cash flow. FY2027 uses the December 2025 Note 21 $88 million gross payment and 6.16% weighted discount rate as proxies. Separate principal by estimating interest on average opening and ending modeled obligations. The FY2025 contractual schedule predates the September liability and includes no subsequent additions. The $134 million current carrying balance does not give exact 2027 calendar-year payments. Operating leases stay outside financing debt. Forecast lease interest is a gross-interest schedule component and is already covered by the net interest expense assumption."
+  },
+  "interest": {
+    "fy_2026_net_interest_expense_guidance_millions": 175,
+    "fy_2026_capitalized_interest_guidance_millions": 175,
+    "fy_2027_net_interest_expense_millions": 175,
+    "q3_2026_interest_income_millions": 78,
+    "ytd_2026_interest_income_millions": 249,
+    "source": "q3_release",
+    "source_ids": ["q3_release", "q3_10q"],
+    "note": "Q4 expense equals the FY2026 net interest expense guidance less $105 million filed YTD. The FY2027 expense is a carry-forward model proxy. Net refers to capitalized interest and excludes interest income. Capitalized interest guidance is separately disclosed and does not establish the quarter's actual cash versus noncash amount. Interest income is separately reported in Other income (loss), net."
+  },
+  "repurchases": {
+    "known_q4_cash_millions": 451,
+    "known_q4_shares_millions": 3.9,
+    "known_q4_average_price_usd": 116,
+    "known_q4_through": "2026-10-22",
+    "authorization_remaining_millions_rounded": 2800,
+    "additional_q4_cash_millions": 0,
+    "fy_2027_cash_millions": 0,
+    "source": "q3_10q",
+    "source_ids": ["q3_10q", "q3_release"],
+    "note": "Post-quarter settlements and retirements through October 22 are known in aggregate. Record the $451 million cash/equity movement once. The September rounded outstanding count less 3.9 million broadly matches the separate exact October 15 cover count. Use the October 15 count as the modeled closing share proxy without a second share deduction. Exact transaction dates and any later purchases are unavailable. Weight the September count over the 22 days through the disclosure date and the closing proxy for the rest of Q4 to estimate basic weighted shares. The remaining authorization permits future repurchases at board discretion."
+  },
+  "dividends": {
+    "declared_on": "2026-10-22",
+    "record_on": "2026-11-25",
+    "pay_on": "2026-12-21",
+    "declared_per_share_usd": 0.26,
+    "fy_2027_quarterly_per_share_usd": 0.26,
+    "fy_2027_payments": 4,
+    "framework_annual_cash_target_millions": 1100,
+    "framework_minimum_cash_millions": 5000,
+    "framework_net_cash_target_millions": 1000,
+    "framework_net_cash_target_flex_millions": 2000,
+    "source": "q3_release",
+    "note": "Treat the December cash payment as declared at the cutoff and use modeled outstanding shares on the record date. FY2027 assumes four payments at the last declared rate. The board approves quarterly dividends. Management's $1.1 billion annual framework and rounding formula may lead to a different rate when it next resets the target in February."
+  },
+  "ngm_settlement": {
+    "cash_payment_millions": 1950,
+    "signed_on": "2026-08-10",
+    "due_days_after_fourmile_contribution": 30,
+    "newmont_ownership_share": 0.385,
+    "settled_before_cutoff": null,
+    "actual_settlement_date": null,
+    "modeled_pre_cutoff_cash_millions": 0,
+    "modeled_q4_cash_millions": 1950,
+    "source": "ngm_agreement",
+    "source_ids": ["ngm_agreement", "q3_10q", "q3_release", "barrick_q3_md_and_a", "american_barrick_s1", "fourmile_technical_report"],
+    "note": "Newmont and Barrick expected the properties to be contributed in Q4 and the October earnings release expected Q4 payment. The November 10 preliminary S-1 business narrative uses past tense and leaves contribution dates blank, while its carve-out subsequent-events disclosures use prospective language and its Fourmile technical report refers to the planned contribution. The sources leave the cutoff settlement status unresolved. The model assumes the $1.95 billion leaves cash after November 12 and before year-end as a separate investing item, with no duplicate cash deduction for the deemed capital contribution. Capitalize the cash cost provisionally as unallocated NGM development property apart from routine mine capex. Newmont expects its 38.5% interest to include 61.5% of the fair value of Fiberline and Mike in consideration and to recognize a gain when the properties are contributed. Their fair values, associated liabilities and gain are unestimated."
+  }
+}

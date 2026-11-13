@@ -1,0 +1,115 @@
+{
+  "as_of": "2026-11-12",
+  "ticker": "FDX",
+  "currency": "USD",
+  "sources": {
+    "treasury_10_year": {
+      "title": "U.S. Treasury daily par yield curve, November 2026, 10-year column",
+      "url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve&field_tdr_date_value_month=202611",
+      "available_on": "2026-11-10"
+    },
+    "damodaran_november_erp": {
+      "title": "Aswath Damodaran, November 1, 2026 U.S. implied equity risk premium, adjusted payout",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/home.htm",
+      "available_on": "2026-11-01"
+    },
+    "damodaran_transportation_beta": {
+      "title": "Aswath Damodaran, January 2026 Betas by Sector (U.S.), Transportation",
+      "url": "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/Betas.html",
+      "available_on": "2026-01-31"
+    },
+    "ice_bbb_yield": {
+      "title": "ICE BofA BBB U.S. Corporate Index Effective Yield, series BAMLC0A4CBBBEY",
+      "url": "https://alfred.stlouisfed.org/series?seid=BAMLC0A4CBBBEY",
+      "available_on": "2026-11-12"
+    },
+    "fedex_2036_notes": {
+      "title": "FedEx final term sheet, September 9, 2026, 5.750% USD senior notes due September 2036",
+      "url": "https://www.sec.gov/Archives/edgar/data/230211/000110465926106381/tm2624915d3_fwp.htm",
+      "available_on": "2026-09-09"
+    },
+    "fedex_credit_rating": {
+      "title": "FedEx September 2026 Form 10-Q, liquidity and senior unsecured ratings",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000131/fdx-20260930.htm",
+      "available_on": "2026-10-28"
+    },
+    "fedex_cy26_tax_outlook": {
+      "title": "FedEx October 28, 2026 earnings release, revised CY2026 tax outlook",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000128/fdx-earningsreleasety2026q3.htm",
+      "available_on": "2026-10-28"
+    },
+    "fomc_long_run": {
+      "title": "Federal Reserve September 2026 Summary of Economic Projections, longer-run medians",
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomcprojtabl20260916.htm",
+      "available_on": "2026-09-16"
+    },
+    "fedex_roic_target": {
+      "title": "FedEx 2026 Investor Day, 2029 financial targets and ROIC reconciliation",
+      "url": "https://investors.fedex.com/news-and-events/investor-news/investor-news-details/2026/FedEx-Corporation-Hosts-2026-Investor-Day/default.aspx",
+      "available_on": "2026-02-12"
+    }
+  },
+  "risk_free_rate": {
+    "value": 0.0498,
+    "observed_on": "2026-11-10",
+    "source": "treasury_10_year",
+    "note": "The U.S. Treasury curve has no Veterans Day observation. November 10 was the latest available 10-year par yield before the November 12 equity market open."
+  },
+  "equity_risk_premium": {
+    "value": 0.0441,
+    "observed_on": "2026-11-01",
+    "source": "damodaran_november_erp",
+    "note": "Trailing 12-month implied U.S. equity risk premium with adjusted payout. The estimate uses the Treasury-yield convention. The model carries this dated estimate into the November 12 cutoff and uses the latest available Treasury yield."
+  },
+  "unlevered_beta": {
+    "value": 0.71,
+    "observed_on": "2026-01-01",
+    "source": "damodaran_transportation_beta",
+    "note": "NYU's January 2026 cash-adjusted unlevered beta for the 19-company U.S. Transportation group serves as a broad proxy for parcel and logistics business risk. The date represents a month-level source. Re-lever with the observed FDX equity market cap, September carrying debt including finance leases, and the model tax rate. The peer group includes different transport businesses."
+  },
+  "pretax_cost_of_debt": {
+    "value": 0.0606,
+    "observed_on": "2026-11-11",
+    "source": "ice_bbb_yield",
+    "note": "Effective yield released at 8:51 a.m. ET on November 12 before the 9:30 a.m. equity open. This broad USD BBB index proxies marginal funding cost for FedEx's disclosed BBB/Baa2 senior unsecured ratings. The dated September FedEx 2036 notes issuance provides a company-specific cross-check."
+  },
+  "tax_rate": {
+    "value": 0.225,
+    "observed_on": "2026-10-28",
+    "source": "fedex_cy26_tax_outlook",
+    "note": "Use the CY2026 adjusted effective rate as the model's forward and tax-shield assumption. The issuer forecast excludes specified mark-to-market effects and the Supply Chain deferred tax benefit. Extending it into the forecast and perpetuity is an analyst assumption."
+  },
+  "terminal_growth": {
+    "value": 0.025,
+    "observed_on": "2026-09-16",
+    "source": "fomc_long_run",
+    "note": "Analyst assumption for nominal steady-state growth of FedEx operating profit. The FOMC's longer-run medians were 2% PCE inflation and 2% real U.S. GDP growth. The selected rate allows modest real growth for a mature network."
+  },
+  "terminal_return_on_new_invested_capital": {
+    "value": 0.11,
+    "observed_on": "2026-02-12",
+    "source": "fedex_roic_target",
+    "note": "Use FedEx's approximate 2029 company-wide ROIC target as a proxy for terminal marginal return on new operating capital. The target describes average invested capital. The marginal interpretation is an analyst assumption. Terminal reinvestment equals first terminal-year NOPAT multiplied by terminal growth divided by this return."
+  },
+  "sensitivity_steps": {
+    "wacc": 0.005,
+    "terminal_growth": 0.005
+  },
+  "debt_cross_check": {
+    "source": "fedex_2036_notes",
+    "rating_source": "fedex_credit_rating",
+    "priced_on": "2026-09-09",
+    "maturity": "2036-09-30",
+    "principal_millions": 1100,
+    "coupon_rate": 0.0575,
+    "benchmark_treasury_yield": 0.04829,
+    "issue_spread": 0.0095,
+    "reoffer_yield": 0.05779,
+    "note": "The reoffer yield reflects September pricing. Applying the original 95 bp spread to the latest Treasury par yield would imply 5.93% as a second funding-cost proxy. Current pricing for this specific issue was unavailable."
+  },
+  "notes": [
+    "Equity weights use quoted market capitalization. Debt uses filed carrying value, including finance leases. Operating leases stay in operating costs and outside the debt weights.",
+    "The equity beta and bond yield are proxy inputs with different market scopes and observation dates.",
+    "The terminal growth and marginal return assumptions are adjustable. Sensitivities recalculate reinvestment at each growth rate."
+  ]
+}

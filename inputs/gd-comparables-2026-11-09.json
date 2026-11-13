@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "companies": [
+    {
+      "ticker": "GD",
+      "selection_reason": "Subject company. Its business spans Gulfstream and aircraft services, naval shipbuilding, combat systems, and defense and government IT.",
+      "close": {
+        "price": 354.06,
+        "observed_on": "2026-11-06",
+        "price_type": "unadjusted_close",
+        "source": {
+          "kind": "market_data",
+          "citation": "Stock Analysis daily history, S&P Global Market Intelligence feed, November 6 regular-session Close. Cross-checked against ChartExchange's November 6 historical Close.",
+          "available_on": "2026-11-09",
+          "url": "https://stockanalysis.com/stocks/gd/history/"
+        }
+      },
+      "annual": {
+        "period_end": "2025-12-31",
+        "operating_earnings": 5356,
+        "common_net_earnings": 4210
+      },
+      "prior_interim": {
+        "period_end": "2025-09-28",
+        "operating_earnings": 3904,
+        "common_net_earnings": 3067
+      },
+      "interim": {
+        "period_end": "2026-10-04",
+        "operating_earnings": 4407,
+        "common_net_earnings": 3514
+      },
+      "annual_source": {
+        "kind": "sec_filing",
+        "citation": "General Dynamics FY2025 Form 10-K, Consolidated Statement of Earnings. Reported full-year operating earnings and net earnings in USD millions.",
+        "available_on": "2026-01-30",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000006/gd-20251231.htm"
+      },
+      "interim_source": {
+        "kind": "sec_filing",
+        "citation": "General Dynamics Q3 2026 Form 10-Q cover, Consolidated Statement of Earnings for nine months, Consolidated Balance Sheet, and Note H. Comparative earnings use the nine months ended September 28, 2025 and October 4, 2026. Carrying debt is $756 million current plus $6,260 million long-term. The balance sheet reports common equity with no separate preferred stock or noncontrolling interest.",
+        "available_on": "2026-10-30",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000038/gd-20261004.htm"
+      },
+      "capital": {
+        "shares": 270223709,
+        "shares_on": "2026-10-04",
+        "cash": 4388,
+        "carrying_debt": 7016,
+        "noncontrolling_interest": 0,
+        "preferred_stock": 0
+      }
+    },
+    {
+      "ticker": "LMT",
+      "selection_reason": "U.S. defense prime with military aircraft, missiles, and rotary and mission systems. Its weapons and systems programs overlap GD Combat Systems and Technologies.",
+      "close": {
+        "price": 567.08,
+        "observed_on": "2026-11-06",
+        "price_type": "unadjusted_close",
+        "source": {
+          "kind": "market_data",
+          "citation": "Stock Analysis November 6 regular-session Close. Cross-checked against the same date in ChartExchange's historical table at https://chartexchange.com/symbol/nyse-lmt/historical/.",
+          "available_on": "2026-11-06",
+          "url": "https://stockanalysis.com/stocks/lmt/history/"
+        }
+      },
+      "annual": {
+        "period_end": "2025-12-31",
+        "operating_earnings": 7731,
+        "common_net_earnings": 5017
+      },
+      "prior_interim": {
+        "period_end": "2025-09-28",
+        "operating_earnings": 5400,
+        "common_net_earnings": 3673
+      },
+      "interim": {
+        "period_end": "2026-09-27",
+        "operating_earnings": 6985,
+        "common_net_earnings": 5169
+      },
+      "annual_source": {
+        "kind": "sec_filing",
+        "citation": "Lockheed Martin FY2025 Form 10-K, Consolidated Statements of Earnings. Reported full-year operating profit and net earnings in USD millions.",
+        "available_on": "2026-01-29",
+        "url": "https://www.sec.gov/Archives/edgar/data/936468/000162828026004195/lmt-20251231.htm"
+      },
+      "interim_source": {
+        "kind": "sec_filing",
+        "citation": "Lockheed Martin Q3 2026 Form 10-Q cover, Consolidated Statements of Earnings, and Consolidated Balance Sheets. Comparative earnings use the nine months ended September 28, 2025 and September 27, 2026. Current maturities of long-term debt are zero. The balance sheet reports no separate preferred stock or noncontrolling interest.",
+        "available_on": "2026-10-22",
+        "url": "https://www.sec.gov/Archives/edgar/data/936468/000162828026066928/lmt-20260927.htm"
+      },
+      "capital": {
+        "shares": 231004640,
+        "shares_on": "2026-10-19",
+        "cash": 5960,
+        "carrying_debt": 20498,
+        "noncontrolling_interest": 0,
+        "preferred_stock": 0
+      }
+    },
+    {
+      "ticker": "NOC",
+      "selection_reason": "U.S. defense prime with command and control, communications, sensors, and national-security modernization programs that overlap GD Technologies.",
+      "close": {
+        "price": 525.01,
+        "observed_on": "2026-11-06",
+        "price_type": "unadjusted_close",
+        "source": {
+          "kind": "market_data",
+          "citation": "Northrop Grumman's historical price lookup for the November 6 regular-session close. Cross-checked against the same date at https://chartexchange.com/symbol/nyse-noc/historical/ and https://stockanalysis.com/stocks/noc/history/.",
+          "available_on": "2026-11-06",
+          "url": "https://northropgrumman.gcs-web.com/index.php/stock-information/historical-price-lookup"
+        }
+      },
+      "annual": {
+        "period_end": "2025-12-31",
+        "operating_earnings": 4511,
+        "common_net_earnings": 4182
+      },
+      "prior_interim": {
+        "period_end": "2025-09-30",
+        "operating_earnings": 3240,
+        "common_net_earnings": 2755
+      },
+      "interim": {
+        "period_end": "2026-09-30",
+        "operating_earnings": 3354,
+        "common_net_earnings": 3093
+      },
+      "annual_source": {
+        "kind": "sec_filing",
+        "citation": "Northrop Grumman FY2025 Form 10-K, Consolidated Statements of Earnings and Comprehensive Income. Reported full-year operating income and net earnings in USD millions.",
+        "available_on": "2026-01-27",
+        "url": "https://www.sec.gov/Archives/edgar/data/1133421/000113342126000003/noc-20251231.htm"
+      },
+      "interim_source": {
+        "kind": "sec_filing",
+        "citation": "Northrop Grumman Q3 2026 Form 10-Q cover, Condensed Consolidated Statements of Earnings and Comprehensive Income, Condensed Consolidated Statements of Financial Position, and debt disclosures. Comparative earnings use the nine months ended September 30 in each year. Carrying debt includes $764 million current in other current liabilities and $14,433 million long-term. The balance sheet reports no separate preferred stock or noncontrolling interest.",
+        "available_on": "2026-10-20",
+        "url": "https://www.sec.gov/Archives/edgar/data/1133421/000113342126000038/noc-20260930.htm"
+      },
+      "capital": {
+        "shares": 142064489,
+        "shares_on": "2026-10-15",
+        "cash": 3744,
+        "carrying_debt": 15197,
+        "noncontrolling_interest": 0,
+        "preferred_stock": 0
+      }
+    },
+    {
+      "ticker": "HII",
+      "selection_reason": "Naval shipbuilder with nuclear submarine and surface ship programs that overlap GD Marine Systems. Mission Technologies also overlaps GD's government technology services.",
+      "close": {
+        "price": 288.74,
+        "observed_on": "2026-11-06",
+        "price_type": "unadjusted_close",
+        "source": {
+          "kind": "market_data",
+          "citation": "Stock Analysis November 6 regular-session Close. Cross-checked against the same date in ChartExchange's historical table at https://chartexchange.com/symbol/nyse-hii/historical/.",
+          "available_on": "2026-11-06",
+          "url": "https://stockanalysis.com/stocks/hii/history/"
+        }
+      },
+      "annual": {
+        "period_end": "2025-12-31",
+        "operating_earnings": 657,
+        "common_net_earnings": 605
+      },
+      "prior_interim": {
+        "period_end": "2025-09-30",
+        "operating_earnings": 485,
+        "common_net_earnings": 446
+      },
+      "interim": {
+        "period_end": "2026-09-30",
+        "operating_earnings": 611,
+        "common_net_earnings": 574
+      },
+      "annual_source": {
+        "kind": "sec_filing",
+        "citation": "Huntington Ingalls Industries FY2025 Form 10-K, Consolidated Statements of Operations and Comprehensive Income. Reported full-year operating income and net earnings in USD millions.",
+        "available_on": "2026-02-05",
+        "url": "https://www.sec.gov/Archives/edgar/data/1501585/000150158526000006/hii-20251231.htm"
+      },
+      "interim_source": {
+        "kind": "sec_filing",
+        "citation": "Huntington Ingalls Industries Q3 2026 Form 10-Q cover, Condensed Consolidated Statements of Operations and Comprehensive Income, Condensed Consolidated Statements of Financial Position, and Item 3. Comparative earnings use the nine months ended September 30 in each year. The $2,704 million carrying debt is long-term. HII reports no outstanding revolver or commercial paper borrowings and no separate preferred stock or noncontrolling interest.",
+        "available_on": "2026-10-29",
+        "url": "https://www.sec.gov/Archives/edgar/data/1501585/000150158526000056/hii-20260930.htm"
+      },
+      "capital": {
+        "shares": 39406060,
+        "shares_on": "2026-10-23",
+        "cash": 387,
+        "carrying_debt": 2704,
+        "noncontrolling_interest": 0,
+        "preferred_stock": 0
+      }
+    },
+    {
+      "ticker": "RTX",
+      "selection_reason": "Commercial aerospace equipment and aftermarket exposure provides context for GD Aerospace. Raytheon's defense electronics and munitions overlap GD Technologies and Combat Systems.",
+      "close": {
+        "price": 189.53,
+        "observed_on": "2026-11-06",
+        "price_type": "unadjusted_close",
+        "source": {
+          "kind": "market_data",
+          "citation": "Stock Analysis November 6 regular-session Close. Cross-checked against the same date in ChartExchange's historical table at https://chartexchange.com/symbol/nyse-rtx/historical/.",
+          "available_on": "2026-11-06",
+          "url": "https://stockanalysis.com/stocks/rtx/history/"
+        }
+      },
+      "annual": {
+        "period_end": "2025-12-31",
+        "operating_earnings": 9300,
+        "common_net_earnings": 6732
+      },
+      "prior_interim": {
+        "period_end": "2025-09-30",
+        "operating_earnings": 6704,
+        "common_net_earnings": 5110
+      },
+      "interim": {
+        "period_end": "2026-09-30",
+        "operating_earnings": 8703,
+        "common_net_earnings": 6781
+      },
+      "annual_source": {
+        "kind": "sec_filing",
+        "citation": "RTX FY2025 Form 10-K, Consolidated Statement of Operations. Reported full-year operating profit and net income attributable to common shareowners in USD millions.",
+        "available_on": "2026-02-06",
+        "url": "https://www.sec.gov/Archives/edgar/data/101829/000010182926000006/rtx-20251231.htm"
+      },
+      "interim_source": {
+        "kind": "sec_filing",
+        "citation": "RTX Q3 2026 Form 10-Q cover, Condensed Consolidated Statement of Operations, and Condensed Consolidated Balance Sheet. Comparative earnings use the nine months ended September 30 in each year. Carrying debt is $210 million short-term borrowings, $5,679 million current long-term debt and $31,490 million long-term debt. Noncontrolling interests include $1,714 million in equity and $28 million redeemable. The balance sheet reports no preferred stock.",
+        "available_on": "2026-10-20",
+        "url": "https://www.sec.gov/Archives/edgar/data/101829/000010182926000031/rtx-20260930.htm"
+      },
+      "capital": {
+        "shares": 1349440548,
+        "shares_on": "2026-09-30",
+        "cash": 9173,
+        "carrying_debt": 37379,
+        "noncontrolling_interest": 1742,
+        "preferred_stock": 0
+      }
+    }
+  ]
+}

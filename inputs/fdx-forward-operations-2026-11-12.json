@@ -1,0 +1,177 @@
+{
+  "as_of": "2026-11-12",
+  "ticker": "FDX",
+  "currency": "USD",
+  "monetary_units": "millions",
+  "sources": {
+    "q3_earnings_deck": {
+      "title": "FedEx Q3 CY2026 earnings presentation, slides 8, 15 and 17–22",
+      "available_on": "2026-10-28",
+      "url": "https://s21.q4cdn.com/665674268/files/doc_financials/2026/q3_cy/FDX-Q3-CY26-Earnings-Presentation.pdf"
+    },
+    "q3_10q": {
+      "title": "FedEx Form 10-Q for September 30, 2026, including segment operating statistics and Note 14",
+      "available_on": "2026-10-28",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000131/fdx-20260930.htm"
+    },
+    "q3_release": {
+      "title": "FedEx third quarter CY2026 earnings release, including the 2027 parcel list-rate increase",
+      "available_on": "2026-10-28",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000128/fdx-earningsreleasety2026q3.htm"
+    },
+    "december_calendar": {
+      "title": "FedEx October 28 Form 8-K Exhibit 99.1, expected CY2027 operating days",
+      "available_on": "2026-10-28",
+      "url": "https://www.sec.gov/Archives/edgar/data/1048911/000104891126000126/fedexrecastexhibit991.htm"
+    },
+    "investor_day": {
+      "title": "FedEx 2026 Investor Day financial targets and segment outlook",
+      "available_on": "2026-02-12",
+      "url": "https://investors.fedex.com/news-and-events/investor-news/investor-news-details/2026/FedEx-Corporation-Hosts-2026-Investor-Day/default.aspx"
+    }
+  },
+  "years": [2027, 2028, 2029, 2030, 2031],
+  "operating_days": {
+    "source": "december_calendar",
+    "days": [254, 254, 254, 254, 254],
+    "note": "CY2027 is FedEx's disclosed 63/64/64/63 day schedule. CY2028–2031 hold the latest disclosed full-year count as an analyst planning assumption."
+  },
+  "fuel_normalization": {
+    "source": "q3_earnings_deck",
+    "cy25_sales_growth_contribution": 0.04,
+    "segment_weights_by_cy25_revenue": {
+      "express_us_domestic": 0.03,
+      "express_international": 0.07
+    },
+    "fraction_removed_from_2027_base": 1,
+    "note": "FedEx estimates about four percentage points of CY2026 growth from fuel-price driven surcharges. Segment weights apply Q4's disclosed three and seven points to FY2025 segment revenue, then scale to the consolidated amount. Pro-rate within each segment by CY2026 service revenue. The model removes the incremental amount from opening revenue and yield once. CY2027 onward rates apply to that normalized base. This is a fuel-normalization assumption, and FedEx does not disclose the full-year mix or 2027 fuel prices."
+  },
+  "corporate_revenue": {
+    "source": "q3_10q",
+    "note": "The Supply Chain sale closed October 1, 2026. Annualize the guidance-implied Q4 2026 corporate other and eliminations amount using the recast CY2025 Q4 share of annual corporate other and eliminations revenue. The amount is a blended continuing-business proxy because the disposed business's contribution is unavailable."
+  },
+  "base_service_assumptions": {
+    "us_priority": {
+      "volume_growth": [0.02, 0.0175, 0.015, 0.013, 0.012],
+      "yield_growth": [0.033, 0.024, 0.022, 0.021, 0.021]
+    },
+    "us_deferred": {
+      "volume_growth": [-0.015, -0.005, 0, 0.0025, 0.0025],
+      "yield_growth": [0.024, 0.018, 0.018, 0.018, 0.018]
+    },
+    "us_ground": {
+      "volume_growth": [0.0125, 0.015, 0.015, 0.014, 0.013],
+      "yield_growth": [0.027, 0.022, 0.021, 0.02, 0.02]
+    },
+    "us_express_freight": {
+      "volume_growth": [0.0075, 0.01, 0.01, 0.01, 0.01],
+      "yield_growth": [0.02, 0.02, 0.02, 0.02, 0.02]
+    },
+    "international_priority_package": {
+      "volume_growth": [0.0225, 0.0225, 0.02, 0.019, 0.018],
+      "yield_growth": [0.034, 0.027, 0.025, 0.024, 0.023]
+    },
+    "international_economy_package": {
+      "volume_growth": [0.025, 0.0225, 0.0225, 0.02, 0.019],
+      "yield_growth": [0.023, 0.02, 0.02, 0.019, 0.019]
+    },
+    "international_domestic_package": {
+      "volume_growth": [-0.06, -0.025, 0, 0.005, 0.0075],
+      "yield_growth": [0.023, 0.018, 0.018, 0.018, 0.018]
+    },
+    "international_priority_freight": {
+      "volume_growth": [0.0325, 0.0275, 0.025, 0.0225, 0.0225],
+      "yield_growth": [0.025, 0.0225, 0.0225, 0.02, 0.02]
+    },
+    "international_economy_freight": {
+      "volume_growth": [0.028, 0.024, 0.0225, 0.02, 0.02],
+      "yield_growth": [0.019, 0.018, 0.018, 0.018, 0.018]
+    }
+  },
+  "service_assumption_notes": {
+    "q3_10q": "Calendar Q3 volume and yield directions inform service differentiation. The model slows the exceptional 2026 growth of international economy packages and freight, and assumes continuing near-term weakness in international domestic and U.S. deferred volumes. U.S. Ground combines commercial and home delivery/economy, and mix offsets weak Ground Economy demand.",
+    "q3_release": "The CY2027 parcel list-price increase is 5.9% effective January 4. Forecast service yield growth is below that rate because negotiated discounts, traffic mix and timing affect realized prices, and fuel is modeled separately.",
+    "investor_day": "Premium B2B, cross-border and intercontinental freight growth informs relative volume and yield assumptions. Analysts set the explicit rates and fade them toward slower growth in the later years."
+  },
+  "cases": {
+    "bear": {
+      "volume_growth_adjustments": {
+        "express_us_domestic": [-0.015, -0.0125, -0.01, -0.0075, -0.005],
+        "express_international": [-0.0225, -0.02, -0.015, -0.01, -0.0075]
+      },
+      "yield_growth_adjustments": {
+        "express_us_domestic": [-0.0125, -0.01, -0.0075, -0.005, -0.005],
+        "express_international": [-0.015, -0.0125, -0.01, -0.0075, -0.005]
+      },
+      "other_revenue_growth": {
+        "express_us_domestic": [0, 0.005, 0.005, 0.0075, 0.01],
+        "express_international": [-0.01, 0, 0.005, 0.01, 0.01],
+        "corporate_other_and_eliminations": [-0.02, 0, 0.005, 0.005, 0.005]
+      },
+      "operating_margins": {
+        "express_us_domestic": [0.085, 0.088, 0.091, 0.093, 0.095],
+        "express_international": [0.033, 0.04, 0.047, 0.052, 0.057]
+      },
+      "corporate_operating_income_millions": [-560, -570, -575, -580, -585],
+      "rationale": "Weaker B2B demand and price realization with slower Network 2.0 and international cost improvement. Larger unallocated operating loss allows for more stranded costs."
+    },
+    "base": {
+      "volume_growth_adjustments": {
+        "express_us_domestic": [0, 0, 0, 0, 0],
+        "express_international": [0, 0, 0, 0, 0]
+      },
+      "yield_growth_adjustments": {
+        "express_us_domestic": [0, 0, 0, 0, 0],
+        "express_international": [0, 0, 0, 0, 0]
+      },
+      "other_revenue_growth": {
+        "express_us_domestic": [0.015, 0.015, 0.015, 0.015, 0.015],
+        "express_international": [0.02, 0.02, 0.02, 0.02, 0.02],
+        "corporate_other_and_eliminations": [0.015, 0.015, 0.015, 0.015, 0.015]
+      },
+      "operating_margins": {
+        "express_us_domestic": [0.092, 0.095, 0.098, 0.099, 0.1],
+        "express_international": [0.045, 0.057, 0.068, 0.072, 0.076]
+      },
+      "corporate_operating_income_millions": [-450, -460, -470, -480, -490],
+      "rationale": "Premium volume and pricing support service growth. Network savings and mix support margin expansion. The base assumes partial delivery of the 2029 international margin target. Corporate costs grow modestly from the recent adjusted run rate."
+    },
+    "bull": {
+      "volume_growth_adjustments": {
+        "express_us_domestic": [0.01, 0.01, 0.01, 0.0075, 0.005],
+        "express_international": [0.015, 0.015, 0.0125, 0.01, 0.0075]
+      },
+      "yield_growth_adjustments": {
+        "express_us_domestic": [0.0075, 0.0075, 0.005, 0.005, 0.005],
+        "express_international": [0.01, 0.0075, 0.0075, 0.005, 0.005]
+      },
+      "other_revenue_growth": {
+        "express_us_domestic": [0.025, 0.025, 0.025, 0.02, 0.02],
+        "express_international": [0.03, 0.03, 0.03, 0.025, 0.025],
+        "corporate_other_and_eliminations": [0.025, 0.025, 0.025, 0.02, 0.02]
+      },
+      "operating_margins": {
+        "express_us_domestic": [0.096, 0.1, 0.103, 0.105, 0.106],
+        "express_international": [0.05, 0.066, 0.08, 0.085, 0.089]
+      },
+      "corporate_operating_income_millions": [-380, -385, -390, -400, -410],
+      "rationale": "Premium demand and better realization support yield and volume. Faster domestic and international execution reaches or exceeds both 2029 segment margin targets. Unallocated costs improve with fewer stranded expenses."
+    }
+  },
+  "targets_2029": {
+    "source": "investor_day",
+    "revenue_millions": 98000,
+    "operating_income_millions": 8000,
+    "operating_margin": 0.08,
+    "express_us_domestic_operating_margin": 0.1,
+    "express_international_operating_margin": 0.08,
+    "capex_to_revenue": 0.04,
+    "adjusted_fcf_millions": 6000
+  },
+  "limitations": [
+    "The annual rates, segment margins, corporate losses and future operating days beyond 2027 are analyst inputs. The model uses Investor Day goals as cross-checks.",
+    "Forward EBIT is a recurring operating estimate. It reflects Network 2.0, One FedEx and other efficiencies in the margins. Adding disclosed savings separately would double count the benefit.",
+    "The post-sale corporate revenue base is approximate. InPost and FedEx Freight retained holdings are investments outside operating revenue and EBIT.",
+    "The surcharge normalization assumes the incremental 2026 benefit reverses once. Retained surcharge revenue or additional fuel shocks require a different assumption."
+  ]
+}

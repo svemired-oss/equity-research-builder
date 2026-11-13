@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "ticker": "GD",
+  "currency": "USD",
+  "as_of": "2026-11-09",
+  "seasonality": [
+    {
+      "year": 2023, "annual_cfo": 4710, "q4_cfo": 1196, "annual_capex": 904, "q4_capex": 304,
+      "source": {
+        "kind": "issuer_release", "available_on": "2025-01-29",
+        "citation": "GD fourth-quarter and full-year 2024 release, Exhibit G, FY2023 comparative columns.",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053325000003/gd-20241231exhibit991.htm"
+      }
+    },
+    {
+      "year": 2024, "annual_cfo": 4112, "q4_cfo": 2160, "annual_capex": 916, "q4_capex": 355,
+      "source": {
+        "kind": "issuer_release", "available_on": "2025-01-29",
+        "citation": "GD fourth-quarter and full-year 2024 release, Exhibit G, FY2024 columns.",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053325000003/gd-20241231exhibit991.htm"
+      }
+    },
+    {
+      "year": 2025, "annual_cfo": 5120, "q4_cfo": 1561, "annual_capex": 1161, "q4_capex": 609,
+      "source": {
+        "kind": "issuer_release", "available_on": "2026-01-28",
+        "citation": "GD fourth-quarter and full-year 2025 release, Exhibit G, FY2025 columns.",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000004053326000003/gd-20251231exhibit991.htm"
+      }
+    }
+  ],
+  "maturities": [
+    {
+      "date": "2027-04-01", "principal": 750,
+      "source": {
+        "kind": "sec_filing", "available_on": "2020-03-25",
+        "citation": "GD's 3.500% note form specifies April 1, 2027. The October 2026 Form 10-Q Note H confirms $750 million remains outstanding.",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000119312520085435/d905126dex41.htm"
+      }
+    },
+    {
+      "date": "2027-11-15", "principal": 500,
+      "source": {
+        "kind": "sec_filing", "available_on": "2017-09-14",
+        "citation": "Second Supplemental Indenture sections 2.02 and 3.01 specify November 15, 2027 maturity and allow earlier redemption. The October 2026 Form 10-Q Note H confirms $500 million outstanding. Base case assumes payment at maturity.",
+        "url": "https://www.sec.gov/Archives/edgar/data/40533/000119312517285163/d456501dex41.htm"
+      }
+    }
+  ],
+  "dividend_dates": [
+    {"record_on": "2027-01-15", "paid_on": "2027-02-05"},
+    {"record_on": "2027-04-09", "paid_on": "2027-05-07"},
+    {"record_on": "2027-07-09", "paid_on": "2027-08-06"},
+    {"record_on": "2027-10-08", "paid_on": "2027-11-12"}
+  ],
+  "dividend_source": {
+    "kind": "model_assumption", "available_on": "2026-11-09",
+    "citation": "Illustrative FY2027 dates follow GD's historical February, May, August and November payments and the preceding months' record dates. The November 2026 dividend had an October 9 record date and November 13 payment date. FY2027 dates and amounts require future board declarations.",
+    "url": "https://investorrelations.gd.com/stock-information/dividend-split-history/default.aspx"
+  }
+}
