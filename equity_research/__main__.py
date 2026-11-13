@@ -222,6 +222,7 @@ def main() -> int:
     demo = commands.add_parser("build-research-demo", help="Stage the verified portfolio research packages for the website")
     demo.add_argument("--root", type=Path, default=Path.cwd(), help="Project directory containing the dated outputs")
     demo.add_argument("--destination", type=Path, default=Path("web/dist"), help="Static website directory")
+    demo.add_argument("--public-preview", action="store_true", help="Stage a standalone website without download files or metadata")
     serve = commands.add_parser("serve-research", help="Open the recruiter demo and optional guided generation service")
     serve.add_argument("--root", type=Path, default=Path.cwd(), help="Project directory containing the web assets and evidence")
     serve.add_argument("--port", type=int, default=8000, help="Local HTTP port")
@@ -383,10 +384,14 @@ def main() -> int:
             print(f"Workbook SHA-256 {result['workbook_sha256']}")
             return 0
         if args.command == "build-research-demo":
-            from .web_catalog import package_static_demo
+            from .web_catalog import package_public_preview, package_static_demo
 
-            catalog = package_static_demo(args.root, args.destination)
-            print(f"Staged {len(catalog['snapshots'])} verified research packages in {args.destination}.")
+            if args.public_preview:
+                package_public_preview(args.root, args.destination)
+                print(f"Staged the public research preview in {args.destination}.")
+            else:
+                catalog = package_static_demo(args.root, args.destination)
+                print(f"Staged {len(catalog['snapshots'])} verified research packages in {args.destination}.")
             return 0
         if args.command == "serve-research":
             from .web_api import serve_research

@@ -247,6 +247,44 @@ def build_catalog(root: Path) -> dict:
     return catalog
 
 
+def package_public_preview(root: Path, destination: Path) -> None:
+    """Stage the browser demo using company metrics and no download metadata."""
+    from tempfile import TemporaryDirectory
+
+    source = root / "web" / "dist"
+    if destination.exists() or destination.is_symlink():
+        raise FileExistsError("Choose a new directory for the public preview.")
+    catalog = build_catalog(root)
+    keys = ("ticker", "company", "sector", "as_of", "price_date", "target_date", "reference_close_usd",
+            "spot_value_usd", "target_price_usd", "total_return", "rating", "cases")
+    public = {"schema_version": catalog["schema_version"],
+              "snapshots": [{key: row[key] for key in keys} for row in catalog["snapshots"]]}
+    markup = (source / "index.html").read_text(encoding="utf-8")
+    replacements = {
+        '<html lang="en">': '<html lang="en" data-preview="public">',
+        'Build a research package': 'Explore a company',
+        '<fieldset class="mode-field">': '<fieldset class="mode-field" hidden>',
+        'Open the verified model and report from the selected research date.': 'Explore the dated valuation and scenario targets for the selected company.',
+        '<section class="downloads" aria-labelledby="downloads-title">': '<section class="downloads" aria-labelledby="downloads-title" hidden>',
+    }
+    for original, replacement in replacements.items():
+        if markup.count(original) != 1:
+            raise ValueError("The public preview template is missing an expected control.")
+        markup = markup.replace(original, replacement)
+
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(dir=destination.parent) as directory:
+        stage = Path(directory) / "site"
+        stage.mkdir()
+        (stage / "index.html").write_text(markup, encoding="utf-8", newline="\n")
+        for name in ("app.js", "styles.css"):
+            (stage / name).write_bytes((source / name).read_bytes())
+        (stage / "catalog.json").write_text(json.dumps(public, indent=2, ensure_ascii=False, allow_nan=False) + "\n",
+                                            encoding="utf-8", newline="\n")
+        (stage / ".nojekyll").touch()
+        stage.rename(destination)
+
+
 def read_demo_download(root: Path, ticker: str, kind: str) -> bytes:
     """Read a public demo download from its verified source pair."""
     snapshot = next((snapshot for snapshot in _SNAPSHOTS if snapshot.ticker == ticker), None)
