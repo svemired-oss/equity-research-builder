@@ -1,5 +1,7 @@
 # AI Equity Research Builder
 
+[Live recruiter demo](https://svemired-oss.github.io/equity-research-builder/)
+
 A Python application that turns dated financial evidence into company-specific forecasts, valuations, editable Excel models, and cited research reports. The browser demo displays the valuation and scenario comparison for each covered company.
 
 | Company | Operating forecast | Valuation |
