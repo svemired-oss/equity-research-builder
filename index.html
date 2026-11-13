@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-preview="public">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,21 +23,21 @@
 
     <div class="workspace">
       <aside class="panel setup" aria-labelledby="setup-title">
-        <h2 id="setup-title">Build a research package</h2>
+        <h2 id="setup-title">Explore a company</h2>
         <form id="run-form">
           <label for="ticker">Stock ticker</label>
           <div class="ticker-field"><input type="text" id="ticker" name="ticker" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter ticker" required></div>
           <div class="ticker-options" id="tickers" aria-label="Available tickers"></div>
           <p class="error" id="ticker-error" hidden></p>
 
-          <fieldset class="mode-field">
+          <fieldset class="mode-field" hidden>
             <legend>Research mode</legend>
             <div class="mode-switch">
               <label><input type="radio" name="mode" value="automated" checked><span>Automated</span></label>
               <label><input type="radio" name="mode" value="guided"><span>Guided</span></label>
             </div>
           </fieldset>
-          <p class="mode-note" id="mode-note">Open the verified model and report from the selected research date.</p>
+          <p class="mode-note" id="mode-note">Explore the dated valuation and scenario targets for the selected company.</p>
           <div id="guided-controls" hidden>
             <label for="driver">Forecast input</label>
             <select id="driver" name="driver"></select>
@@ -78,7 +78,7 @@
             <div id="scenario-chart" class="scenario-chart"></div>
             <div class="chart-key"><span aria-hidden="true"></span> Reference close</div>
           </section>
-          <section class="downloads" aria-labelledby="downloads-title">
+          <section class="downloads" aria-labelledby="downloads-title" hidden>
             <div class="section-heading"><h3 id="downloads-title">Research package</h3><span id="download-status">Verified snapshot</span></div>
             <div class="download-grid" id="downloads"></div>
           </section>

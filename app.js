@@ -11,6 +11,7 @@ const axisCurrency = new Intl.NumberFormat('en-US', { style: 'currency', currenc
 const percent = new Intl.NumberFormat('en-US', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2, signDisplay: 'exceptZero' });
 const date = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: 'UTC' });
 const saved = new Map();
+const publicPreview = document.documentElement.dataset.preview === 'public';
 const mode = () => ui['run-form'].elements.mode.value;
 const formatDate = (value) => date.format(new Date(`${value}T00:00:00Z`));
 const titleCase = (value) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -71,7 +72,9 @@ function syncMode() {
   for (const id of ['driver', 'driver-value', 'run-case', 'reason']) ui[id].disabled = !show || busy;
   ui['driver-value'].required = show;
   ui.reason.required = show;
-  if (!guided) {
+  if (publicPreview) {
+    ui['mode-note'].textContent = 'Explore the dated valuation and scenario targets for the selected company.';
+  } else if (!guided) {
     ui['mode-note'].textContent = 'Open the verified model and report from the selected research date.';
   } else if (show) {
     ui['mode-note'].textContent = 'Change a forecast input and generate a matching Excel model and PDF.';
@@ -145,6 +148,7 @@ function renderDownloads(downloads) {
     link.append(typeLabel, detail, arrow);
     ui.downloads.append(link);
   }
+  ui.downloads.closest('.downloads').hidden = ui.downloads.childElementCount === 0;
 }
 
 function render(snapshot, run = null) {
@@ -164,7 +168,7 @@ function render(snapshot, run = null) {
   ui['total-return'].textContent = percent.format(metrics.total_return);
   ui['total-return'].dataset.direction = metrics.total_return < 0 ? 'down' : 'up';
   drawScenarios(run?.cases ?? (generated ? [] : snapshot.cases), metrics.reference_close_usd);
-  renderDownloads(run?.downloads ?? snapshot.downloads);
+  renderDownloads(publicPreview ? null : run?.downloads ?? snapshot.downloads);
   ui['download-status'].textContent = generated ? 'Verified guided run' : 'Verified snapshot';
   ui['result-content'].hidden = false;
   ui.results.setAttribute('aria-busy', 'false');
@@ -283,11 +287,13 @@ ui['run-form'].addEventListener('submit', (event) => {
 async function loadCatalog() {
   let catalog;
   try {
-    try {
-      catalog = await json('/api/companies', { signal: AbortSignal.timeout(2500) });
-      api = Array.isArray(catalog.snapshots);
-    } catch {
-      api = false;
+    if (!publicPreview) {
+      try {
+        catalog = await json('./api/companies', { signal: AbortSignal.timeout(2500) });
+        api = Array.isArray(catalog.snapshots);
+      } catch {
+        api = false;
+      }
     }
     if (!api) catalog = await json('./catalog.json');
     if (catalog.schema_version !== 1 || !catalog.snapshots?.length) throw new Error('Research snapshots are missing.');

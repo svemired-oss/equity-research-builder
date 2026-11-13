@@ -1,8 +1,0 @@
-{
-  "as_of": "2026-11-12",
-  "rating_policy": {
-    "buy_at_or_above": 0.10,
-    "sell_at_or_below": -0.10,
-    "rationale": "Apply the project's Buy and Sell thresholds to modeled 12-month total return. Values between the thresholds are Hold. Use the base operating case and its rolled DCF target. The peer comparisons remain independent checks."
-  }
-}

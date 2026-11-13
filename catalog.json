@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "snapshots": [
+    {
+      "ticker": "GD",
+      "company": "General Dynamics",
+      "sector": "Aerospace and defense",
+      "as_of": "2026-11-09",
+      "price_date": "2026-11-06",
+      "target_date": "2027-11-09",
+      "reference_close_usd": 354.06,
+      "spot_value_usd": 303.28371755679234,
+      "target_price_usd": 321.8494299194469,
+      "total_return": -0.07233821973832999,
+      "rating": "Hold",
+      "cases": [
+        {
+          "case": "bear",
+          "spot_value_usd": 247.69,
+          "target_price_usd": 261.23,
+          "total_return": -0.24359999999999998,
+          "rating": "Sell"
+        },
+        {
+          "case": "base",
+          "spot_value_usd": 303.28371755679234,
+          "target_price_usd": 321.8494299194469,
+          "total_return": -0.07233821973832999,
+          "rating": "Hold"
+        },
+        {
+          "case": "bull",
+          "spot_value_usd": 361.53,
+          "target_price_usd": 385.36,
+          "total_return": 0.107,
+          "rating": "Buy"
+        }
+      ]
+    },
+    {
+      "ticker": "FDX",
+      "company": "FedEx Corporation",
+      "sector": "Transportation",
+      "as_of": "2026-11-12",
+      "price_date": "2026-11-11",
+      "target_date": "2027-11-12",
+      "reference_close_usd": 322.63,
+      "spot_value_usd": 333.01207814343303,
+      "target_price_usd": 354.72136208218103,
+      "total_return": 0.1145936896202493,
+      "rating": "Buy",
+      "cases": [
+        {
+          "case": "bear",
+          "spot_value_usd": 258.09797669540905,
+          "target_price_usd": 273.8578620238863,
+          "total_return": -0.13604481286958348,
+          "rating": "Sell"
+        },
+        {
+          "case": "base",
+          "spot_value_usd": 333.01207814343303,
+          "target_price_usd": 354.72136208218103,
+          "total_return": 0.1145936896202493,
+          "rating": "Buy"
+        },
+        {
+          "case": "bull",
+          "spot_value_usd": 401.10107973742464,
+          "target_price_usd": 428.20893732308195,
+          "total_return": 0.34237032304212867,
+          "rating": "Buy"
+        }
+      ]
+    },
+    {
+      "ticker": "NEM",
+      "company": "Newmont Corporation",
+      "sector": "Gold mining",
+      "as_of": "2026-11-12",
+      "price_date": "2026-11-11",
+      "target_date": "2027-11-12",
+      "reference_close_usd": 118.47,
+      "spot_value_usd": 57.97993211342843,
+      "target_price_usd": 61.12188228661988,
+      "total_return": -0.47529431681759193,
+      "rating": "Sell",
+      "cases": [
+        {
+          "case": "bear",
+          "spot_value_usd": 43.18668159167047,
+          "target_price_usd": 45.05974928069599,
+          "total_return": -0.610874067015312,
+          "rating": "Sell"
+        },
+        {
+          "case": "base",
+          "spot_value_usd": 57.97993211342843,
+          "target_price_usd": 61.12188228661988,
+          "total_return": -0.47529431681759193,
+          "rating": "Sell"
+        },
+        {
+          "case": "bull",
+          "spot_value_usd": 72.77318263518644,
+          "target_price_usd": 77.18401529254375,
+          "total_return": -0.3397145666198721,
+          "rating": "Sell"
+        }
+      ]
+    }
+  ]
+}
