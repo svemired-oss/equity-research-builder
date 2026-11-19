@@ -65,8 +65,11 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     candidates = revenue_candidates(evidence["packet"])
     if candidates != evidence["candidates"]:
         raise ValueError("Cached revenue candidates differ from the reconciled filing evidence.")
+    selection = evidence["selection"] if not legacy else {**evidence["selection"], "driver_type": "segment_growth"}
     model = prepare_operating_model(evidence["packet"], evidence["treasury"], evidence["quote"],
-                                    evidence["selection"], candidates)
+                                    selection, candidates)
+    result["driver_type"] = model["driver"]["type"]
+    result["driver_reason"] = model["driver"]["reason"]
     ratio = model["scenarios"]["Base"].value_per_share / model["close"]
     result.update(value_price_ratio=ratio, value=model["scenarios"]["Base"].value_per_share,
                   price=model["close"], cutoff=str(model["as_of"]))
@@ -158,9 +161,11 @@ def failure_type(reason):
 
 def write_results(output, results):
     passed = sum(row["status"] == "PASS" for row in results)
+    physical = sum(row["status"] == "PASS" and row.get("driver_type", "segment_growth") != "segment_growth" for row in results)
     missing = sum(row["stage"] == "cache" for row in results)
     lines = ["# Generic operating model baseline", "",
              f"Completed {len(results)} tickers. Verified pairs {passed}/{len(results)} ({passed/len(results):.1%}).",
+             f"Verified pairs using non-fallback drivers: {physical}/{passed}" + (f" ({physical/passed:.1%})." if passed else " (no verified pairs)."),
              f"Missing or invalid caches {missing}. These count as failures in the full-set rate.",
              "A complete baseline requires a recorded collection attempt for every ticker.",
              "PASS requires the existing valuation checks, real formula workbook export, and paired PDF verification.",
@@ -171,12 +176,12 @@ def write_results(output, results):
     counts = Counter(row.get("failure_type", failure_type(row["reason"])) for row in results if row["status"] != "PASS")
     lines.extend(f"| {label} | {count} |" for label, count in sorted(counts.items()))
     lines.extend(["", "## Per-ticker outcomes", "",
-             "| Ticker | Sector | Status | Stage | Value / price | Reason |",
-             "| --- | --- | --- | --- | --- | --- |"])
+             "| Ticker | Sector | Status | Driver | Stage | Value / price | Reason |",
+             "| --- | --- | --- | --- | --- | --- | --- |"])
     for row in results:
         ratio = row["value_price_ratio"]
         reason = row["reason"].replace("|", "/").replace("\n", " ")
-        lines.append(f"| {row['ticker']} | {row['sector']} | {row['status']} | {row['stage']} | "
+        lines.append(f"| {row['ticker']} | {row['sector']} | {row['status']} | {row.get('driver_type','Unverified')} | {row['stage']} | "
                      f"{format(ratio, '.4f') if ratio is not None else '—'} | {reason} |")
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text("\n".join(lines) + "\n", encoding="utf-8")

@@ -112,6 +112,11 @@ def revenue_candidates(packet):
                                            if fact.get("concept") == concept or fact["metric"] == "corporate_nonsegment_revenue"))
     candidates = {**_reconciled_revenue(prior, latest, facts), **preferred}
     if not candidates:
+        from .drivers import PLUGINS, extract, FALLBACK
+        if any(extract(packet, kind, passage)["type"] != FALLBACK
+               for passage in packet.get("driver_passages", {}).values() for kind in PLUGINS):
+            return {"verified_operating_driver": {"prior": {"Consolidated": prior["metrics"]["revenue"]/1e6},
+                                                 "latest": {"Consolidated": latest["metrics"]["revenue"]/1e6}}}
         raise ResearchGap("Filed product or segment revenue did not reconcile across two comparable years.")
     return candidates
 
@@ -334,11 +339,20 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     recent = data.get("comparable_interim")
     rate_prior, rate_current = (recent["prior"], recent["current"]) if recent else (data["prior"], data["latest"])
     rates = {key: rate_current[key] / rate_prior[key] - 1 for key in amounts}
+    from .drivers import FALLBACK, choose, forecast
+    driver = choose(packet, selection)
+    path = forecast(driver, growth) if driver["type"] != FALLBACK else []
+    if selection["group"] == "verified_operating_driver" and not path:
+        raise ResearchGap("No verified operating driver or reconciled segment basis is available.")
     revenues = []
+    anchor_scale = 1
     target, anchor_sources, anchor_note = None, {}, ""
     for index in range(1, 6):
-        for key, rate in rates.items():
-            amounts[key] *= 1 + growth + (rate - growth) * .5 ** index
+        if path:
+            amounts = {"Consolidated": path[index-1]*anchor_scale}
+        else:
+            for key, rate in rates.items():
+                amounts[key] *= 1 + growth + (rate - growth) * .5 ** index
         if index == 1:
             anchor_packet = {**packet, "earnings_interim": {}} if packet.get("acquisition_revenue_basis") else packet
             target, anchor_sources, anchor_note = _revenue_anchor(anchor_packet, dates[0].year, sum(amounts.values()), opening["revenue"])
@@ -346,6 +360,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
                 if target <= 0 or (interim and target < _read(bridge_metrics, "revenue")):
                     raise ResearchGap("The annual forecast is inconsistent with reported revenue.")
                 scale = target / sum(amounts.values())
+                anchor_scale = scale
                 amounts = {key: value * scale for key, value in amounts.items()}
         revenues.append(sum(amounts.values()))
     if stub < 30/366 and target is None:
@@ -367,12 +382,12 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     margin_value_per_point = (scenarios["Bull"].value_per_share - scenarios["Base"].value_per_share) / margin_step
     implied_margin = margin + (close - scenarios["Base"].value_per_share) / margin_value_per_point
     source = latest["filing"]["url"]
-    labels = {key: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", key.removesuffix("Member").removesuffix("Segment")) for key in amounts}
+    labels = {key: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", key.removesuffix("Member").removesuffix("Segment")) for key in data["latest"]}
     return {
         "ticker": issuer["ticker"], "company": issuer["name"], "as_of": as_of, "close": close, "price_date": quote_day,
         "lines": labels, "history": history, "dates": dates, "old_sales": data["prior"], "sales": data["latest"],
         "comparable_revenue_interim": recent,
-        "margin": margin, "da": da, "capex": capex, "normalize_capex": True, "wc_assets": wc_assets/opening["revenue"],
+        "driver": driver, "margin": margin, "da": da, "capex": capex, "normalize_capex": True, "wc_assets": wc_assets/opening["revenue"],
         "wc_liabilities": wc_liab/opening["revenue"], "opening_wc_assets": wc_assets, "opening_wc_liabilities": wc_liab,
         "metrics": {**opening, "equity_attributable_to_parent": equity}, "cash": cash, "investments": investments,
         "debt": debt, "shares": shares, "bridge_cash": bridge_cash, "bridge_investments": bridge_investments,
@@ -396,6 +411,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "revenue_anchor": target, "guided_defaults": defaults, "overrides": list(overrides),
         "payout_ratio": min(1., max(0., median(payouts))) if len(payouts) == 3 else None,
         "sources": {"Annual financials and revenue lines": source, "Latest balance sheet": bridge_period["filing"]["url"],
+                    **({"Operating driver disclosure": driver["url"]} if path else {}),
                     f"Closing price on {quote_day}": quote["url"], f"Treasury yield on {treasury_day}": treasury["url"],
                     **{f"Balance-sheet bridge XBRL {row['period_end']}": row["operating_bridge_source"]
                        for row in (latest, bridge_period) if "operating_bridge_source" in row},
@@ -405,10 +421,12 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
                     **{f"Completed financing {index}": row["url"] for index, row in enumerate(movements, 1)}},
         "thesis": selection["thesis"], "risks": selection["risks"],
         "notes": (
-            selection["reason"],
+            selection["reason"], f"Revenue driver: {driver['type']}. {driver['reason']}",
             anchor_note,
             *((recent["note"],) if recent else ()),
-            "Revenue growth fades halfway each year toward terminal growth. Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario shifts are capped at 25% of base margin or three percentage points, whichever is smaller.",
+            ("Operating-driver growth fades halfway annually toward labeled analyst industry proxies. Revenue line allocations use latest filed mix."
+             if path else "Revenue growth fades halfway each year toward terminal growth."),
+            "Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario shifts are capped at 25% of base margin or three percentage points, whichever is smaller.",
             "D&A uses the annual median ratio. Initial capex uses the greater of the annual median, available interim ratio and D&A ratio. It converges linearly to capex consistent with terminal reinvestment, adjusting for working capital.",
             "WACC includes a 4.5% equity risk premium, beta of 1.0, and debt spread of 2 points. Terminal incremental ROIC is 15%. These are editable analyst defaults.",
             "The first DCF period prorates full-year cash flow by remaining days. The equity bridge uses the latest filed balances, short-term investments, carrying debt, and ending common shares.",

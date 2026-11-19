@@ -694,6 +694,8 @@ class _ResearchService:
         from .acquisition_basis import collect_acquisition_basis
         collect_acquisition_basis(packet, client)
         verify_comparable_operating_basis(packet)
+        from .drivers import collect
+        collect(packet, client)
         if packet["issuer"]["cik"] == "0000823768":
             from .waste_management_revenue import waste_management_candidates
 
