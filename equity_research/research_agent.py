@@ -55,6 +55,8 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
     try:
         for limit in (1800, 4600):
             payload["max_output_tokens"] = limit
+            from .spend_budget import reserve
+            reserve(payload)
             request = Request("https://api.openai.com/v1/responses",
                               data=json.dumps(payload, allow_nan=False).encode(),
                               headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})

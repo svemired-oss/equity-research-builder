@@ -19,6 +19,9 @@ class JobStore:
                 token TEXT PRIMARY KEY, fingerprint TEXT NOT NULL,
                 run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS api_spend (
+                day TEXT PRIMARY KEY, reserved INTEGER NOT NULL CHECK (reserved >= 0)
+            );
         """)
 
     def restore(self):
@@ -34,6 +37,23 @@ class JobStore:
             """SELECT s.run_id FROM submissions s JOIN runs r ON r.id = s.run_id
                WHERE s.fingerprint = ? AND r.expires IS NULL LIMIT 1""", (fingerprint,)).fetchone()
         return row[0] if row else None
+
+    def completed_duplicate(self, fingerprint, earliest, now):
+        row = self.db.execute(
+            """SELECT r.id FROM runs r JOIN submissions s ON s.run_id=r.id
+               WHERE s.fingerprint=? AND r.started>=? AND r.expires>? AND r.workbook IS NOT NULL
+               AND r.report IS NOT NULL ORDER BY r.started DESC LIMIT 1""",(fingerprint,earliest,now)).fetchone()
+        return row[0] if row else None
+
+    def reserve_spend(self, day, amount, limit):
+        if amount <= 0 or amount > limit:
+            return False
+        with self.db:
+            result = self.db.execute(
+                """INSERT INTO api_spend (day,reserved) VALUES (?,?)
+                   ON CONFLICT(day) DO UPDATE SET reserved=reserved+excluded.reserved
+                   WHERE reserved+excluded.reserved <= ?""",(day,amount,limit))
+            return result.rowcount == 1
 
     def admit(self, run, started, token, fingerprint):
         with self.db:
