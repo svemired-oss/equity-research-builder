@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from http.client import IncompleteRead
 import json
+from os import environ
 import re
 from threading import Lock
 import time
@@ -18,6 +19,18 @@ _TIMEOUT = 12
 _ATTEMPTS = 3
 _MAX_RETRY_DELAY = 10
 _MAX_RESPONSE_BYTES = 32 * 1024 * 1024
+_CONTACT_EMAIL = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
+
+
+def configured_sec_contact():
+    """Build the declared project identity from a host setting without logging its value."""
+    raw = environ.get("SEC_USER_AGENT", "")
+    if not raw.strip():
+        return ""
+    value = raw.strip(" ")
+    if _CONTACT_EMAIL.fullmatch(value):
+        value = f"Equity Research Builder {value}"
+    return SECClient(value).user_agent
 
 
 class SECError(ValueError):
@@ -89,7 +102,7 @@ class SECClient:
         if not isinstance(user_agent, str):
             raise ValueError("SEC User-Agent must be text.")
         self.user_agent = user_agent.strip()
-        contact = re.search(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}", self.user_agent)
+        contact = _CONTACT_EMAIL.search(self.user_agent)
         if (
             not contact
             or not self.user_agent[: contact.start()].strip()

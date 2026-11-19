@@ -23,6 +23,7 @@ from urllib.parse import unquote, urlsplit
 from uuid import uuid4
 
 from .web_jobs import JobStore
+from .sec_client import configured_sec_contact
 
 
 _SUMMARY_FIELDS = ("reference_close_usd", "spot_value_usd", "target_price_usd", "total_return", "rating")
@@ -208,7 +209,7 @@ class _ResearchService:
         self.oracle_dated_closes = oracle_dated_closes
         self.oracle = oracle
         self.gd_template = environ.get("GD_V4_WORKBOOK", "").strip()
-        self.contact = environ.get("SEC_USER_AGENT", "").strip()
+        self.contact = configured_sec_contact() if oracle else ""
         if oracle:
             self.catalog["ticker_screening"] = bool(self.contact)
             self.catalog["exchange_generation"] = ["XTKS:7974", "7974.T"] if self.contact else []

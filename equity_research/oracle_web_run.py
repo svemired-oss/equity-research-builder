@@ -14,11 +14,11 @@ class OracleInputsUnavailable(ValueError):
 
 def _prepare_live(*, dated_closes=False, as_of=None):
     from .market_quotes import AlpacaQuoteClient, collect_market_quotes
-    from .sec_client import SECClient, SECError
+    from .sec_client import SECClient, SECError, configured_sec_contact
     from .sec_intake import collect_ticker_evidence
     from .treasury_rates import collect_treasury_yield
 
-    contact = environ.get("SEC_USER_AGENT", "").strip()
+    contact = configured_sec_contact()
     key = environ.get("APCA_API_KEY_ID", "").strip()
     secret = environ.get("APCA_API_SECRET_KEY", "").strip()
     if not contact:

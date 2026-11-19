@@ -125,6 +125,13 @@ class HostedJobTests(TestCase):
         self.assertEqual((run["source_mode"], run["state"]), ("filing_screen", "completed"))
         self.assertNotIn("downloads", run)
 
+    def test_host_accepts_contact_email_without_exposing_it_in_catalog(self):
+        with patch.dict("os.environ", {"SEC_USER_AGENT": "test@example.com"}):
+            service = _ResearchService(self.root, None, None, {"snapshots": [], "live_only": True}, oracle=True)
+        self.addCleanup(service.close)
+        self.assertEqual(service.contact, "Equity Research Builder test@example.com")
+        self.assertNotIn("test@example.com", json.dumps(service.catalog))
+
     def test_source_outage_and_export_failure_have_no_downloads(self):
         service = self.service()
         self.addCleanup(service.close)
