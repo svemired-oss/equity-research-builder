@@ -1,6 +1,6 @@
 # Equity Research Builder
 
-Run a private ticker-to-download demo in GitHub Codespaces. The verified example is Nintendo (`XTKS:7974`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)
+Run a private ticker-to-download demo in GitHub Codespaces. Hosted acceptance on November 19, 2026 produced verified Excel and PDF downloads for Nintendo (`XTKS:7974`) and NVIDIA (`NVDA`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)
 
 ## Give a two-minute demonstration
 
@@ -11,7 +11,7 @@ Run a private ticker-to-download demo in GitHub Codespaces. The verified example
 ## First-time Codespaces setup
 
 1. Use a personal GitHub account with Codespaces enabled. In billing, keep paid Codespaces overage blocked for a zero-infrastructure-spend demo.
-2. Create a **Codespaces** secret named `SEC_USER_AGENT` containing a project name and a monitored contact address. Grant the secret access to this repository. Nintendo uses public sources and requires no paid API. [Manage Codespaces secrets](https://github.com/settings/codespaces)
+2. Create a **Codespaces** secret named `SEC_USER_AGENT` containing a monitored contact email. A complete project name and email also works. The server adds its project name to an email-only setting. Grant the secret access to this repository. Nintendo uses public sources and requires no paid API. [Manage Codespaces secrets](https://github.com/settings/codespaces)
 3. Open the **codespaces-demo** branch. Select **Code → Codespaces → Create codespace** on this branch, using a two-core machine. The included dev container installs Python, the pinned packages and LibreOffice Calc. The post-start command launches the server on loopback. [Deployment branch](https://github.com/svemired-oss/equity-research-builder/tree/codespaces-demo)
 4. In **Ports**, confirm **8053** is **Private** and open it in the browser. GitHub supplies HTTPS and handles owner authentication. Resume the Codespace before a presentation. A recruiter can use the public portfolio independently or watch the owner’s live demo. [GitHub port access](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace)
 5. Optional U.S. research uses three additional repository-scoped Codespaces secrets: `OPENAI_API_KEY`, `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY`. Stop and resume after adding or changing secrets. The website then offers generation where the engine supports it. Provider access, filing quality and model coverage determine the outcome. Keep keys in the host secret manager.
@@ -23,7 +23,9 @@ For native Linux installation and command-line verification, use the [portable s
 | Input | Demonstrated behavior |
 | --- | --- |
 | Nintendo, `XTKS:7974` | Live editable yen DCF, sensitivity table and a cited one-page PDF. Guided changes the post-guidance margin. The result is a balance-date scenario marked **Review**. |
-| GD, NVDA, FAST, SBUX and DHR on the deployment without U.S. provider credentials | SEC discovery and annual filing history. A filing check produces no downloads. Earlier local engine runs do not establish hosted generation coverage. |
+| NVIDIA, `NVDA`, with U.S. providers enabled | Automated generation produced 13 workbook sheets, 280 formulas and a four-page PDF. The November 19 test matched at $121.44 per share and the PDF fingerprint matched the downloaded workbook. The five forecast balance checks tied. Live inputs and AI text can change on subsequent runs. |
+| GD, FAST, SBUX and DHR with U.S. providers enabled | Each reached the financial engine. Each stopped on a specific filing or forecast gap. See the issuer-level backlog. |
+| General U.S. research without provider credentials | SEC discovery and annual filing history. A filing check produces no downloads. |
 | GD, FDX and NEM on GitHub Pages | Dated portfolio illustrations with scenario comparisons. Public downloads are disabled. |
 
 The live-only demo runs from the source checkout without the original GD template, private reference files or pre-generated downloads. The desk-model fidelity and coverage work is tracked in the [model backlog](https://github.com/svemired-oss/equity-research-builder/blob/codespaces-demo/docs/model-backlog.md).
