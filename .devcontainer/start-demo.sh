@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -eu
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
 if [ -z "${SEC_USER_AGENT:-}" ]; then
     echo "Set SEC_USER_AGENT as a Codespaces secret for this repository, then stop and restart the codespace."
     exit 1
@@ -8,7 +9,7 @@ if /opt/venv/bin/python -c 'from urllib.request import urlopen; import json; ass
     exit 0
 fi
 umask 077
-nohup /opt/venv/bin/python -m equity_research serve-research --root /app --live-only --port 8053 \
+nohup /opt/venv/bin/python -m equity_research serve-research --live-only --port 8053 \
     > /tmp/equity-demo.log 2>&1 </dev/null &
 pid=$!
 for attempt in {1..30}; do
@@ -24,3 +25,4 @@ for attempt in {1..30}; do
 done
 echo "Timed out waiting for the builder. See /tmp/equity-demo.log."
 exit 1
+
