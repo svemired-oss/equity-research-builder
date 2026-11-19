@@ -18,13 +18,15 @@ def implied_growth(model):
     end_capex = da+margin*(1-tax)*g/roic-g*wc
     def value(rate):
         previous = model["metrics"]["revenue"]
+        previous_wc = model.get("opening_wc", previous*wc)
         pv = 0
         for i, period in enumerate(base.periods):
             revenue = previous*(1+rate)
             capex = model["capex"]+(end_capex-model["capex"])*i/4
-            flow = revenue*(margin*(1-tax)+da-capex)-(revenue-previous)*wc
+            flow = revenue*(margin*(1-tax)+da-capex)-(revenue*wc-previous_wc)
             pv += flow*(model["stub"] if i == 0 else 1)/(1+model["wacc"])**period.discount_years
             previous = revenue
+            previous_wc = revenue*wc
         terminal = previous*margin*(1-tax)*(1+g)*(1-g/roic)/(model["wacc"]-g)
         pv += terminal/(1+model["wacc"])**base.periods[-1].discount_years
         return (pv+base.bridge.adjustment_millions)/base.bridge.diluted_shares_millions

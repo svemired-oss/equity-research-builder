@@ -16,7 +16,7 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
 
-def render_workbook(plan, output, node=None, modules=None, *, previews=None):
+def render_workbook(plan, output, node=None, modules=None, *, previews=None, validate=None):
     if node is not None:
         specification = output.parent / "workbook-plan.json"
         specification.write_text(json.dumps(plan, allow_nan=False), encoding="utf-8")
@@ -32,11 +32,18 @@ def render_workbook(plan, output, node=None, modules=None, *, previews=None):
     if not office:
         raise ValueError("Install LibreOffice Calc and put soffice on PATH.")
     book = _author(plan)
+    def calculate(case, expected):
+        computed = _calculate(book, plan, case, expected, office, stage)
+        try:
+            if validate is not None:
+                validate(computed, case)
+        finally:
+            computed.close()
     with TemporaryDirectory(prefix="calc-", dir=output.parent) as directory:
         stage = Path(directory)
         for case, expected in plan["scenarioExpected"].items():
             if case != plan["case"]:
-                _calculate(book, plan, case, expected, office, stage).close()
+                calculate(case, expected)
         probe = plan.get("recalculationProbe")
         if probe:
             case = probe.get("case", plan["case"])
@@ -59,7 +66,7 @@ def render_workbook(plan, output, node=None, modules=None, *, previews=None):
                 cell.value = original
                 before.close()
                 after.close()
-        _calculate(book, plan, plan["case"], plan["expected"], office, stage).close()
+        calculate(plan["case"], plan["expected"])
         _save_caches(stage / "model.xlsx", stage / "recalculated" / "model.xlsx", output)
 
 
@@ -96,7 +103,7 @@ def _author(plan):
 
                 cell.hyperlink = Hyperlink(ref=address, location=f"'Sources'!{source}",
                                            tooltip="Open input source and basis")
-                color = "154DA1"
+                color = "000000" if kind == "evidence" else "154DA1"
             elif name == "Sources" and isinstance(value, str) and value.startswith("https://"):
                 cell.hyperlink = value
             cell.font = Font(name=face, size=16 if kind == "title" else 10, color=color,
@@ -130,6 +137,16 @@ def _author(plan):
     validation = DataValidation(type="list", formula1=f'"{options}"')
     book["Cover"].add_data_validation(validation)
     validation.add(selector)
+    for field in plan.get("guidedBounds", ()):
+        bounds = DataValidation(type="decimal",operator="between",formula1=field["min"],formula2=field["max"],
+                                allow_blank=False,showErrorMessage=True,showInputMessage=True)
+        bounds.promptTitle = "Guided assumption"
+        bounds.prompt = field["explanation"][:255]
+        bounds.errorTitle = "Outside Guided bounds"
+        bounds.error = f"Enter a value between {field['min']:g} and {field['max']:g}."
+        sheet = book[field["sheet"]]
+        sheet.add_data_validation(bounds)
+        bounds.add(field["cell"])
     return book
 
 

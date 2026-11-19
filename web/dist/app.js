@@ -6,6 +6,7 @@ const ui = Object.fromEntries([
   'scenario-title', 'download-status', 'downloads',
   'driver-basis', 'driver-range', 'result-state', 'state-title', 'state-detail', 'result-note', 'edit-assumptions',
   'workspace-title', 'workspace-intro', 'setup-title', 'site-context',
+  'guided-batch', 'add-guided-change', 'guided-change-list',
 ].map((id) => [id, get(id)]));
 
 const currency = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
@@ -36,6 +37,8 @@ let exchangeGeneration = [];
 let active = null;
 let busy = false;
 let pendingRun = null;
+let guidedKey = '';
+const guidedChanges = new Map();
 const runStorageKey = 'research-builder-last-run';
 
 function rememberRun(entry) {
@@ -169,17 +172,54 @@ function setDriver() {
       ? ` · Range ${assumptionPercent.format(field.min)} to ${assumptionPercent.format(field.max)}` : '';
     ui['driver-range'].textContent = `Base ${assumptionPercent.format(field.default)}${bounds}. Enter as a decimal.`;
     ui['driver-range'].hidden = false;
+  } else if (Number.isFinite(field.default)) {
+    ui['driver-range'].textContent = `Base ${field.default} · Range ${field.min} to ${field.max} ${field.unit}.`;
+    ui['driver-range'].hidden = false;
+  }
+  if (field.explanation) {
+    ui['driver-range'].append(' ',field.explanation);
+    ui['driver-range'].hidden = false;
+  }
+}
+
+function renderGuidedChanges() {
+  ui['guided-change-list'].replaceChildren();
+  for (const [target, change] of guidedChanges) {
+    const row = node('li', '', `${change.label} · ${change.value} · ${change.reason} `);
+    const remove = node('button', 'secondary-action', 'Remove');
+    remove.type = 'button';
+    remove.setAttribute('aria-label', `Remove ${change.label} edit`);
+    remove.disabled = busy;
+    remove.addEventListener('click', () => {
+      guidedChanges.delete(target);
+      renderGuidedChanges();
+    });
+    row.append(remove);
+    ui['guided-change-list'].append(row);
   }
 }
 
 function setFields(snapshot) {
   ui.driver.replaceChildren();
+  const key = snapshot?.baseRunId ?? snapshot?.ticker ?? '';
+  if (key !== guidedKey) guidedChanges.clear();
+  guidedKey = key;
+  const groups = new Map();
   for (const field of snapshot?.guided?.fields ?? []) {
     const option = node('option', '', `${field.label} (${field.unit})`);
     option.value = field.target;
-    ui.driver.append(option);
+    if (field.group) {
+      if (!groups.has(field.group)) {
+        const group = document.createElement('optgroup');
+        group.label = field.group;
+        groups.set(field.group,group);
+        ui.driver.append(group);
+      }
+      groups.get(field.group).append(option);
+    } else ui.driver.append(option);
   }
   setDriver();
+  renderGuidedChanges();
 }
 
 function syncMode() {
@@ -192,12 +232,16 @@ function syncMode() {
   const available = api && selected?.ticker === tickerValue() && selected?.guided?.available && selected.guided.fields?.length > 0;
   const show = guided && available;
   ui['guided-controls'].hidden = !show;
+  const batch = selected?.guided?.fields?.some(field => field.group);
+  ui['guided-batch'].hidden = !batch;
+  ui['add-guided-change'].disabled = !show || busy;
+  renderGuidedChanges();
   for (const id of ['driver', 'driver-value', 'run-case', 'reason']) ui[id].disabled = !show || busy;
   const caseControl = ui['run-case'].closest('div');
   caseControl.hidden = Boolean(operating);
   caseControl.parentElement.classList.toggle('single-input', Boolean(operating));
   ui['driver-value'].required = show;
-  ui.reason.required = show;
+  ui.reason.required = show && !batch;
   ui.ticker.disabled = busy;
   for (const radio of ui['run-form'].querySelectorAll('[name=mode]')) radio.disabled = busy;
   for (const option of ui.tickers.children) option.disabled = busy;
@@ -218,7 +262,8 @@ function syncMode() {
     ui['mode-note'].textContent = saved.has(tickerValue()) ? 'Open the verified model and report from the selected research date.'
       : 'Automated mode starts with the ticker alone.';
   } else if (show) {
-    ui['mode-note'].textContent = 'Change a forecast input and generate a matching Excel model and PDF.';
+    ui['mode-note'].textContent = batch ? 'Add each edit with a reason, then regenerate both files together.'
+      : 'Change a forecast input and generate a matching Excel model and PDF.';
   } else if (api && active?.ticker === 'GD') {
     ui['mode-note'].textContent = 'General Dynamics supports the dated automated package. Guided forecasts are available for FedEx and Newmont with the modeling server configured.';
   } else {
@@ -372,15 +417,36 @@ const pause = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
 async function runGuided(snapshot) {
   if (!api || !snapshot.guided?.available || !ui['run-form'].reportValidity()) return;
   const reason = ui.reason.value.trim();
-  if (!reason) {
+  const batch = snapshot.guided.fields.some(field => field.group);
+  if (batch && reason && !queueGuidedChange()) return;
+  if ((!batch && !reason) || (batch && !guidedChanges.size)) {
     setStatus('Enter a reason for changing the forecast input.', true);
     ui.reason.focus();
     return;
   }
   const payload = { ticker: snapshot.ticker, mode: 'guided', case: snapshot.baseRunId ? 'base' : ui['run-case'].value,
-    overrides: [{ target: ui.driver.value, value: ui['driver-value'].valueAsNumber, reason }] };
+    overrides: batch ? [...guidedChanges.values()].map(({target,value,reason}) => ({target,value,reason}))
+      : [{ target: ui.driver.value, value: ui['driver-value'].valueAsNumber, reason }] };
   if (snapshot.baseRunId) payload.base_run_id = snapshot.baseRunId;
   await runResearch(snapshot, payload);
+}
+
+function queueGuidedChange() {
+  const entry = operatingRuns.get(tickerValue()) ?? saved.get(tickerValue());
+  const field = entry?.guided?.fields?.find(item => item.target === ui.driver.value);
+  const reason = ui.reason.value.trim();
+  if (!field || !ui['driver-value'].reportValidity()) return false;
+  if (!reason) {
+    setStatus('Enter a reason for this assumption edit.',true);
+    ui.reason.focus();
+    return false;
+  }
+  const value = ui['driver-value'].valueAsNumber;
+  if (!Number.isFinite(value)) return false;
+  guidedChanges.set(field.target,{target:field.target,label:field.label,value,reason});
+  ui.reason.value = '';
+  renderGuidedChanges();
+  return true;
 }
 
 async function runResearch(snapshot, payload, resumeId = null) {
@@ -538,6 +604,7 @@ ui.ticker.addEventListener('input', () => {
   else showStart();
 });
 ui.driver.addEventListener('change', setDriver);
+ui['add-guided-change'].addEventListener('click', queueGuidedChange);
 ui['run-form'].addEventListener('change', (event) => {
   if (event.target.name === 'mode') {
     setStatus('');

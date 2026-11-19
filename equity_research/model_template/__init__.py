@@ -178,7 +178,8 @@ def _sensitivity(book):
                 previous = f"'{INCOME}'!$L$4" if i == 0 else f"{'CDEF'[i-1]}{start}"
                 capex = f"Schedules!{case_col}5/'{INCOME}'!{case_col}4"
                 formula = (f"{sales}*($A{start}*(1-Assumptions!$B$4)+Assumptions!$B$5-{capex})"
-                           f"-({sales}-{previous})*(Assumptions!$B$7-Assumptions!$B$8)")
+                           f"-({sales}*Assumptions!$B$32-"
+                           + ("Schedules!$L$12" if i==0 else f"{previous}*Assumptions!$B$32") + ")")
                 stub = "*Assumptions!$B$12" if not i else ""
                 book.put(tab, f"{out}{start}", f"=({formula}){stub}/(1+DCF!$B$3)^DCF!{case_col}20")
             terminal = (f"G{start}*A{start}*(1-Assumptions!$B$4)*(1+DCF!$B$4)*(1-DCF!$B$4/DCF!$B$5)"
@@ -252,7 +253,7 @@ def workbook_plan(model):
     if model["payout_ratio"] is None:
         book.put("Assumptions", "B16", 0, "input", PCT)
     if model["revenue_anchor"] is None:
-        book.put("Assumptions", "B15", "Historical forecast")
+        book.put("Assumptions", "B15", "Historical forecast", "evidence")
     book.put("Assumptions", "B12", "=(DCF!B18-DCF!B17)/(DCF!B18-DCF!B19)", fmt=PCT)
     book.put("DCF", "A24", "Forecast fiscal close")
     book.put("DCF", "A25", "Discount day count convention")
@@ -279,9 +280,15 @@ def workbook_plan(model):
     build_statements(book, model, revenue_total)
     book.put("Assumptions", "B7", "=SUM('Balance Sheet'!L6:L8)/'Income Statement'!L4", fmt=PCT)
     book.put("Assumptions", "B8", "=SUM('Balance Sheet'!L17:L20)/'Income Statement'!L4", fmt=PCT)
+    book.put("Assumptions", "A32", "Forecast operating working capital / sales")
+    book.put("Assumptions", "B32", "=B7*B30-B8*B31", fmt=PCT)
+    book.put("Assumptions", "B14", "=B5+B3*(1-B4)*B9/B10-B9*B32", fmt=PCT)
     _legacy_sources(book, model, revenue_total)
     from ..drivers import formula_block
     formula_block(book, model)
+    for address, record in cells["Revenue Build"].items():
+        if address[0] in "GHIJ" and type(record[0]) in (int,float):
+            record[1] = "evidence"
     _sensitivity(book)
     if "Comps" not in cells:
         book.put("Comps", "A1", "Comparable valuation", "title")
@@ -303,10 +310,14 @@ def workbook_plan(model):
     return plan
 
 
-def export_operating(model, folder, node=None, modules=None, *, report_writer=None):
+def export_operating(model, folder, node=None, modules=None, *, report_writer=None, overrides=(), plan=None):
     """Use the portable LibreOffice workflow, including scenario and assumption-edit validation."""
     workbook = folder / f"{model['ticker']}-{model['as_of']}.xlsx"
-    render_workbook(workbook_plan(model), workbook)
+    from .guided import apply, fields
+    plan = workbook_plan(model) if plan is None else plan
+    plan["guidedBounds"] = fields(plan, model)
+    validator = apply(plan, model, overrides) if overrides else None
+    render_workbook(plan, workbook, validate=validator)
     pdf = workbook.with_suffix(".pdf")
     from ..operating_report import export_report
     export_report(workbook, pdf, report_writer)

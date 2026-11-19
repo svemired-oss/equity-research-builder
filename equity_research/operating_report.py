@@ -67,9 +67,20 @@ def fact_sheet(workbook):
             for _,_,url,_ in book["Sources"].iter_rows(min_row=4,max_col=4,values_only=True):
                 if isinstance(url,str) and urlsplit(url).scheme == "https" and url not in sources:
                     sources.append(url)
+            changes = []
+            if "Guided changes" in book and book["Guided changes"]["A1"].value == "Changes from automated case":
+                for label, baseline, revised, reason, location in book["Guided changes"].iter_rows(
+                        min_row=4,max_col=5,values_only=False):
+                    if label.value:
+                        def show(cell):
+                            if "%" not in cell.number_format:
+                                return f"{cell.value:,.10g}"
+                            whole,decimal = f"{cell.value*100:.8f}".split(".")
+                            return whole+"."+decimal.rstrip("0").ljust(2,"0")+"%"
+                        changes.append([label.value,show(baseline),show(revised),reason.value,location.value])
         finally:
             book.close()
-    return {"facts":facts,"segments":count,"evidence":evidence,"sources":sources}
+    return {"facts":facts,"segments":count,"evidence":evidence,"sources":sources,"changes":changes}
 
 
 def _value(sheet, key):
@@ -152,6 +163,11 @@ def report_lines(sheet, digest, order):
     add("Investment thesis","Heading3")
     for index in _order(order):
         add("- " + thesis_options(sheet)[index])
+    if sheet["changes"]:
+        section("Changes from automated case")
+        add("Input\tAutomated\tGuided\tReason","ChangeRow")
+        for label,before,after,reason,_ in sheet["changes"]:
+            add("\t".join((label,before,after,reason)),"ChangeRow")
     section("Business and drivers")
     add(f"Revenue method {f('method')}. {f('method_basis')}")
     extracts("business","No verified business excerpt was retained for this run.")
@@ -263,7 +279,7 @@ def _range_chart(sheet):
 def export_report(workbook, output, writer=None):
     from reportlab.lib.colors import HexColor
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import Paragraph, SimpleDocTemplate
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Table, TableStyle
 
     binary = workbook.read_bytes()
     sheet = fact_sheet(binary)
@@ -275,7 +291,20 @@ def export_report(workbook, output, writer=None):
         styles[name].keepWithNext = True
     styles["BodyText"].spaceAfter = 5
     story = []
+    change_rows = []
+    def add_change_table():
+        table = Table(change_rows,colWidths=[126,80,80,170],hAlign="LEFT")
+        table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),HexColor("#E3EDF3")),
+                                   ("VALIGN",(0,0),(-1,-1),"TOP"),
+                                   ("LINEBELOW",(0,0),(-1,-1),.4,HexColor("#B7C9D3"))]))
+        story.append(table)
+        change_rows.clear()
     for style,text,url in lines:
+        if style == "ChangeRow":
+            change_rows.append([Paragraph(escape(cell),styles["BodyText"]) for cell in text.split("\t")])
+            continue
+        if change_rows:
+            add_change_table()
         value = escape(text)
         if url:
             value = f'<link href="{escape(url)}" color="#17365D">{value}</link>'

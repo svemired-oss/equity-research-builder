@@ -332,7 +332,8 @@ class _ResearchService:
             if field is None or target in seen:
                 raise _APIError(400, "Use supported guided fields once each.")
             if type(value) not in (int, float) or not field["min"] <= value <= field["max"] or not isfinite(value):
-                raise _APIError(400, f"{field['label']} must be between {field['min']:g} and {field['max']:g}.")
+                raise _APIError(400, f"{field['label']} must be between {field['min']:g} and {field['max']:g}. "
+                                     f"{field.get('explanation', '')}".strip())
             if not isinstance(reason, str) or not 1 <= len(reason.strip()) <= 240 or not reason.isprintable():
                 raise _APIError(400, "Give each change a one-line reason of 1 to 240 characters.")
             if reason.lstrip().startswith("="):
@@ -486,8 +487,9 @@ class _ResearchService:
             self._finish(run_id, {"state": "failed", "error": "The ticker could not be verified in EDGAR or the SEC data was unavailable."})
 
     def _finish_operating(self, run_id, inputs=None, overrides=()):
-        from .model_template import export_operating
-        from .operating_research import OPERATING_GUIDES, ResearchGap, operating_rating, prepare_operating_model, verify_valuation_range
+        from .model_template import export_operating, workbook_plan
+        from .model_template.guided import fields as guided_fields
+        from .operating_research import ResearchGap, prepare_operating_model, verify_valuation_range
 
         with self.lock:
             record = self.runs[run_id]
@@ -499,7 +501,7 @@ class _ResearchService:
                 if inputs is None:
                     return
             packet, treasury, quote, selection, candidates, comps = inputs
-            model = prepare_operating_model(packet, treasury, quote, selection, candidates, overrides)
+            model = prepare_operating_model(packet, treasury, quote, selection, candidates)
             review = verify_valuation_range(model)
             if review:
                 model["notes"] += (review,)
@@ -507,35 +509,34 @@ class _ResearchService:
                 model["notes"] += (comps,)
             else:
                 model["comparables"] = comps
+            plan = workbook_plan(model)
+            fields = guided_fields(plan, model)
             work_dir = self.inputs_dir.parent / "private" / "web-runs"
             work_dir.mkdir(parents=True, exist_ok=True)
             with TemporaryDirectory(prefix="operating-", dir=work_dir) as stage:
                 from functools import partial
-                from .operating_report import write_thesis
+                from .operating_report import fact_sheet, write_thesis
                 key = environ.get("OPENAI_API_KEY", "").strip()
                 writer = partial(write_thesis, key=key, model=environ.get("RESEARCH_MODEL", "gpt-5-mini").strip()) if key else None
-                files = dict(zip(_MEDIA, export_operating(model, Path(stage), report_writer=writer), strict=True))
+                files = dict(zip(_MEDIA, export_operating(model, Path(stage), report_writer=writer,
+                                                         overrides=overrides, plan=plan), strict=True))
                 contents = {kind: file.read_bytes() for kind, file in files.items()}
-            cases = [{"case": name.lower(), "spot_value_usd": result.value_per_share}
-                     for name, result in model["scenarios"].items()]
-            value = model["scenarios"]["Base"].value_per_share
-            upside = value / model["close"] - 1
-            summary = {"reference_close_usd": model["close"], "spot_value_usd": value, "spot_upside": upside,
-                       "rating": operating_rating(upside)}
-            if "valuation_summary" in model:
-                recommendation = model["valuation_summary"]
-                summary.update(rating=recommendation["rating"], target_value_usd=recommendation["target"],
-                               target_total_return=recommendation["return"])
-            annual = model["sources"]["Annual financials and revenue lines"]
-            fields = [{"target": name, "label": label, "unit": "decimal", "min": low, "max": high,
-                       "default": model["guided_defaults"][name],
-                       "basis": {"margin": "Three-year median operating margin", "capex": "Filed annual and available interim capex",
-                                 "growth": "Analyst terminal-growth default", "roic": "Analyst incremental ROIC default"}[name],
-                       "source": annual if name in ("margin", "capex") else None}
-                      for name, (label, low, high) in OPERATING_GUIDES.items()]
+            sheet = fact_sheet(contents["workbook"])
+            facts = {key: row["value"] for key,row in sheet["facts"].items()}
+            if overrides:
+                from dataclasses import replace
+                base = replace(model["scenarios"]["Base"], value_per_share=facts["dcf"])
+                verify_valuation_range({**model, "scenarios":{"Base":base},
+                                        "margin":facts["margin"], "implied_margin":facts["implied_margin"]})
+            cases = [{"case": name, "spot_value_usd": facts[key]} for name,key in
+                     (("bear","bear_value"),("base","dcf"),("bull","bull_value"))]
+            summary = {"reference_close_usd": facts["close"], "spot_value_usd": facts["dcf"],
+                       "spot_upside": facts["upside"], "rating": facts["rating"]}
+            if type(facts["target"]) in (int,float):
+                summary.update(target_value_usd=facts["target"],target_total_return=facts["total_return"])
             self._save_result(run_id, {kind: file.name for kind, file in files.items()}, summary, cases, contents,
                               operating_inputs=inputs if not overrides else None, price_date=model["price_date"].isoformat(),
-                              guided={"available": True, "fields": fields},
+                              guided={"available": not overrides, "fields": fields if not overrides else []},
                               company={"ticker": ticker, "company": model["company"],
                                        "sector": packet["issuer"].get("industry") or "Operating company"})
         except ResearchGap as exc:
