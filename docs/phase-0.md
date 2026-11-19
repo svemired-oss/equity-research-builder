@@ -11,7 +11,7 @@ The tests use synthetic JSON data in `tests/fixtures`. The values in `expected.j
 
 The five web endpoint tests use a synthetic catalog, fixed download bytes and test defaults. Their hashing, input validation, request isolation and access checks still run. Workbook authoring is mocked at that HTTP boundary. Numerical and parser tests run separately.
 
-The Linux integration test exports a real synthetic workbook through LibreOffice and checks its PDF using the existing acceptance reader. It passed locally with all 28 tests. Hosts without LibreOffice skip that integration test. CI installs LibreOffice so the test runs there.
+The Linux integration test exports a real synthetic workbook through LibreOffice and checks its PDF using the existing acceptance reader. It passed locally with all 30 tests, including the later collector-state and retry regressions. Hosts without LibreOffice skip that integration test. CI installs LibreOffice so the test runs there.
 
 ## Benchmark
 
@@ -50,4 +50,4 @@ After updating `scripts/benchmark.py` in the collection checkout, run:
 /opt/venv/bin/python scripts/benchmark.py
 ```
 
-The first command archives the old XOM cache, recollects only XOM and replays every other cached input. The second command blocks network access and repeats all 50 cached outcomes. A repaired XOM outcome and a completed replay are still pending. The existing checks and financial calculations retain their current behavior.
+The first command archives the old XOM cache, recollects only XOM and replays every other cached input. The second command blocks network access and repeats all 50 cached outcomes. The owner completed both with runner `72603e4` and supplied the final replay report. XOM now stops on missing normalized annual financials. The seven passes and 14% rate were unchanged. The committed baseline identifies these results as owner-supplied. The existing checks and financial calculations retain their current behavior.
