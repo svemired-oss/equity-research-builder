@@ -41,6 +41,10 @@ def check_pair(run, workbook, report):
     with BytesIO(workbook) as stream:
         formulas = load_workbook(stream, read_only=True, keep_links=False)
         try:
+            template = "Revenue Build" in formulas
+            if template:
+                formula_cells = (("Cover", "B7"), ("Income Statement", "B4"), ("Balance Sheet", "B4"),
+                                 ("Cash Flow Statement", "B12"), ("Sensitivity", "D30"), ("Comps", "B14"))
             for tab, cell in formula_cells:
                 if tab not in formulas or formulas[tab][cell].data_type != "f":
                     raise ValueError(f"{tab}!{cell} is missing its forecast formula.")
@@ -53,9 +57,11 @@ def check_pair(run, workbook, report):
                 if any(cell.data_type == "e" for row in sheet.iter_rows() for cell in row):
                     raise ValueError(f"Formula error found on {sheet.title}.")
             for col in "BCDEF":
-                difference = cached["Checks"][f"{col}4"].value
-                if type(difference) not in (int, float) or abs(difference) > 1e-5:
-                    raise ValueError(f"Balance sheet failed reconciliation in forecast column {col}.")
+                rows = range(4, 11) if template else (4,)
+                for row in rows:
+                    difference = cached["Checks"][f"{col}{row}"].value
+                    if type(difference) not in (int, float) or abs(difference) > 1e-5:
+                        raise ValueError(f"Forecast reconciliation failed at Checks!{col}{row}.")
             fair = cached["Cover"]["B7"].value
             peer = cached["Comps"]["B14"].value
             if not isinstance(peer, (int, float)) or not isfinite(peer) or peer <= 0:
@@ -64,6 +70,8 @@ def check_pair(run, workbook, report):
                 raise ValueError("The workbook headline differs from the site.")
             if not isclose(cached["DCF"]["D30"].value, fair, abs_tol=1e-6):
                 raise ValueError("The sensitivity grid does not reproduce the base DCF.")
+            if template and not isclose(cached["Sensitivity"]["D12"].value, fair, abs_tol=1e-6):
+                raise ValueError("The margin-growth sensitivity does not reproduce the base DCF.")
         finally:
             cached.close()
     text = " ".join(" ".join(page.extract_text().split()) for page in PdfReader(BytesIO(report)).pages)

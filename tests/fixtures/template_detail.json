@@ -1,0 +1,15 @@
+{
+  "receivables": 15000000,
+  "inventory": 10000000,
+  "accounts_payable": 12000000,
+  "cost_of_revenue": 72000000,
+  "gross_profit": 48000000,
+  "goodwill": 5000000,
+  "net_intangibles": 2000000,
+  "operating_lease_right_of_use_assets": 4000000,
+  "operating_lease_current": 1000000,
+  "operating_lease_noncurrent": 3000000,
+  "deferred_revenue_current": 2000000,
+  "retained_earnings": 60000000,
+  "noncontrolling_interest": 1000000
+}

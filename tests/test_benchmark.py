@@ -78,7 +78,7 @@ def test_export_failure_cannot_count_as_success(benchmark, tmp_path, monkeypatch
     })
     def fail_export(*args):
         raise ValueError("Saved workbook failed validation")
-    monkeypatch.setattr(benchmark, "export_apple", fail_export)
+    monkeypatch.setattr(benchmark, "export_operating", fail_export)
     outcome = benchmark.run_one({"ticker": "TEST", "sector": "synthetic"}, tmp_path, None, False, tmp_path)
     assert outcome["status"] == "FAIL"
     assert "Saved workbook failed validation" in outcome["reason"]

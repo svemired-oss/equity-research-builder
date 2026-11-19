@@ -486,7 +486,7 @@ class _ResearchService:
             self._finish(run_id, {"state": "failed", "error": "The ticker could not be verified in EDGAR or the SEC data was unavailable."})
 
     def _finish_operating(self, run_id, inputs=None, overrides=()):
-        from .apple_export import export_apple
+        from .model_template import export_operating
         from .operating_research import OPERATING_GUIDES, ResearchGap, operating_rating, prepare_operating_model, verify_valuation_range
 
         with self.lock:
@@ -510,7 +510,7 @@ class _ResearchService:
             work_dir = self.inputs_dir.parent / "private" / "web-runs"
             work_dir.mkdir(parents=True, exist_ok=True)
             with TemporaryDirectory(prefix="operating-", dir=work_dir) as stage:
-                files = dict(zip(_MEDIA, export_apple(model, Path(stage), self.node, self.node_modules), strict=True))
+                files = dict(zip(_MEDIA, export_operating(model, Path(stage)), strict=True))
                 contents = {kind: file.read_bytes() for kind, file in files.items()}
             cases = [{"case": name.lower(), "spot_value_usd": result.value_per_share}
                      for name, result in model["scenarios"].items()]

@@ -46,7 +46,7 @@ def render_workbook(plan, output, node=None, modules=None, *, previews=None):
             cell = book[change["sheet"]][change["address"]]
             original = cell.value
             cell.value += change["delta"]
-            after = _calculate(book, plan, case, {}, office, stage)
+            after = _calculate(book, plan, case, probe.get("expected", {}), office, stage)
             try:
                 for key, stable in (("changed", False), ("unchanged", True)):
                     for point in probe[key]:
@@ -88,6 +88,17 @@ def _author(plan):
                      "total": navy, "note": "4E5D6B", "subtitle": "4E5D6B"}.get(kind, "172332")
             if cell.data_type == "f" and "!" in value and kind == "text":
                 color = "17653C"
+            if cell.data_type == "f" and plan.get("formulaColor"):
+                color = plan["formulaColor"]
+            source = plan.get("inputSources", {}).get(name, {}).get(address)
+            if source:
+                from openpyxl.worksheet.hyperlink import Hyperlink
+
+                cell.hyperlink = Hyperlink(ref=address, location=f"'Sources'!{source}",
+                                           tooltip="Open input source and basis")
+                color = "154DA1"
+            elif name == "Sources" and isinstance(value, str) and value.startswith("https://"):
+                cell.hyperlink = value
             cell.font = Font(name=face, size=16 if kind == "title" else 10, color=color,
                              bold=kind in ("title", "section", "header", "total"), italic=kind == "subtitle")
             fill = {"section": navy, "header": pale, "input": "F1F6FF", "total": "EEF4F8"}.get(kind)
