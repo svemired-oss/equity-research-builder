@@ -1,0 +1,28 @@
+{
+  "as_of": "2026-01-01",
+  "wacc": 0.1,
+  "flows": [
+    {
+      "period_end": "2027-01-01",
+      "amount_millions": 100
+    },
+    {
+      "period_end": "2028-01-01",
+      "amount_millions": 110
+    }
+  ],
+  "terminal": {
+    "normalized_nopat_millions": 150,
+    "growth_rate": 0.02,
+    "marginal_roic": 0.1
+  },
+  "bridge": {
+    "excess_cash_millions": 20,
+    "nonoperating_assets_millions": 5,
+    "debt_and_finance_leases_millions": 50,
+    "preferred_equity_millions": 0,
+    "minority_interests_millions": 3,
+    "other_noncommon_claims_millions": 2,
+    "diluted_shares_millions": 10
+  }
+}

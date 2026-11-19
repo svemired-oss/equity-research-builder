@@ -1,0 +1,180 @@
+{
+  "description": "Synthetic financial test data, never company evidence. Dollars unless otherwise labeled.",
+  "packet": {
+    "issuer": {
+      "ticker": "TEST",
+      "name": "Synthetic Operating Company"
+    },
+    "as_of": "2026-06-30",
+    "actuals": {
+      "periods": [
+        {
+          "period_end": "2023-12-31",
+          "metrics": {
+            "revenue": 100000000.0,
+            "operating_income": 24000000.0,
+            "depreciation_amortization": 6000000.0,
+            "capex": 8000000.0,
+            "income_taxes": 4000000.0,
+            "income_before_taxes": 20000000.0,
+            "net_income": 16000000.0,
+            "dividends_paid": 4000000.0,
+            "cash_and_equivalents": 20000000.0,
+            "short_term_investments": 5000000.0,
+            "current_debt": 10000000.0,
+            "long_term_debt": 20000000.0,
+            "finance_lease_current": 0,
+            "finance_lease_noncurrent": 0,
+            "total_assets": 150000000.0,
+            "total_liabilities": 60000000.0,
+            "total_equity": 90000000.0,
+            "current_assets": 70000000.0,
+            "current_liabilities": 35000000.0,
+            "ending_shares": 10000000.0,
+            "net_ppe": 60000000.0
+          },
+          "filing": {
+            "url": "https://example.org/synthetic/2023",
+            "accession": "synthetic-latest"
+          }
+        },
+        {
+          "period_end": "2024-12-31",
+          "metrics": {
+            "revenue": 110000000.0,
+            "operating_income": 24000000.0,
+            "depreciation_amortization": 6000000.0,
+            "capex": 8000000.0,
+            "income_taxes": 4000000.0,
+            "income_before_taxes": 20000000.0,
+            "net_income": 16000000.0,
+            "dividends_paid": 4000000.0,
+            "cash_and_equivalents": 20000000.0,
+            "short_term_investments": 5000000.0,
+            "current_debt": 10000000.0,
+            "long_term_debt": 20000000.0,
+            "finance_lease_current": 0,
+            "finance_lease_noncurrent": 0,
+            "total_assets": 150000000.0,
+            "total_liabilities": 60000000.0,
+            "total_equity": 90000000.0,
+            "current_assets": 70000000.0,
+            "current_liabilities": 35000000.0,
+            "ending_shares": 10000000.0,
+            "net_ppe": 60000000.0
+          },
+          "filing": {
+            "url": "https://example.org/synthetic/2024",
+            "accession": "synthetic-latest"
+          }
+        },
+        {
+          "period_end": "2025-12-31",
+          "metrics": {
+            "revenue": 120000000.0,
+            "operating_income": 24000000.0,
+            "depreciation_amortization": 6000000.0,
+            "capex": 8000000.0,
+            "income_taxes": 4000000.0,
+            "income_before_taxes": 20000000.0,
+            "net_income": 16000000.0,
+            "dividends_paid": 4000000.0,
+            "cash_and_equivalents": 20000000.0,
+            "short_term_investments": 5000000.0,
+            "current_debt": 10000000.0,
+            "long_term_debt": 20000000.0,
+            "finance_lease_current": 0,
+            "finance_lease_noncurrent": 0,
+            "total_assets": 150000000.0,
+            "total_liabilities": 60000000.0,
+            "total_equity": 90000000.0,
+            "current_assets": 70000000.0,
+            "current_liabilities": 35000000.0,
+            "ending_shares": 10000000.0,
+            "net_ppe": 60000000.0
+          },
+          "filing": {
+            "url": "https://example.org/synthetic/2025",
+            "accession": "synthetic-latest"
+          }
+        }
+      ]
+    },
+    "interim_actuals": {
+      "periods": []
+    },
+    "operating_facts": {
+      "observations": [
+        {
+          "metric": "segment_revenue",
+          "period_end": "2024-12-31",
+          "accession": "synthetic-latest",
+          "unit": "USD",
+          "dimensions": [
+            {
+              "member": "Products"
+            }
+          ],
+          "value": 66000000.0
+        },
+        {
+          "metric": "segment_revenue",
+          "period_end": "2024-12-31",
+          "accession": "synthetic-latest",
+          "unit": "USD",
+          "dimensions": [
+            {
+              "member": "Services"
+            }
+          ],
+          "value": 44000000.0
+        },
+        {
+          "metric": "segment_revenue",
+          "period_end": "2025-12-31",
+          "accession": "synthetic-latest",
+          "unit": "USD",
+          "dimensions": [
+            {
+              "member": "Products"
+            }
+          ],
+          "value": 72000000.0
+        },
+        {
+          "metric": "segment_revenue",
+          "period_end": "2025-12-31",
+          "accession": "synthetic-latest",
+          "unit": "USD",
+          "dimensions": [
+            {
+              "member": "Services"
+            }
+          ],
+          "value": 48000000.0
+        }
+      ]
+    },
+    "capital_bridge": {
+      "events": []
+    }
+  },
+  "treasury": {
+    "rate": 0.04,
+    "date": "2026-06-30",
+    "url": "https://example.org/synthetic/yield"
+  },
+  "quote": {
+    "ticker": "TEST",
+    "currency": "USD",
+    "close": 30,
+    "trading_date": "2026-06-30",
+    "url": "https://example.org/synthetic/close"
+  },
+  "selection": {
+    "group": "segment_revenue",
+    "reason": "Synthetic reconciled business lines",
+    "thesis": "Synthetic test narrative",
+    "risks": "Synthetic test risks"
+  }
+}

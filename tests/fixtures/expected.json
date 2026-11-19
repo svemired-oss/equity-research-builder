@@ -1,0 +1,69 @@
+{
+  "fcff": {
+    "terminal_fcff_millions": 122.4,
+    "terminal_present_value_millions": 1264.4628099173551,
+    "enterprise_value_millions": 1446.2809917355369,
+    "equity_value_millions": 1416.2809917355369,
+    "value_per_share": 141.6280991735537
+  },
+  "candidates": {
+    "segment_revenue": {
+      "prior": {
+        "Products": 66.0,
+        "Services": 44.0
+      },
+      "latest": {
+        "Products": 72.0,
+        "Services": 48.0
+      }
+    }
+  },
+  "balance": [
+    20.0,
+    5.0,
+    30.0,
+    90.0,
+    45.0,
+    25.0
+  ],
+  "operating": {
+    "wacc": 0.08163636363636362,
+    "revenue": [
+      126.95454545454545,
+      132.22027376033054,
+      136.61509535975063,
+      140.5932337899706,
+      144.39763876681567
+    ],
+    "values": [
+      28.659306421944716,
+      33.52743697291631,
+      38.3955675238879
+    ],
+    "guided_value": 35.114554779893865
+  },
+  "nintendo": {
+    "sales": [
+      900,
+      1000
+    ],
+    "operating": [
+      180,
+      200
+    ],
+    "ytd_sales": 500,
+    "ytd_ebit": 100,
+    "guide_sales": 1200,
+    "guide_ebit": 240,
+    "tax": 44,
+    "pretax": 220,
+    "da": 20,
+    "capex": 30,
+    "common": [
+      10.0,
+      1.0
+    ],
+    "balance_date": "2026-09-30",
+    "release_date": "2026-11-05"
+  }
+}

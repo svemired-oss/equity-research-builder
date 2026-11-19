@@ -1,0 +1,452 @@
+[
+  {
+    "ticker": "NVDA",
+    "sector": "tech",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "MSFT",
+    "sector": "tech",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "ADBE",
+    "sector": "tech",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "CRM",
+    "sector": "tech",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "ORCL",
+    "sector": "tech",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "SBUX",
+    "sector": "consumer",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "MCD",
+    "sector": "consumer",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "PG",
+    "sector": "consumer",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "KO",
+    "sector": "consumer",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "PEP",
+    "sector": "consumer",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "GD",
+    "sector": "industrials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "FAST",
+    "sector": "industrials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "CAT",
+    "sector": "industrials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "HON",
+    "sector": "industrials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "LMT",
+    "sector": "industrials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "DHR",
+    "sector": "healthcare",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "ABT",
+    "sector": "healthcare",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "JNJ",
+    "sector": "healthcare",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "PFE",
+    "sector": "healthcare",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "MRK",
+    "sector": "healthcare",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "XOM",
+    "sector": "energy",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "CVX",
+    "sector": "energy",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "COP",
+    "sector": "energy",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "EOG",
+    "sector": "energy",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "SLB",
+    "sector": "energy",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "NEM",
+    "sector": "materials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "FCX",
+    "sector": "materials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "NUE",
+    "sector": "materials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "DOW",
+    "sector": "materials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "APD",
+    "sector": "materials",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "NEE",
+    "sector": "utilities",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "DUK",
+    "sector": "utilities",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "SO",
+    "sector": "utilities",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "AEP",
+    "sector": "utilities",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "EXC",
+    "sector": "utilities",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "GOOGL",
+    "sector": "communications",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "META",
+    "sector": "communications",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "NFLX",
+    "sector": "communications",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "VZ",
+    "sector": "communications",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "CMCSA",
+    "sector": "communications",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "FDX",
+    "sector": "transport",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "UPS",
+    "sector": "transport",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "UNP",
+    "sector": "transport",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "CSX",
+    "sector": "transport",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "DAL",
+    "sector": "transport",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "WMT",
+    "sector": "retail",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "COST",
+    "sector": "retail",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "HD",
+    "sector": "retail",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "TGT",
+    "sector": "retail",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  },
+  {
+    "ticker": "AMZN",
+    "sector": "retail",
+    "status": "FAIL",
+    "stage": "cache",
+    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "value_price_ratio": null,
+    "seconds": 0.0
+  }
+]
