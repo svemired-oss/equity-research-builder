@@ -157,13 +157,34 @@ def workbook_plan(model):
     investments_label = ("Marketable and equity-method investments" if model.get("bridge_affiliate_book_value")
                          else "Marketable investments")
     sheet("DCF", ["WACC", "Terminal growth", "Terminal incremental ROIC", "Cash", investments_label,
-                  "Debt and finance leases", "Noncontrolling interests", "", "", "Ending common shares (millions)", "Enterprise value",
+                  "Debt and finance leases", "Noncontrolling interests (book proxy)", "Preferred equity (book proxy)", "", "Ending common shares (millions)", "Enterprise value",
                   "Equity value", "Fair value per share", "PV of terminal value"], start=3)
     sheet("DCF", [("=WACC!B9", "total", PCT), ("=Assumptions!B9", "text", PCT), ("=Assumptions!B10", "text", PCT),
                   model.get("bridge_cash", "='Balance sheet'!H4"), model.get("bridge_investments", "='Balance sheet'!H5"),
-                  model.get("bridge_debt", "='Balance sheet'!H10"), model.get("bridge_nci", 0), "", "", (model["shares"], "input", None),
-                  "=SUM(B22:F22)+B16", "=B13+B6+B7-SUM(B8:B9)", ("=B14/B12", "total", PRICE),
+                  model.get("bridge_debt", "='Balance sheet'!H10"), model.get("bridge_nci", 0), model.get("bridge_preferred", 0), "", (model["shares"], "input", None),
+                  "=SUM(B22:F22)+B16", "=B13+B6+B7-SUM(B8:B10)", ("=B14/B12", "total", PRICE),
                   "=B23*(1+B4)*(1-B4/B5)/(B3-B4)/(1+B3)^F20"], "B", 3)
+    movements = model.get("capital_movements", [])
+    if movements:
+        sheet("Equity bridge", ["Completed financing movements", "USD millions and shares in millions"])
+        for column, label in zip("ABCDEF", ("Observation", "Cash", "Debt", "Shares", "Closed", "Source"), strict=True):
+            sheet("Equity bridge", [(label, "header", None)], column, 4)
+        sheet("Equity bridge", ["Last filed balance"], start=5)
+        for column, key in zip("BCD", ("cash", "debt", "shares"), strict=True):
+            sheet("Equity bridge", [(model["bridge_base"][key], "input", None)], column, 5)
+        for row, movement in enumerate(movements, 6):
+            for column, value in zip("ABCDEF", (
+                movement["kind"], movement["cash_change"], movement["debt_change"], movement["share_change"],
+                movement["closed_on"], movement["url"]), strict=True):
+                sheet("Equity bridge", [(value, "input" if column in "BCD" else "text", None)], column, row)
+        closing = 6 + len(movements)
+        sheet("Equity bridge", ["Valuation cutoff"], start=closing)
+        for column in "BCD":
+            sheet("Equity bridge", [(f"=SUM({column}5:{column}{closing-1})", "total", None)], column, closing)
+        for target, column, value in (("B6", "B", model["bridge_cash"]), ("B8", "C", model["bridge_debt"]),
+                                      ("B12", "D", model["shares"])):
+            cells["DCF"][target] = [f"='Equity bridge'!{column}{closing}", "text", None]
+            expected["DCF"][target] = value
     sheet("DCF", ["Discount years", "Post-cutoff FCFF", "PV of FCFF", "Terminal normalized NOPAT"], start=20)
     sheet("DCF", ["='Income statement'!F5*(1-Assumptions!B4)"], "B", 23)
     sheet("DCF", [("WACC and terminal growth", "section", None)], start=26)
@@ -175,7 +196,7 @@ def workbook_plan(model):
         for step, col in enumerate("BCDEF", -2):
             pv = "+".join(f"${year}$21/(1+$A{row})^${year}$20" for year in "BCDEF")
             formula = (f"=({pv}+$B$23*(1+{col}$27)*(1-{col}$27/$B$5)/($A{row}-{col}$27)"
-                       f"/(1+$A{row})^$F$20+$B$6+$B$7-$B$8-$B$9)/$B$12")
+                       f"/(1+$A{row})^$F$20+$B$6+$B$7-$B$8-$B$9-$B$10)/$B$12")
             sheet("DCF", [(formula, "text", PRICE)], col, row)
             terminal = replace(base.terminal, growth_rate=model["growth"] + step*.005)
             expected["DCF"][f"{col}{row}"] = discount_fcff(flows, as_of, model["wacc"] + offset*.005, terminal, base.bridge).value_per_share
@@ -213,6 +234,19 @@ def workbook_plan(model):
         sheet("Sources", [name], start=row)
         sheet("Sources", [url], "C", row)
     sheet("Sources", [(note, "note", None) for note in notes], start=4+len(sources))
+    if model.get("balance_evidence"):
+        sheet("Balance evidence", ["Balance input provenance", "Original USD and share units"])
+        for column, label in zip("ABCDEFGH", ("Period", "Metric", "Amount", "Unit", "Basis", "Source",
+                                              "Accession", "Filed"), strict=True):
+            sheet("Balance evidence", [(label, "header", None)], column, 4)
+        for row, record in enumerate(model["balance_evidence"], 5):
+            source = record["source"]
+            values = (record["period_end"], record["metric"], record["value"],
+                      source.get("unit", "shares" if record["metric"] == "ending_shares" else "USD"),
+                      source.get("basis", source.get("kind", source.get("tag", "Filed balance supplement"))),
+                      source.get("url", ""), source.get("accession", ""), source.get("filed_on", ""))
+            for column, value in zip("ABCDEFGH", values, strict=True):
+                sheet("Balance evidence", [value], column, row)
     if model.get("overrides"):
         from .operating_research import OPERATING_GUIDES
 

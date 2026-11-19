@@ -66,6 +66,9 @@ def replay(ticker, evidence, folder, result):
         raise ValueError("Cached revenue candidates differ from the reconciled filing evidence.")
     model = prepare_operating_model(evidence["packet"], evidence["treasury"], evidence["quote"],
                                     evidence["selection"], candidates)
+    ratio = model["scenarios"]["Base"].value_per_share / model["close"]
+    result.update(value_price_ratio=ratio, value=model["scenarios"]["Base"].value_per_share,
+                  price=model["close"], cutoff=str(model["as_of"]))
     review = verify_valuation_range(model)
     if review:
         model["notes"] += (review,)
@@ -74,9 +77,6 @@ def replay(ticker, evidence, folder, result):
         model["notes"] += (comps,)
     else:
         model["comparables"] = comps
-    ratio = model["scenarios"]["Base"].value_per_share / model["close"]
-    result.update(value_price_ratio=ratio, value=model["scenarios"]["Base"].value_per_share,
-                  price=model["close"], cutoff=str(model["as_of"]))
     workbook, report = export_apple(model, folder, None, None)
     run = {"ticker": ticker, "source_mode": "operating_research",
            "summary": {"spot_value_usd": model["scenarios"]["Base"].value_per_share,
@@ -122,8 +122,29 @@ def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False):
             result.update(outcome, status="PASS", stage="verified_pair")
     except Exception as exc:
         result["reason"] = f"{type(exc).__name__}: {exc}"
+    if result["status"] == "FAIL":
+        result["failure_type"] = failure_type(result["reason"])
     result["seconds"] = round(monotonic() - started, 2)
     return result
+
+
+def failure_type(reason):
+    text = reason.lower()
+    rules = (
+        ("cache", ("cached evidence", "cache identity")),
+        ("acquisition_or_merger_basis", ("acquisition", "acquiree", "pro forma", "merger")),
+        ("financing_bridge", ("net proceeds", "financing event", "debt issuance", "debt repayment", "share repurchase")),
+        ("conflicting_filing_facts", ("conflicting",)),
+        ("revenue_reconciliation", ("segment revenue", "revenue fact", "revenue grouping", "revenue reconciliation")),
+        ("financial_history", ("normalized annual", "three normalized")),
+        ("missing_balance_fact", ("required financial fact", "investment balance", "lease balance", "lease liability")),
+        ("statement_reconciliation", ("balance sheet", "reconciliation", "cash aggregate")),
+        ("valuation_guard", ("standard dcf", "wacc", "terminal growth", "review reinvestment")),
+        ("comparable_evidence", ("peer valuation", "comparables")),
+        ("provider_or_market_data", ("openai", "alpaca", "treasury", "market close", "closing price")),
+        ("collection_code_error", ("'dimensions'", "has no attribute")),
+    )
+    return next((label for label, phrases in rules if any(phrase in text for phrase in phrases)), "other")
 
 
 def write_results(output, results):
@@ -135,8 +156,14 @@ def write_results(output, results):
              "A complete baseline requires a recorded collection attempt for every ticker.",
              "PASS requires the existing valuation checks, real formula workbook export, and paired PDF verification.",
              "The rate measures mechanical completion. Economic assumptions and narrative still require analyst review.", "",
+             "## Remaining failures by type", "",
+             "| Failure type | Count |", "| --- | --- |"]
+    from collections import Counter
+    counts = Counter(row.get("failure_type", failure_type(row["reason"])) for row in results if row["status"] != "PASS")
+    lines.extend(f"| {label} | {count} |" for label, count in sorted(counts.items()))
+    lines.extend(["", "## Per-ticker outcomes", "",
              "| Ticker | Sector | Status | Stage | Value / price | Reason |",
-             "| --- | --- | --- | --- | --- | --- |"]
+             "| --- | --- | --- | --- | --- | --- |"])
     for row in results:
         ratio = row["value_price_ratio"]
         reason = row["reason"].replace("|", "/").replace("\n", " ")

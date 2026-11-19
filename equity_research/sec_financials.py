@@ -217,7 +217,7 @@ def _period_start(end, prior_end, own_accessions, observations):
 
 
 def _filing_priority(filing):
-    return filing["filed_on"], filing["period_end"], filing["form"].endswith("/A")
+    return filing["filed_on"], filing["period_end"], filing["form"].endswith("/A"), filing["accession"]
 
 
 def _choose_fact(metric, end, start, observations, by_accession, not_reported):
@@ -240,6 +240,10 @@ def _choose_fact(metric, end, start, observations, by_accession, not_reported):
         **filing, "taxonomy": "us-gaap", "tag": tag, "unit": _metric_unit(metric),
         "period_start": start.isoformat() if start else None, "period_end": end.isoformat(),
         "filing_period_end": filing["period_end"],
+        "superseded": [{"accession": earlier["accession"], "filed_on": earlier["filed_on"],
+                        "url": earlier["url"], "tag": earlier_tag, "values": sorted(earlier_values)}
+                       for earlier, earlier_tag, earlier_values in candidates
+                       if earlier["accession"] != filing["accession"] and earlier_values != values],
     }
     return next(iter(values)), source, None
 
@@ -320,7 +324,7 @@ def _record_period(result, end, start, start_issue, observations, by_accession, 
     result["periods"].append({
         "period_end": end_iso, "period_start": start.isoformat() if start else None,
         "filing": max(own, key=lambda filing: (_filing_priority(filing), filing["accession"])),
-        "metrics": metrics, "sources": sources,
+        "metrics": metrics, "sources": sources, "metric_issues": dict(issues),
     })
     result["missing"].extend({"period_end": end_iso, "metric": metric, "reason": issue} for metric, issue in issues.items())
     result["checks"].extend((

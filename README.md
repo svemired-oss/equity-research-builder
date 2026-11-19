@@ -1,5 +1,7 @@
 # Equity Research Builder
 
+The `phase-1-coverage` branch adds evidence-conditioned balance assumptions, cash and financing reconciliation, book-value claim flags and acquisition revenue bases. See [Phase 1 rules and benchmark commands](docs/phase-1.md). Its new benchmark result is pending.
+
 Phase 0 adds an offline financial regression suite and a fixed 50-ticker benchmark on `phase-0-baseline`. See [test and benchmark instructions](docs/phase-0.md). The [hosted baseline and cached replay](benchmarks/results.md) supplied by the owner report 7 verified pairs out of 50 (14%). All 50 have recorded collection attempts and no missing caches. The XOM harness defect was repaired before the final replay.
 
 Run a private ticker-to-download demo in GitHub Codespaces. Hosted acceptance on November 19, 2026 produced verified Excel and PDF downloads for Nintendo (`XTKS:7974`) and NVIDIA (`NVDA`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)

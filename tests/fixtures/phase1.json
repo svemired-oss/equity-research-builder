@@ -1,0 +1,53 @@
+{
+  "basis": "Synthetic Phase 1 evidence. USD units and shares unless stated otherwise.",
+  "financing_events": [
+    {
+      "kind": "debt_issuance",
+      "closed_on": "2026-04-10",
+      "filed_on": "2026-04-11",
+      "principal": 10000000,
+      "net_proceeds": 9800000,
+      "currency": "USD",
+      "url": "https://example.org/filing/issuance"
+    },
+    {
+      "kind": "debt_repayment",
+      "closed_on": "2026-05-10",
+      "filed_on": "2026-05-11",
+      "principal": 2000000,
+      "cash_paid": 2000000,
+      "currency": "USD",
+      "url": "https://example.org/filing/repayment"
+    },
+    {
+      "kind": "share_repurchase",
+      "closed_on": "2026-06-10",
+      "filed_on": "2026-06-11",
+      "shares_repurchased": 200000,
+      "cash_paid": 5000000,
+      "currency": "USD",
+      "url": "https://example.org/filing/repurchase"
+    }
+  ],
+  "expected_bridge": {
+    "cash": 22.8,
+    "debt": 38,
+    "shares": 9.8
+  },
+  "cash": {
+    "opening": 500000000,
+    "closing": 600000000,
+    "change": 100000000,
+    "restricted": 40000000,
+    "available": 560000000
+  },
+  "pro_forma": {
+    "prior": 135000000,
+    "latest": 150000000,
+    "acquiree_prior": 30000000,
+    "included_prior": 5000000,
+    "acquiree_latest": 40000000,
+    "included_latest": 10000000
+  },
+  "capital_filing": "<p>Item 2.03</p><p>On April 10, 2026, the Company completed the issuance and sale of $10 million aggregate principal amount of 5% senior notes due 2031. Net proceeds were $9.8 million.</p><p>On May 10, 2026, the Company repaid $2 million of outstanding principal.</p><p>On June 10, 2026, the Company repurchased 200,000 shares of common stock for $5 million.</p>"
+}

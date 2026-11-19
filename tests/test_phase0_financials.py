@@ -59,6 +59,8 @@ def test_balance_frozen_outputs():
 def test_balance_missing_facts_stop(field, reason):
     period = read("operating.json")["packet"]["actuals"]["periods"][-1]
     period["metrics"].pop(field)
+    if field != "cash_and_equivalents":
+        period["metrics"]["total_assets"] += 2_000_000
     with pytest.raises(ResearchGap, match=reason):
         _balance(period)
 

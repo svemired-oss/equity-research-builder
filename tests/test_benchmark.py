@@ -21,6 +21,12 @@ def test_fixed_universe(benchmark):
     assert {"GD", "FAST", "SBUX", "DHR", "NVDA"} <= {row["ticker"] for row in rows}
 
 
+def test_failure_groups_preserve_missing_data_and_code_errors(benchmark):
+    assert benchmark.failure_type("Required financial fact is missing: cash and equivalents") == "missing_balance_fact"
+    assert benchmark.failure_type("'dimensions'") == "collection_code_error"
+    assert benchmark.failure_type("Material acquisition needs full-year revenue") == "acquisition_or_merger_basis"
+
+
 def test_collector_screening_result_returns_gap_without_missing_service_state(benchmark, tmp_path, monkeypatch):
     from datetime import date
     monkeypatch.setenv("SEC_USER_AGENT", "Test contact@example.com")

@@ -691,6 +691,8 @@ class _ResearchService:
                    for block in filing.blocks):
                 raise ResearchGap("Union Pacific's filing reports a pending Norfolk Southern acquisition. "
                                   "A current model requires stand-alone and merger cases and the financing terms.")
+        from .acquisition_basis import collect_acquisition_basis
+        collect_acquisition_basis(packet, client)
         verify_comparable_operating_basis(packet)
         if packet["issuer"]["cik"] == "0000823768":
             from .waste_management_revenue import waste_management_candidates
