@@ -11,6 +11,8 @@ The tests use synthetic JSON data in `tests/fixtures`. The values in `expected.j
 
 The five web endpoint tests use a synthetic catalog, fixed download bytes and test defaults. Their hashing, input validation, request isolation and access checks still run. Workbook authoring is mocked at that HTTP boundary. Numerical and parser tests run separately.
 
+The Linux integration test exports a real synthetic workbook through LibreOffice and checks its PDF using the existing acceptance reader. It passed locally with all 28 tests. Hosts without LibreOffice skip that integration test. CI installs LibreOffice so the test runs there.
+
 ## Benchmark
 
 The fixed research cohort has 50 symbols, five in each of the ten requested sectors. These are research groupings and can differ from formal industry classifications. All tickers use the general U.S. operating path, including symbols with dedicated legacy models.

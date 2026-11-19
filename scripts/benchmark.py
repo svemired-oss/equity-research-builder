@@ -52,7 +52,7 @@ def cache_write(path, value):
     temporary.replace(path)
 
 
-def replay(ticker, evidence, folder):
+def replay(ticker, evidence, folder, result):
     if evidence["packet"]["issuer"]["ticker"] != ticker:
         raise ValueError("Cache issuer differs from the requested ticker.")
     verify_comparable_operating_basis(evidence["packet"])
@@ -70,6 +70,8 @@ def replay(ticker, evidence, folder):
     else:
         model["comparables"] = comps
     ratio = model["scenarios"]["Base"].value_per_share / model["close"]
+    result.update(value_price_ratio=ratio, value=model["scenarios"]["Base"].value_per_share,
+                  price=model["close"], cutoff=str(model["as_of"]))
     workbook, report = export_apple(model, folder, None, None)
     run = {"ticker": ticker, "source_mode": "operating_research",
            "summary": {"spot_value_usd": model["scenarios"]["Base"].value_per_share,
@@ -106,7 +108,7 @@ def run_one(row, cache_dir, cutoff, collect, work_dir):
         else:
             result["stage"] = "model_export_verification"
             with TemporaryDirectory(dir=work_dir) as directory:
-                outcome = replay(row["ticker"], record["evidence"], Path(directory))
+                outcome = replay(row["ticker"], record["evidence"], Path(directory), result)
             result.update(outcome, status="PASS", stage="verified_pair")
     except Exception as exc:
         result["reason"] = f"{type(exc).__name__}: {exc}"
@@ -161,7 +163,7 @@ def main():
         results.append(result)
         write_results(args.output, results)
         print(f"{row['ticker']} {result['status']} {result['reason']}", flush=True)
-    return 0
+    return 2 if any(row["stage"] == "cache" for row in results) else 0
 
 
 if __name__ == "__main__":

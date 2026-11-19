@@ -1,5 +1,7 @@
 # Equity Research Builder
 
+Phase 0 adds an offline financial regression suite and a fixed 50-ticker benchmark on `phase-0-baseline`. See [test and benchmark instructions](docs/phase-0.md). The checked-in initial results identify missing caches. A credentialed collection run is required to establish financial coverage.
+
 Run a private ticker-to-download demo in GitHub Codespaces. Hosted acceptance on November 19, 2026 produced verified Excel and PDF downloads for Nintendo (`XTKS:7974`) and NVIDIA (`NVDA`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)
 
 ## Give a two-minute demonstration

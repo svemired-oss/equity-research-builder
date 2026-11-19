@@ -50,3 +50,26 @@ def test_export_failure_cannot_count_as_success(benchmark, tmp_path, monkeypatch
     outcome = benchmark.run_one({"ticker": "TEST", "sector": "synthetic"}, tmp_path, None, False, tmp_path)
     assert outcome["status"] == "FAIL"
     assert "Saved workbook failed validation" in outcome["reason"]
+    assert outcome["value_price_ratio"] == pytest.approx(1.1175812324305436)
+
+
+def test_offline_real_export_and_pair_check(benchmark, tmp_path, monkeypatch):
+    import shutil
+    if not shutil.which("soffice"):
+        pytest.skip("Real export requires LibreOffice, installed in CI")
+    data = json.loads((Path(__file__).parent / "fixtures/operating.json").read_text())
+    data["candidates"] = benchmark.revenue_candidates(data["packet"])
+    data["comparables"] = {
+        "basis": "Synthetic annual", "quote_date": "2026-06-30", "median": 6,
+        "subject_eps": 5, "value": 30, "basis_note": "Synthetic comparison only",
+        "subject_filings": ["https://example.org/synthetic/annual"], "excluded": [],
+        "rows": [{"ticker": symbol, "end": "2025-12-31", "close": 30, "eps": 5, "multiple": 6,
+                  "reason": "Synthetic peer", "filings": ["https://example.org/synthetic/peer"],
+                  "quote_source": "https://example.org/synthetic/quote"} for symbol in ("ONE", "TWO")],
+    }
+    benchmark.cache_write(tmp_path / "TEST.json.gz", {
+        "schema_version": 1, "ticker": "TEST", "cutoff": "2026-06-30", "evidence": data,
+    })
+    outcome = benchmark.run_one({"ticker": "TEST", "sector": "synthetic"}, tmp_path, None, False, tmp_path)
+    assert outcome["status"] == "PASS", outcome["reason"]
+    assert outcome["value"] == pytest.approx(33.52743697291631)
