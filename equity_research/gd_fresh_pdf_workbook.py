@@ -142,7 +142,9 @@ def load_verified_pdf_workbook(workbook: Path, plan: dict, case: str) -> Verifie
     cells = plan["cells"]
     _, kind, fmt = cells["Cover"]["E13"]
     selected = {**cells, "Cover": {**cells["Cover"], "E13": (case.title(), kind, fmt)}}
-    return load_verified_workbook(workbook, selected, _expected_caches(plan, case))
+    from .model_template.reference import load_reference
+
+    return load_reference("GD",workbook,{**plan,"case":case,"cells":selected})
 
 
 def load_verified_workbook(workbook: Path, cells: dict, expected: dict) -> VerifiedPDFWorkbook:

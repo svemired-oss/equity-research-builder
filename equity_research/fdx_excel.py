@@ -3,11 +3,8 @@
 from dataclasses import replace
 from datetime import datetime
 from io import BytesIO
-import json
 from math import isclose
 from pathlib import Path
-import subprocess
-from tempfile import TemporaryDirectory
 
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import to_excel
@@ -286,26 +283,3 @@ def _verify_saved(path, plan):
 def verify_fdx_workbook(template: Path, workbook: Path) -> int:
     """Verify saved formulas, literal inputs, and calculation caches against the replay."""
     return _verify_saved(workbook, build_fdx_workbook_plan(template))
-
-
-def export_fdx_workbook(template: Path, output: Path, node: Path, node_modules: Path,
-                        *, preview_dir: Path | None = None) -> int:
-    """Author and validate the model before publishing a new output file."""
-    if output.suffix.lower() != ".xlsx" or output.exists():
-        raise ValueError("Choose a new .xlsx output filename.")
-    plan = build_fdx_workbook_plan(template)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(dir=output.parent) as directory:
-        stage = Path(directory)
-        specification = stage / "model.json"
-        specification.write_text(json.dumps(plan, allow_nan=False), encoding="utf-8")
-        workbook = stage / "model.xlsx"
-        command = [str(node), str(Path(__file__).with_suffix(".mjs")), str(specification), str(workbook), str(node_modules)]
-        if preview_dir is not None:
-            command.append(str(preview_dir))
-        process = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if process.returncode:
-            raise ValueError(f"Workbook authoring failed. {process.stderr.strip() or process.stdout.strip()}")
-        count = _verify_saved(workbook, plan)
-        workbook.rename(output)
-    return count

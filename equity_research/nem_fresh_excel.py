@@ -1,15 +1,12 @@
 """Generate and verify the editable Newmont research model for a dated snapshot."""
 
 from datetime import date
-import json
 from pathlib import Path
-import subprocess
-from tempfile import TemporaryDirectory
 
 from openpyxl.utils.datetime import to_excel
 
 from .fdx_statements import PCT, USD, WorkbookPlan
-from .gd_fresh_pdf_workbook import VerifiedPDFWorkbook, load_verified_workbook
+from .gd_fresh_pdf_workbook import VerifiedPDFWorkbook
 from .nem_current import _evidence
 from .nem_forward_statements import run_nem_statements
 from .nem_fresh_excel_mines import add_nem_mines
@@ -223,28 +220,17 @@ def build_fresh_nem_workbook_plan(as_of, inputs_dir, *, case="base", guided=None
 
 def load_verified_nem_workbook(workbook: Path, as_of: date, inputs_dir: Path, *, case="base", guided=None) -> VerifiedPDFWorkbook:
     plan=build_fresh_nem_workbook_plan(as_of,inputs_dir,case=case,guided=guided)
-    return load_verified_workbook(workbook,plan["cells"],plan["expected"])
+    from .model_template.reference import load_reference
+
+    return load_reference("NEM",workbook,plan)
 
 
-def export_fresh_nem_workbook(output: Path, as_of: date, inputs_dir: Path, node: Path, node_modules: Path, *,
+def export_fresh_nem_workbook(output: Path, as_of: date, inputs_dir: Path,
+                              node: Path | None = None, node_modules: Path | None = None, *,
                               case="base", guided=None, preview_dir=None):
-    if output.suffix.lower() != ".xlsx" or output.exists():
-        raise ValueError("Choose a new .xlsx filename for the Newmont model.")
+    from .model_template.reference import export_reference
+
+    if preview_dir is not None:
+        raise ValueError("The shared LibreOffice exporter produces an XLSX. Use LibreOffice to preview the workbook.")
     plan=build_fresh_nem_workbook_plan(as_of,inputs_dir,case=case,guided=guided)
-    output.parent.mkdir(parents=True,exist_ok=True)
-    with TemporaryDirectory(dir=output.parent) as directory:
-        stage=Path(directory)
-        specification=stage/"model.json"
-        specification.write_text(json.dumps(plan,allow_nan=False),encoding="utf-8")
-        workbook=stage/"model.xlsx"
-        command=[str(node),str(Path(__file__).with_name("fdx_fresh_excel.mjs")),str(specification),str(workbook),str(node_modules)]
-        if preview_dir is not None:
-            command.append(str(preview_dir))
-        result=subprocess.run(command,capture_output=True,text=True,encoding="utf-8",errors="replace")
-        if result.returncode:
-            raise ValueError(f"Workbook authoring failed. {result.stderr.strip() or result.stdout.strip()}")
-        verified=load_verified_workbook(workbook,plan["cells"],plan["expected"])
-        if output.exists():
-            raise ValueError("The output filename was created during generation. Use a new filename.")
-        workbook.rename(output)
-    return verified.cells_matched
+    return export_reference("NEM",output,plan)

@@ -1,17 +1,14 @@
 """Export and verify the formula-driven workbook for FedEx's dated research."""
 
 from datetime import date
-import json
 from pathlib import Path
-import subprocess
-from tempfile import TemporaryDirectory
 
 from .fdx_current import run_current_fdx
 from .fdx_current_valuation import run_fdx_valuation
 from .fdx_forward_statements import run_fdx_statements
 from .fdx_fresh_excel_evidence import add_fdx_comparables, add_fdx_sources
 from .fdx_statements import WorkbookPlan
-from .gd_fresh_pdf_workbook import VerifiedPDFWorkbook, load_verified_workbook
+from .gd_fresh_pdf_workbook import VerifiedPDFWorkbook
 
 
 CASES = ("bear", "base", "bull")
@@ -67,7 +64,9 @@ def load_verified_fdx_workbook(workbook: Path, as_of: date, inputs_dir: Path, *,
                                guided: Path | None = None) -> VerifiedPDFWorkbook:
     """Verify a single workbook byte snapshot and return its values and fingerprint."""
     plan = build_fresh_fdx_workbook_plan(as_of, inputs_dir, case=case, guided=guided)
-    return load_verified_workbook(workbook, plan["cells"], plan["expected"])
+    from .model_template.reference import load_reference
+
+    return load_reference("FDX",workbook,plan)
 
 
 def verify_fresh_fdx_workbook(workbook: Path, as_of: date, inputs_dir: Path, *, case: str = "base",
@@ -76,28 +75,12 @@ def verify_fresh_fdx_workbook(workbook: Path, as_of: date, inputs_dir: Path, *, 
     return load_verified_fdx_workbook(workbook, as_of, inputs_dir, case=case, guided=guided).cells_matched
 
 
-def export_fresh_fdx_workbook(
-    output: Path, as_of: date, inputs_dir: Path, node: Path, node_modules: Path, *,
-    case: str = "base", guided: Path | None = None, preview_dir: Path | None = None,
-) -> int:
-    """Author the workbook in Artifact Tool and verify it before publishing."""
-    if output.suffix.lower() != ".xlsx" or output.exists():
-        raise ValueError("Choose a new .xlsx filename for the FedEx workbook.")
-    plan = build_fresh_fdx_workbook_plan(as_of, inputs_dir, case=case, guided=guided)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(dir=output.parent) as directory:
-        stage = Path(directory)
-        specification = stage / "model.json"
-        specification.write_text(json.dumps(plan, allow_nan=False), encoding="utf-8")
-        workbook = stage / "model.xlsx"
-        command = [str(node), str(Path(__file__).with_suffix(".mjs")), str(specification), str(workbook), str(node_modules)]
-        if preview_dir is not None:
-            command.append(str(preview_dir))
-        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        if result.returncode:
-            raise ValueError(f"Workbook authoring failed. {result.stderr.strip() or result.stdout.strip()}")
-        count = load_verified_workbook(workbook, plan["cells"], plan["expected"]).cells_matched
-        if output.exists():
-            raise ValueError("The output filename was created during generation. Use a new filename.")
-        workbook.rename(output)
-    return count
+def export_fresh_fdx_workbook(output: Path, as_of: date, inputs_dir: Path,
+                              node: Path | None = None, node_modules: Path | None = None, *,
+                              case="base", guided=None, preview_dir=None):
+    from .model_template.reference import export_reference
+
+    if preview_dir is not None:
+        raise ValueError("The shared LibreOffice exporter produces an XLSX. Use LibreOffice to preview the workbook.")
+    plan=build_fresh_fdx_workbook_plan(as_of,inputs_dir,case=case,guided=guided)
+    return export_reference("FDX",output,plan)
