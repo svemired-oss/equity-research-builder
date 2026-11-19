@@ -3,7 +3,7 @@
 from datetime import date
 import re
 
-from ..apple_export import _sources, _write_pdf, workbook_plan as legacy_plan
+from ..apple_export import _sources, workbook_plan as legacy_plan
 from ..operating_research import ResearchGap
 from ..workbook_renderer import render_workbook
 from .statements import BALANCE, CASH, INCOME, build_statements
@@ -290,6 +290,8 @@ def workbook_plan(model):
     if "valuation_summary" in model:
         from .valuation import add_valuation
         add_valuation(book, model)
+    from .report_inputs import add_report_inputs
+    add_report_inputs(book, model, revenue_total)
     plan["inputSources"] = book.write_sources(model)
     plan["formulaColor"] = "000000"
     plan["cells"] = {name: cells[name] for name in (*SHEETS, *(name for name in cells if name not in SHEETS))}
@@ -301,11 +303,12 @@ def workbook_plan(model):
     return plan
 
 
-def export_operating(model, folder, node=None, modules=None):
+def export_operating(model, folder, node=None, modules=None, *, report_writer=None):
     """Use the portable LibreOffice workflow, including scenario and assumption-edit validation."""
     workbook = folder / f"{model['ticker']}-{model['as_of']}.xlsx"
     render_workbook(workbook_plan(model), workbook)
     pdf = workbook.with_suffix(".pdf")
-    _write_pdf(model, workbook, pdf)
+    from ..operating_report import export_report
+    export_report(workbook, pdf, report_writer)
     return workbook, pdf
 

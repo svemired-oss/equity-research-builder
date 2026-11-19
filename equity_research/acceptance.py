@@ -53,6 +53,7 @@ def check_pair(run, workbook, report):
     with BytesIO(workbook) as stream:
         cached = load_workbook(stream, read_only=True, data_only=True, keep_links=False)
         try:
+            workbook_report = "Report Evidence" in cached
             for sheet in cached:
                 if any(cell.data_type == "e" for row in sheet.iter_rows() for cell in row):
                     raise ValueError(f"Formula error found on {sheet.title}.")
@@ -74,6 +75,9 @@ def check_pair(run, workbook, report):
                 raise ValueError("The margin-growth sensitivity does not reproduce the base DCF.")
         finally:
             cached.close()
+    if workbook_report:
+        from .operating_report import verify_report
+        verify_report(workbook, report)
     text = " ".join(" ".join(page.extract_text().split()) for page in PdfReader(BytesIO(report)).pages)
     fingerprint = sha256(workbook).hexdigest()
     if fingerprint not in "".join(text.split()) or f"DCF fair value ${fair:.2f}" not in text:
