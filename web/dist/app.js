@@ -35,6 +35,27 @@ let exchangeGeneration = [];
 let active = null;
 let busy = false;
 let pendingRun = null;
+const runStorageKey = 'research-builder-last-run';
+
+function rememberRun(entry) {
+  try {
+    if (entry) sessionStorage.setItem(runStorageKey, JSON.stringify(entry));
+    else sessionStorage.removeItem(runStorageKey);
+  } catch {
+    // A blocked storage policy still permits research in the current page.
+  }
+}
+
+function lastRun() {
+  try {
+    const saved = JSON.parse(sessionStorage.getItem(runStorageKey));
+    if (validTicker.test(saved?.payload?.ticker ?? '') &&
+        (saved.id || /^[a-f0-9]{32}$/.test(saved.payload.request_id ?? ''))) return saved;
+  } catch {
+    // Missing or unusable state starts a fresh page.
+  }
+  return null;
+}
 
 const oracleSources = {
   live_collection: ['newly collected inputs', 'Collected for this run'],
@@ -358,6 +379,9 @@ async function runGuided(snapshot) {
 
 async function runResearch(snapshot, payload, resumeId = null) {
   if (busy) return;
+  if (!resumeId && !payload.request_id) payload = { ...payload, request_id: crypto.randomUUID().replaceAll('-', '') };
+  pendingRun = { id: resumeId, ticker: payload.ticker, snapshot, payload };
+  rememberRun({ id: resumeId, payload });
   busy = true;
   syncMode();
   showState('working', resumeId ? 'Checking your run' : 'Starting research', 'This can take a few minutes.',
@@ -368,8 +392,12 @@ async function runResearch(snapshot, payload, resumeId = null) {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
       signal: AbortSignal.timeout(15000),
     });
+    const recoveryPayload = { ticker: payload.ticker, mode: payload.mode };
+    if (run.id) {
+      pendingRun = { id: run.id, ticker: payload.ticker, snapshot, payload: recoveryPayload };
+      rememberRun({ id: run.id, payload: recoveryPayload });
+    }
     for (let polls = 0; ['queued', 'running'].includes(run.state); polls += 1) {
-      pendingRun = { id: run.id, ticker: payload.ticker, snapshot, payload };
       if (polls === 180) throw new Error('Research is still running. Check this run again to pick up where you left off.');
       const heading = run.state === 'queued' ? 'Waiting for the research engine'
         : payload.mode === 'guided' ? 'Rebuilding with your assumptions' : 'Researching the company';
@@ -381,7 +409,10 @@ async function runResearch(snapshot, payload, resumeId = null) {
       run = await checkRun(run.id);
     }
     pendingRun = null;
-    if (run.state !== 'completed') throw new Error(run.error ?? 'The research run could not finish.');
+    if (run.state !== 'completed') {
+      rememberRun(null);
+      throw new Error(run.error ?? 'The research run could not finish.');
+    }
     if (run.mode === 'automated' && run.source_mode === 'operating_research' && run.guided?.available) {
       const operating = { ...run.company, ticker: run.ticker, guided: run.guided, baseRunId: run.id };
       operatingRuns.set(run.ticker, operating);
@@ -435,9 +466,15 @@ async function runResearch(snapshot, payload, resumeId = null) {
       render(run.company ?? snapshot, run);
       setStatus('Research is ready. Download the Excel model and PDF.');
     }
+    if (run.downloads && run.expires_at) {
+      ui['download-status'].textContent = 'Available until ' + new Date(run.expires_at).toLocaleString();
+    }
     bringResultsIntoView();
   } catch (error) {
-    if (error.status === 404) pendingRun = null;
+    if ([400, 404, 409, 413, 415, 429].includes(error.status)) {
+      pendingRun = null;
+      rememberRun(null);
+    }
     const detail = error.status === 404
       ? 'This run is no longer available. Submit the ticker to start a new run.' : error.message;
     showState(pendingRun ? 'review' : 'error', pendingRun ? 'Check your run again' : 'Research unavailable',
@@ -564,6 +601,11 @@ async function loadCatalog() {
       syncMode();
       showStart();
     } else select(saved.has('GD') ? 'GD' : catalog.snapshots[0].ticker);
+    const recent = api && lastRun();
+    if (recent) {
+      ui.ticker.value = recent.payload.ticker;
+      void runResearch(saved.get(recent.payload.ticker), recent.payload, recent.id);
+    }
   } catch (error) {
     showState('error', 'Research unavailable', error.message);
     setStatus('Reload the page once the builder is listening.', true);

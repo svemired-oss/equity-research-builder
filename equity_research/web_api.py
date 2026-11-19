@@ -3,7 +3,8 @@
 from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
+from functools import partial
 from hashlib import sha256
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -16,8 +17,12 @@ from pathlib import Path
 import re
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
+from time import time
+from urllib.error import URLError
 from urllib.parse import unquote, urlsplit
 from uuid import uuid4
+
+from .web_jobs import JobStore
 
 
 _SUMMARY_FIELDS = ("reference_close_usd", "spot_value_usd", "target_price_usd", "total_return", "rating")
@@ -28,7 +33,9 @@ _MEDIA = {
 _CASES = ("bear", "base", "bull")
 _MAX_BODY = 16_384
 _MAX_PENDING = 4
-_MAX_FINISHED = 16
+_RETENTION = 24 * 60 * 60
+_RUN_LIMITS = ((3600, 8, "hour"), (_RETENTION, 20, "24 hours"))
+_MAX_PAIR = 16 * 1024 * 1024
 _LOG = logging.getLogger(__name__)
 
 
@@ -193,9 +200,9 @@ class _ResearchService:
         self.companies = {}
         self.assets = {}
         self.runs = {}
-        self.generated_assets = {}
         self.operating_inputs = {}
         self.lock = Lock()
+        self.submission_lock = Lock()
         self.reloading = False
         self.oracle_evidence = oracle_evidence
         self.oracle_dated_closes = oracle_dated_closes
@@ -250,6 +257,18 @@ class _ResearchService:
                     raise ValueError("A published download has changed since the catalog was built.")
                 self.assets[ticker][kind] = content
                 artifact["path"] = _download_path("companies", ticker, kind)
+        store_path = ":memory:"
+        if self.catalog.get("live_only"):
+            work_dir = root / "private" / "web-runs"
+            work_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
+            store_path = work_dir / "research-jobs.sqlite3"
+        self.jobs = JobStore(store_path)
+        self._purge(time())
+        self.runs = self.jobs.restore()
+        for run_id, run in tuple(self.runs.items()):
+            if run["state"] in ("queued", "running"):
+                self._finish(run_id, {"state": "failed", "error":
+                    "The builder restarted before this run finished. Start a new run."})
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="equity-research")
 
     def _validate(self, request):
@@ -273,7 +292,7 @@ class _ResearchService:
                 base_run = self.runs.get(base_id)
                 inputs = self.operating_inputs.get(base_id)
                 if not base_run or inputs is None or base_run["ticker"] != ticker or base_run["mode"] != "automated":
-                    raise _APIError(400, "Start with a completed Automated run for this ticker.")
+                    raise _APIError(400, "Start a new Automated run before using Guided mode. Its working evidence may have expired or the builder restarted.")
                 item = {**base_run["company"], "as_of": base_run["as_of"],
                         "guided": base_run["guided"], "operating_inputs": inputs}
             return item, mode, case, self._validate_overrides(item, overrides)
@@ -322,6 +341,28 @@ class _ResearchService:
         return cleaned
 
     def create_run(self, request):
+        if not isinstance(request, dict):
+            raise _APIError(400, "Send ticker, mode, case and optional overrides as a JSON object.")
+        request = dict(request)
+        token = request.pop("request_id", uuid4().hex)
+        if not isinstance(token, str) or not re.fullmatch(r"[a-f0-9]{32}", token):
+            raise _APIError(400, "Invalid research request ID.")
+        normalized = {"mode": "automated", "case": "base", "overrides": [], **request}
+        if isinstance(normalized.get("ticker"), str):
+            normalized["ticker"] = normalized["ticker"].strip().upper()
+        fingerprint = sha256(json.dumps(normalized, sort_keys=True).encode()).hexdigest()
+        with self.submission_lock:
+            with self.lock:
+                self._purge(time())
+                replay = self.jobs.replay(token)
+                if replay:
+                    previous, job_id = replay
+                    if previous != fingerprint:
+                        raise _APIError(409, "That request ID already belongs to a different submission.")
+                    return HTTPStatus.OK, deepcopy(self.runs[job_id])
+            return self._create_run(request, partial(self._queue, token, fingerprint))
+
+    def _create_run(self, request, enqueue):
         from .listing_directory import qualified_symbol
 
         item, mode, case, overrides = self._validate(request)
@@ -329,59 +370,79 @@ class _ResearchService:
         if "operating_inputs" in item:
             inputs = item["operating_inputs"]
             if isinstance(inputs, dict) and "bank" in inputs:
-                return self._queue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
+                return enqueue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
                                     "source_mode": "operating_research"}, self._finish_bank, inputs, overrides)
             if isinstance(inputs, dict) and "nintendo" in inputs:
-                return self._queue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
+                return enqueue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
                                     "source_mode": "operating_research"}, self._finish_nintendo,
                                    inputs["nintendo"], inputs["listing"], overrides)
             if isinstance(inputs, dict) and "foreign_evidence" in inputs:
-                return self._queue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
+                return enqueue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
                                     "source_mode": "operating_research"}, self._finish_foreign_guided,
                                    inputs["foreign_evidence"], overrides)
-            return self._queue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
+            return enqueue({"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
                                 "source_mode": "operating_research"}, self._finish_operating,
                                item["operating_inputs"], overrides)
         if qualified := qualified_symbol(ticker):
-            return self._queue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat(),
+            return enqueue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat(),
                                 "source_mode": "operating_research"}, self._finish_exchange, qualified)
         if ticker == "ORCL":
             as_of = date.today().isoformat() if item["source_mode"] == "live_collection" else item["as_of"]
-            return self._queue(
+            return enqueue(
                 {"ticker": ticker, "mode": mode, "case": case, "as_of": as_of,
                  "source_mode": item["source_mode"]},
                 self._finish_oracle,
             )
         if ticker == "AAPL" and "apple_generation" in self.catalog:
             as_of = self.catalog["apple_generation"]["as_of"]
-            return self._queue({"ticker": ticker, "mode": mode, "case": case, "as_of": as_of,
+            return enqueue({"ticker": ticker, "mode": mode, "case": case, "as_of": as_of,
                                 "price_date": as_of, "source_mode": "apple_dated_close"}, self._finish_apple)
         if ticker not in self.companies:
             if self.catalog.get("operating_generation"):
-                return self._queue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat(),
+                return enqueue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat(),
                                     "source_mode": "operating_research"}, self._finish_operating)
-            return self._queue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat()}, self._finish_screen)
+            return enqueue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat()}, self._finish_screen)
         run = {"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
                "price_date": item["price_date"], "target_date": item["target_date"]}
         if mode == "automated":
             if item.get("regenerate"):
                 run["source_mode"] = "reference_regeneration"
-                return self._queue(run, self._finish_run, item, case, overrides)
+                return enqueue(run, self._finish_run, item, case, overrides)
             return HTTPStatus.OK, self._published_run(item)
-        return self._queue(run, self._finish_run, item, case, overrides)
+        return enqueue(run, self._finish_run, item, case, overrides)
 
-    def _queue(self, run, finish, *arguments):
+    def _queue(self, token, fingerprint, run, finish, *arguments):
         run_id = uuid4().hex
         with self.lock:
+            duplicate = self.jobs.active_duplicate(fingerprint)
+            if duplicate:
+                with self.jobs.db:
+                    self.jobs.alias(token, fingerprint, duplicate)
+                return HTTPStatus.ACCEPTED, deepcopy(self.runs[duplicate])
             if self.reloading:
                 raise _APIError(503, "The private server is reloading. Retry in a moment.")
             pending = sum(row["state"] in ("queued", "running") for row in self.runs.values())
             if pending >= _MAX_PENDING:
                 raise _APIError(429, "The research queue is full. Try again after an existing run completes.")
+            now = time()
+            for window, maximum, label in _RUN_LIMITS:
+                if self.jobs.starts_since(now - window) >= maximum:
+                    raise _APIError(429, f"The demo allows {maximum} new runs per {label}. Try again when the limit resets.")
             run.update(id=run_id, state="queued")
+            self.jobs.admit(run, now, token, fingerprint)
             self.runs[run_id] = run
-            self.executor.submit(finish, run_id, *arguments)
+            self.executor.submit(self._execute, finish, run_id, *arguments)
             return HTTPStatus.ACCEPTED, deepcopy(run)
+
+    def _execute(self, finish, run_id, *arguments):
+        try:
+            finish(run_id, *arguments)
+        except Exception:
+            _LOG.exception("Unhandled failure in research job %s", run_id)
+        with self.lock:
+            unfinished = self.runs[run_id]["state"] in ("queued", "running")
+        if unfinished:
+            self._finish(run_id, {"state": "failed", "error": "The research worker stopped before producing verified files. Start a new run."})
 
     @staticmethod
     def _published_run(item):
@@ -467,7 +528,9 @@ class _ResearchService:
             self._finish(run_id, {"state": "failed", "error": str(exc)})
         except Exception:
             _LOG.exception("Operating research run %s failed", run_id)
-            self._finish(run_id, {"state": "failed", "error": "The builder could not verify the company evidence or paired files."})
+            message = ("A filing or market-data source could not respond or be verified. Try again later."
+                       if inputs is None else "The builder could not produce a verified Excel and PDF pair. No files were published.")
+            self._finish(run_id, {"state": "failed", "error": message})
 
     def _finish_exchange(self, run_id, qualified):
         from .listing_directory import resolve_jpx, reviewed_london_listing
@@ -509,6 +572,9 @@ class _ResearchService:
             }})
         except ResearchGap as exc:
             self._finish(run_id, {"state": "failed", "error": str(exc)})
+        except (URLError, TimeoutError):
+            _LOG.exception("Exchange data source unavailable for %s:%s", exchange, code)
+            self._finish(run_id, {"state": "failed", "error": "An exchange filing or market-data source is unavailable. Try again later."})
         except Exception:
             _LOG.exception("Exchange research failed for %s:%s", exchange, code)
             self._finish(run_id, {"state": "failed", "error": "The exchange evidence could not be verified."})
@@ -547,7 +613,7 @@ class _ResearchService:
                               guided={"available": not overrides, "fields": fields if not overrides else []})
         except Exception:
             _LOG.exception("Tokyo research run %s failed", run_id)
-            self._finish(run_id, {"state": "failed", "error": "The builder could not verify the Nintendo workbook and PDF."})
+            self._finish(run_id, {"state": "failed", "error": "The Nintendo workbook or PDF failed generation or verification. No files were published."})
 
     def _collect_operating(self, run_id, ticker, as_of, *, home_listing=None):
         from .bank_filings import BANK_CIKS
@@ -994,6 +1060,8 @@ class _ResearchService:
             self._finish(run_id, {"state": "failed", "error": "Apple generation could not verify its filing inputs or paired files."})
 
     def _save_result(self, run_id, filenames, summary, cases, contents, *, operating_inputs=None, **run_fields):
+        if sum(map(len, contents.values())) > _MAX_PAIR:
+            raise ValueError("The generated Excel and PDF pair exceeds the demo storage limit.")
         downloads = {kind: {
             "filename": filenames[kind], "path": _download_path("runs", run_id, kind),
             "size_bytes": len(content), "sha256": sha256(content).hexdigest(),
@@ -1003,16 +1071,17 @@ class _ResearchService:
 
     def _finish(self, run_id, outcome, contents=None, *, operating_inputs=None):
         with self.lock:
-            self.runs[run_id].update(outcome)
-            if contents is not None:
-                self.generated_assets[run_id] = contents
+            expires = time() + _RETENTION
+            run = {**self.runs[run_id], **outcome, "expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat()}
+            self.jobs.finish(run, expires, contents)
+            self.runs[run_id] = run
             if operating_inputs is not None:
                 self.operating_inputs[run_id] = operating_inputs
-            finished = [key for key, row in self.runs.items() if row["state"] in ("completed", "failed")]
-            for oldest in finished[:-_MAX_FINISHED]:
-                self.runs.pop(oldest)
-                self.generated_assets.pop(oldest, None)
-                self.operating_inputs.pop(oldest, None)
+
+    def _purge(self, now):
+        for run_id in self.jobs.purge(now):
+            self.runs.pop(run_id, None)
+            self.operating_inputs.pop(run_id, None)
 
     def get_run(self, run_id):
         if run_id.endswith("-automated"):
@@ -1020,10 +1089,14 @@ class _ResearchService:
             if item is not None and run_id == f"{item['ticker'].lower()}-automated":
                 return self._published_run(item)
         with self.lock:
+            self._purge(time())
             run = self.runs.get(run_id)
             if run is not None:
-                return deepcopy(run)
-        raise _APIError(404, "Research run unavailable.")
+                result = deepcopy(run)
+                if result.get("source_mode") == "operating_research" and run_id not in self.operating_inputs:
+                    result.pop("guided", None)
+                return result
+        raise _APIError(404, "This research run has expired or is no longer stored. Start a new run.")
 
     def get_asset(self, namespace, identity, kind):
         if kind in _MEDIA and namespace == "companies":
@@ -1032,13 +1105,15 @@ class _ResearchService:
                 return company["downloads"][kind]["filename"], self.assets[identity][kind]
         if kind in _MEDIA and namespace == "runs":
             with self.lock:
-                contents = self.generated_assets.get(identity)
-                if contents is not None:
-                    return self.runs[identity]["downloads"][kind]["filename"], contents[kind]
-        raise _APIError(404, "Download unavailable.")
+                self._purge(time())
+                content = self.jobs.download(identity, kind)
+                if content is not None:
+                    return self.runs[identity]["downloads"][kind]["filename"], content
+        raise _APIError(404, "This download has expired or has no verified file. Start a new run if needed.")
 
     def close(self):
         self.executor.shutdown(wait=True, cancel_futures=True)
+        self.jobs.close()
 
 
 def _json_object(pairs):
