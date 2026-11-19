@@ -124,6 +124,11 @@ class SECClient:
         except LookupError as exc:
             raise SECError(f"SEC returned an unsupported text encoding for {url}.") from exc
 
+    def get_bytes(self, url: str) -> bytes:
+        """Read a public SEC document while preserving its binary encoding."""
+        body, _ = self._request(url)
+        return body
+
     def _pace(self) -> None:
         with self._pacing_lock:
             delay = self._last_request + _REQUEST_INTERVAL - time.monotonic()

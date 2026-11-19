@@ -1,6 +1,6 @@
 """Read numeric facts from an SEC filing's extracted XBRL instance."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from html.parser import HTMLParser
 from io import StringIO
@@ -33,6 +33,7 @@ class XbrlFact:
     dimensions: tuple[tuple[str, str], ...]
     unit: str
     value: float
+    decimals: str | None = field(default=None, compare=False, repr=False)
 
 
 @dataclass(frozen=True)
@@ -270,5 +271,6 @@ def parse_filing_instance(xml: str, url: str) -> FilingInstance:
         if isfinite(value):
             facts.append(XbrlFact(
                 _canonical(element.tag, gd_namespace), context.start, context.end, context.dimensions, unit, value,
+                element.get("decimals"),
             ))
     return FilingInstance(url, tuple(facts))

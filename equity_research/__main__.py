@@ -74,6 +74,13 @@ def main() -> int:
     collect.add_argument("--as-of", required=True, type=date.fromisoformat, help="Evidence cutoff in YYYY-MM-DD")
     collect.add_argument("--compare-inputs", type=Path, help="Compare sourced history against a private GD input file")
 
+    intake = commands.add_parser("collect-ticker", help="Collect dated EDGAR financial and operating evidence for a stock ticker")
+    intake.add_argument("ticker", help="Ticker in the SEC directory, such as ORCL")
+    intake.add_argument("--as-of", type=date.fromisoformat, default=date.today(), help="Inclusive EDGAR filing date cutoff in YYYY-MM-DD")
+    intake.add_argument("--years", type=int, default=5, help="Number of annual fiscal periods to collect (default 5)")
+    intake.add_argument("--release-limit", type=int, default=4, help="Maximum earnings exhibit links to verify (default 4)")
+    intake.add_argument("--market", action="store_true", help="Also request dated U.S. market inputs for private research")
+
     prepare = commands.add_parser("prepare-gd", help="Validate and assemble a fresh GD input file")
     prepare.add_argument("--evidence", required=True, type=Path, help="JSON output of collect-gd")
     prepare.add_argument("--assumptions", required=True, type=Path, help="Explicit forecast assumption JSON")
@@ -228,6 +235,12 @@ def main() -> int:
     serve.add_argument("--port", type=int, default=8000, help="Local HTTP port")
     serve.add_argument("--node", type=Path, help="Node.js executable for guided workbook export")
     serve.add_argument("--node-modules", type=Path, help="Node.js modules containing the spreadsheet runtime")
+    serve.add_argument("--live-only", action="store_true", help="Start live research without dated example files. Uses LibreOffice when Node is omitted.")
+    oracle_mode = serve.add_mutually_exclusive_group()
+    oracle_mode.add_argument("--oracle", action="store_true", help="Enable private Oracle generation with live evidence collection")
+    oracle_mode.add_argument("--oracle-evidence", type=Path, help="Enable private Oracle generation from saved November 13 packets")
+    oracle_mode.add_argument("--oracle-dated-closes", action="store_true",
+                             help="Collect Oracle SEC and Treasury evidence and use verified November 13 closes")
 
     excel = commands.add_parser("export-gd-excel", help="Export an editable model using the approved GD template")
     excel.add_argument("template", type=Path, help="Path to the original portfolio GD V4.xlsx")
@@ -273,6 +286,34 @@ def main() -> int:
     args = parser.parse_args(argv)
 
     try:
+        if args.command == "collect-ticker":
+            from .sec_client import SECClient
+            from .sec_intake import collect_ticker_evidence
+
+            user_agent = environ.get("SEC_USER_AGENT", "")
+            if not user_agent.strip():
+                raise ValueError("Set SEC_USER_AGENT to your project name and contact email before requesting EDGAR.")
+            report = collect_ticker_evidence(SECClient(user_agent), args.ticker, as_of=args.as_of,
+                                             years=args.years, release_limit=args.release_limit)
+            if args.market:
+                from .market_quotes import AlpacaQuoteClient, collect_market_quotes
+                from .treasury_rates import collect_treasury_yield
+
+                key_id = environ.get("APCA_API_KEY_ID", "").strip()
+                secret = environ.get("APCA_API_SECRET_KEY", "").strip()
+                if key_id and secret:
+                    quotes = collect_market_quotes(AlpacaQuoteClient(key_id, secret), report["issuer"]["ticker"], as_of=args.as_of)
+                else:
+                    quotes = {
+                        "status": "unavailable", "quotes": {},
+                        "missing": ["Set APCA_API_KEY_ID and APCA_API_SECRET_KEY for the private Alpaca quote feed."],
+                    }
+                treasury_yield = collect_treasury_yield(args.as_of)
+                report["market"] = {"quotes": quotes, "risk_free_rate": treasury_yield}
+                report["coverage"]["market_data"] = quotes["status"]
+                report["coverage"]["risk_free_rate"] = treasury_yield["status"]
+            print(json.dumps(report, indent=2, ensure_ascii=True, allow_nan=False))
+            return 0
         if args.command == "value-fdx":
             from .fdx_current_valuation import run_fdx_valuation
 
@@ -396,7 +437,10 @@ def main() -> int:
         if args.command == "serve-research":
             from .web_api import serve_research
 
-            serve_research(args.root, port=args.port, node=args.node, node_modules=args.node_modules)
+            serve_research(args.root, port=args.port, node=args.node, node_modules=args.node_modules,
+                           oracle=args.oracle or args.oracle_dated_closes or args.oracle_evidence is not None,
+                           oracle_evidence=args.oracle_evidence, oracle_dated_closes=args.oracle_dated_closes,
+                           live_only=args.live_only)
             return 0
         if args.command in ("export-gd-fresh-pdf", "verify-gd-fresh-pdf"):
             from .gd_fresh_pdf import export_fresh_gd_pdf, verify_fresh_gd_pdf
@@ -669,7 +713,9 @@ def main() -> int:
         else:
             report = project_gd(args.workbook) if args.project else replay_gd(args.workbook)
     except (ValueError, OSError) as exc:
-        company = "FedEx" if "fdx" in args.command.split("-") else "Newmont" if "nem" in args.command.split("-") else "GD"
+        company = {"collect-ticker": "Ticker intake"}.get(args.command)
+        if company is None:
+            company = "FedEx" if "fdx" in args.command.split("-") else "Newmont" if "nem" in args.command.split("-") else "GD"
         print(f"{company} run failed. {exc}", file=sys.stderr)
         return 1
 
