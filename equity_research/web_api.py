@@ -510,7 +510,11 @@ class _ResearchService:
             work_dir = self.inputs_dir.parent / "private" / "web-runs"
             work_dir.mkdir(parents=True, exist_ok=True)
             with TemporaryDirectory(prefix="operating-", dir=work_dir) as stage:
-                files = dict(zip(_MEDIA, export_operating(model, Path(stage)), strict=True))
+                from functools import partial
+                from .operating_report import write_thesis
+                key = environ.get("OPENAI_API_KEY", "").strip()
+                writer = partial(write_thesis, key=key, model=environ.get("RESEARCH_MODEL", "gpt-5-mini").strip()) if key else None
+                files = dict(zip(_MEDIA, export_operating(model, Path(stage), report_writer=writer), strict=True))
                 contents = {kind: file.read_bytes() for kind, file in files.items()}
             cases = [{"case": name.lower(), "spot_value_usd": result.value_per_share}
                      for name, result in model["scenarios"].items()]
@@ -784,6 +788,8 @@ class _ResearchService:
                 packet, [{"ticker": ticker} for ticker in peers], peers, quotes, kind)
         except ResearchGap as exc:
             packet["valuation_comps"] = {"value": None, "rows": [], "summary": {}, "reason": str(exc)}
+        from .report_evidence import collect as collect_report_evidence
+        collect_report_evidence(packet, client)
         return packet, treasury, quote, selection, candidates, comps
 
     def _foreign_screen(self, screen, client, as_of):

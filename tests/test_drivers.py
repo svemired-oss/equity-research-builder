@@ -72,5 +72,6 @@ def test_review_formula_path(kind, tmp_path):
         assert model["driver"]["type"] == kind
     finally:
         book.close()
-    assert kind in " ".join(p.extract_text() for p in PdfReader(pdf).pages)
+    label = {"stores_sales":"Stores, sales per store and comparable sales","volume_yield":"Volume and yield"}[kind]
+    assert label in " ".join(" ".join(p.extract_text().split()) for p in PdfReader(pdf).pages)
 
