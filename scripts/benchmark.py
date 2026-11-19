@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT))
 
 from equity_research.acceptance import check_pair
 from equity_research.apple_export import export_apple
+from equity_research.model_template import export_operating
 from equity_research.operating_research import (
     ResearchGap, operating_rating, prepare_operating_model, revenue_candidates,
     verify_comparable_operating_basis, verify_valuation_range,
@@ -57,7 +58,7 @@ def cache_write(path, value):
     temporary.replace(path)
 
 
-def replay(ticker, evidence, folder, result):
+def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     if evidence["packet"]["issuer"]["ticker"] != ticker:
         raise ValueError("Cache issuer differs from the requested ticker.")
     verify_comparable_operating_basis(evidence["packet"])
@@ -77,17 +78,24 @@ def replay(ticker, evidence, folder, result):
         model["notes"] += (comps,)
     else:
         model["comparables"] = comps
-    workbook, report = export_apple(model, folder, None, None)
+    exporter = export_apple if legacy else export_operating
+    workbook, report = exporter(model, folder, None, None)
     run = {"ticker": ticker, "source_mode": "operating_research",
            "summary": {"spot_value_usd": model["scenarios"]["Base"].value_per_share,
                        "rating": operating_rating(ratio - 1), "reference_close_usd": model["close"]}}
     check_pair(run, workbook.read_bytes(), report.read_bytes())
+    if artifacts is not None:
+        from shutil import copyfile
+
+        artifacts.mkdir(parents=True, exist_ok=True)
+        for file in (workbook, report):
+            copyfile(file, artifacts / file.name)
     return {"value_price_ratio": ratio, "value": model["scenarios"]["Base"].value_per_share,
             "price": model["close"], "cutoff": str(model["as_of"]),
             "workbook_sha256": sha256(workbook.read_bytes()).hexdigest()}
 
 
-def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False):
+def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False, *, legacy=False, artifacts=None):
     started = monotonic()
     result = {**row, "status": "FAIL", "stage": "cache", "reason": "", "value_price_ratio": None}
     path = cache_dir / (row["ticker"] + ".json.gz")
@@ -118,7 +126,8 @@ def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False):
         else:
             result["stage"] = "model_export_verification"
             with TemporaryDirectory(dir=work_dir) as directory:
-                outcome = replay(row["ticker"], record["evidence"], Path(directory), result)
+                outcome = replay(row["ticker"], record["evidence"], Path(directory), result,
+                                 legacy=legacy, artifacts=artifacts)
             result.update(outcome, status="PASS", stage="verified_pair")
     except Exception as exc:
         result["reason"] = f"{type(exc).__name__}: {exc}"
@@ -181,6 +190,9 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "benchmarks/results.md")
     parser.add_argument("--as-of", type=date.fromisoformat, default=date.today())
     parser.add_argument("--collect", action="store_true", help="Collect uncached tickers using configured providers. Incurs API usage.")
+    parser.add_argument("--legacy-exporter", action="store_true", help="Replay with the Phase 1 workbook for comparison.")
+    parser.add_argument("--artifacts", type=Path, help="Keep verified workbook and PDF pairs in this private directory.")
+    parser.add_argument("--only", nargs="+", help="Replay only the listed symbols from the benchmark universe.")
     parser.add_argument("--refresh", nargs="+", default=[], help="Recollect only these tickers, archiving their old caches. Requires --collect.")
     args = parser.parse_args()
     if args.collect:
@@ -195,11 +207,17 @@ def main():
     rows = load_universe(args.tickers)
     if args.refresh and (not args.collect or set(args.refresh) - {row["ticker"] for row in rows}):
         parser.error("--refresh requires --collect and symbols in the benchmark universe.")
+    if args.only:
+        requested = set(args.only)
+        if requested - {row["ticker"] for row in rows} or set(args.refresh) - requested:
+            parser.error("--only must select benchmark symbols and include all --refresh symbols.")
+        rows = [row for row in rows if row["ticker"] in requested]
     work = ROOT / "private/benchmark-work"
     work.mkdir(parents=True, exist_ok=True)
     results = []
     for row in rows:
-        result = run_one(row, args.cache, args.as_of, args.collect, work, row["ticker"] in args.refresh)
+        result = run_one(row, args.cache, args.as_of, args.collect, work, row["ticker"] in args.refresh,
+                         legacy=args.legacy_exporter, artifacts=args.artifacts)
         results.append(result)
         write_results(args.output, results)
         print(f"{row['ticker']} {result['status']} {result['reason']}", flush=True)
