@@ -21,6 +21,22 @@ def test_fixed_universe(benchmark):
     assert {"GD", "FAST", "SBUX", "DHR", "NVDA"} <= {row["ticker"] for row in rows}
 
 
+def test_phase_four_sector_review_excludes_legacy_and_failed_rows(benchmark, tmp_path):
+    def row(symbol, sector, ratio, status="PASS", basis="phase4_blended"):
+        return {"ticker": symbol, "sector": sector, "status": status, "stage": "verified_pair",
+                "reason": "", "value_price_ratio": ratio, "valuation_basis": basis}
+    records = [row("LO1","low",.5), row("LO2","low",.7), row("OLD","low",5,basis="legacy"),
+               row("FAILED","low",5,status="FAIL"), row("HI","high",1.41), row("OK","in",1.4),
+               row("MISSING","none",None)]
+    report = tmp_path/"review.md"
+    benchmark.write_results(report, records)
+    text = report.read_text(encoding="utf-8")
+    assert "| low | 2 | 0.6000 | Review |" in text
+    assert "| high | 1 | 1.4100 | Review |" in text
+    assert "| in | 1 | 1.4000 | Within range |" in text
+    assert "| none | 0 |" in text
+
+
 def test_failure_groups_preserve_missing_data_and_code_errors(benchmark):
     assert benchmark.failure_type("Required financial fact is missing: cash and equivalents") == "missing_balance_fact"
     assert benchmark.failure_type("'dimensions'") == "collection_code_error"

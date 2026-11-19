@@ -66,6 +66,16 @@ class AlpacaQuoteClient:
             "asof": start.date().isoformat(),
         })
 
+    def adjusted_daily_bars(self, symbol, start, end):
+        payload = self._get(_BARS_URL, {"symbols": symbol, "start": str(start),
+                                        "end": f"{end}T23:59:59Z", "timeframe": "1Day",
+                                        "feed": "sip", "adjustment": "split", "currency": "USD",
+                                        "limit": 1000, "asof": str(end)})
+        rows = (payload.get("bars") or {}).get(symbol)
+        if payload.get("next_page_token") or not isinstance(rows, list):
+            raise MarketQuoteError("Incomplete split-adjusted price history.")
+        return rows
+
 
 def _timestamp(value):
     parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))

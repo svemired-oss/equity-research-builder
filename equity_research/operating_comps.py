@@ -30,7 +30,7 @@ def _filed_earnings(period):
     return net_income, shares
 
 
-def _earnings_basis(packet, as_of, *, trailing):
+def _earnings_basis(packet, as_of, *, trailing, require_positive=True):
     periods = packet["actuals"]["periods"]
     if not periods or packet["as_of"] != as_of.isoformat():
         raise ResearchGap("No annual financials for this valuation cutoff.")
@@ -68,7 +68,7 @@ def _earnings_basis(packet, as_of, *, trailing):
             year_days + ytd_days - prior_days)
         end = current_end
         sources.extend(p["filing"]["url"] for p in (current, prior))
-    if net_income <= 0 or shares <= 0:
+    if (require_positive and net_income <= 0) or shares <= 0:
         raise ResearchGap("Positive trailing common earnings and diluted shares are required.")
     if trailing and not 0 <= (as_of - end).days <= 160:
         raise ResearchGap("The trailing earnings period is stale.")

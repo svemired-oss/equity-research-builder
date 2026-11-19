@@ -287,6 +287,9 @@ def workbook_plan(model):
         book.put("Comps", "A1", "Comparable valuation", "title")
         book.put("Comps", "A3", "Verified comparable evidence is unavailable.")
     _football_field(book)
+    if "valuation_summary" in model:
+        from .valuation import add_valuation
+        add_valuation(book, model)
     plan["inputSources"] = book.write_sources(model)
     plan["formulaColor"] = "000000"
     plan["cells"] = {name: cells[name] for name in (*SHEETS, *(name for name in cells if name not in SHEETS))}
