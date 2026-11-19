@@ -1,7 +1,7 @@
 FROM ubuntu:26.04
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates libreoffice-calc python3-venv \
+    && apt-get install -y --no-install-recommends ca-certificates git libreoffice-calc python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

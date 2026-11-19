@@ -16,8 +16,9 @@ const date = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeZone: '
 const saved = new Map();
 const operatingRuns = new Map();
 const publicPreview = document.documentElement.dataset.preview === 'public';
-const privateBuilder = !publicPreview && location.port === '8053'
-  && ['127.0.0.1', 'localhost'].includes(location.hostname);
+const codespaceHost = location.hostname.endsWith('-8053.app.github.dev');
+const privateBuilder = !publicPreview && (codespaceHost || (location.port === '8053'
+  && ['127.0.0.1', 'localhost'].includes(location.hostname)));
 const mode = () => ui['run-form'].elements.mode.value;
 const formatDate = (value) => {
   const day = new Date(`${value}T00:00:00Z`);
@@ -123,6 +124,8 @@ function showResultContent(note = '') {
 function showStart() {
   showState('ready', 'Start with a ticker', operatingGeneration
     ? 'The builder will check the available evidence, then show the workbook and report when they’re ready.'
+    : exchangeGeneration.includes('XTKS:7974') && !saved.size
+    ? 'Enter XTKS:7974 and choose Generate research to download the Nintendo model and report.'
     : 'Check a ticker’s filing coverage or open a dated portfolio example.');
 }
 
@@ -206,9 +209,11 @@ function syncMode() {
   } else if (!guided && rebuild) {
     ui['mode-note'].textContent = 'Generate both files from the dated reference inputs.';
   } else if (!guided && screen) {
-    ui['mode-note'].textContent = operatingGeneration
+    ui['mode-note'].textContent = exchangeGeneration.includes(tickerValue())
+      ? 'Generate an editable yen valuation and a matching PDF using Nintendo disclosures and Japanese market data.'
+      : operatingGeneration
       ? 'Research the company and generate both files when the evidence supports a valuation.'
-      : 'Check SEC evidence and valuation coverage for this ticker.';
+      : 'Check filing coverage. General U.S. valuation generation is disabled on this server.';
   } else if (!guided) {
     ui['mode-note'].textContent = saved.has(tickerValue()) ? 'Open the verified model and report from the selected research date.'
       : 'Automated mode starts with the ticker alone.';
@@ -217,7 +222,8 @@ function syncMode() {
   } else if (api && active?.ticker === 'GD') {
     ui['mode-note'].textContent = 'General Dynamics supports the dated automated package. Guided forecasts are available for FedEx and Newmont with the modeling server configured.';
   } else {
-    ui['mode-note'].textContent = operatingGeneration ? 'Run Automated first to unlock the available assumptions for this ticker.'
+    ui['mode-note'].textContent = operatingGeneration || exchangeGeneration.includes(tickerValue()) ? 'Run Automated first to unlock the available assumptions for this ticker.'
+      : !saved.size && tickerScreening ? 'For a Guided demo, enter XTKS:7974 and run Automated first.'
       : 'Select an example that offers Guided mode.';
   }
   ui['run-label'].textContent = busy ? 'Research in progress' : guided ? 'Regenerate research'
@@ -458,8 +464,10 @@ async function runResearch(snapshot, payload, resumeId = null) {
         showResultContent(evidence.missing);
         setStatus('Research is ready. Download the Excel model and PDF.');
       } else {
-        showState('review', 'Evidence found · valuation unavailable',
-          evidence.missing ?? 'The available evidence does not support a valuation package for this ticker.', { retainHeading: true });
+        const screeningOnly = run.source_mode === 'filing_screen' || (!run.source_mode && !operatingGeneration);
+        showState('review', screeningOnly ? 'Filing check complete' : 'Evidence found · valuation unavailable',
+          screeningOnly ? 'This was a filing check only. General U.S. valuation generation was disabled for this run. For an Excel model and PDF, enter XTKS:7974 and choose Automated.'
+            : evidence.missing ?? 'The available evidence does not support a valuation package for this ticker.', { retainHeading: true });
         setStatus('Evidence review complete.');
       }
     } else {
@@ -592,7 +600,7 @@ async function loadCatalog() {
       ui['site-context'].textContent = 'Dated portfolio research';
     } else if (!operatingGeneration) {
       ui['workspace-intro'].textContent = catalog.live_only
-        ? 'Generate Nintendo research or check filing coverage for another ticker.'
+        ? 'Enter XTKS:7974 for the Nintendo demo. General U.S. company research is set to filing checks only.'
         : tickerScreening
         ? 'Check a ticker’s filing coverage and open dated portfolio research.'
         : 'Open a dated research package to view the valuation and download its files.';
@@ -608,7 +616,8 @@ async function loadCatalog() {
     }
   } catch (error) {
     showState('error', 'Research unavailable', error.message);
-    setStatus('Reload the page once the builder is listening.', true);
+    setStatus(codespaceHost ? 'Open your Codespace at github.com/codespaces, resume it, then reload this page.'
+      : 'Reload the page once the builder is listening.', true);
   }
 }
 

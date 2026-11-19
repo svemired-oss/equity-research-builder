@@ -1,17 +1,36 @@
-# GitHub-only portfolio demo
+# Equity Research Builder
 
-Use the existing GitHub Pages site for the public portfolio. Run the live builder on demand in a personal GitHub Codespace when presenting. The forwarded port defaults to private and requires the creator's GitHub login. A recruiter can view Pages independently or watch a live generation during a screen share.
+Run a private ticker-to-download demo in GitHub Codespaces. The verified example is Nintendo (`XTKS:7974`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)
 
-1. Put the reviewed portable sources, Dockerfile, browser assets and the included `.devcontainer` directory on the GitHub branch you will run. Keep the live demo branch separate from `gh-pages`.
-2. Under personal GitHub settings, add repository-scoped **Codespaces** secrets. Set `SEC_USER_AGENT` to the project name and monitored contact. For general US company research also set `OPENAI_API_KEY`, `APCA_API_KEY_ID`, and `APCA_API_SECRET_KEY`. Nintendo (`XTKS:7974`) uses public data and needs only the contact.
-3. Use personal billing, check remaining included storage and compute, and keep metered overage disabled. GitHub Free personal includes 120 core-hours and 15 GB-month of storage, shared with your other codespaces. Two cores consume two core-hours per running hour. With no valid payment method GitHub blocks further use when the allowance is exhausted. If a payment method is present, verify a zero spending budget with usage stopped at the limit before launch.
-4. On the prepared branch select **Code → Codespaces** and create a two-core codespace. The build installs Python and LibreOffice. The startup command launches the generator. In **Ports**, keep port 8053 **Private**, then open its forwarded URL.
-5. Enter a supported ticker and generate research. Refreshing the same browser tab resumes its latest run. If the connection drops, use **Check this run again** to recover the same submission. Verified downloads are available for 24 hours from completion while the Codespace exists, including after a stop and restart. The website displays the expiration time. Deleting the Codespace removes its archived downloads.
+## Give a two-minute demonstration
 
-The private builder runs one worker with up to four active or queued jobs. It accepts eight new jobs per rolling hour and 20 per rolling 24 hours across the demo. Repeated requests for the same job do not use additional slots. A restart preserves completed files and marks unfinished jobs as interrupted. To use Guided mode after a restart, start a new Automated run first. Download pairs are capped at 16 MiB.
+1. Sign in to GitHub as the Codespace owner. Open the existing Codespace and select **Restart codespace** if it is stopped. Under **Ports**, open the browser link for private port **8053**. Bookmark that link for subsequent visits. [Your Codespaces](https://github.com/codespaces)
+2. Enter **XTKS:7974**, keep **Automated** selected and choose **Generate research**. When the download links appear, select **Excel financial model** and **Equity research report**. Open both. Compare the value per share on the workbook’s **Cover** with the first line of the report.
+3. To show Guided mode, select **Edit assumptions**. Change the post-guidance operating margin to `0.20`, enter a reason and choose **Regenerate research**. Download the new pair. The PDF records the change and the fingerprint of the workbook it accompanies.
 
-Stopping the Codespace releases active compute. A stopped Codespace still consumes storage.
+## First-time Codespaces setup
 
-API charges follow the API provider's billing separately. The GitHub Pages site continues to show the dated examples while the codespace sleeps or is deleted.
+1. Use a personal GitHub account with Codespaces enabled. In billing, keep paid Codespaces overage blocked for a zero-infrastructure-spend demo.
+2. Create a **Codespaces** secret named `SEC_USER_AGENT` containing a project name and a monitored contact address. Grant the secret access to this repository. Nintendo uses public sources and requires no paid API. [Manage Codespaces secrets](https://github.com/settings/codespaces)
+3. Open the **codespaces-demo** branch. Select **Code → Codespaces → Create codespace** on this branch, using a two-core machine. The included dev container installs Python, the pinned packages and LibreOffice Calc. The post-start command launches the server on loopback. [Deployment branch](https://github.com/svemired-oss/equity-research-builder/tree/codespaces-demo)
+4. In **Ports**, confirm **8053** is **Private** and open it in the browser. GitHub supplies HTTPS and handles owner authentication. Resume the Codespace before a presentation. A recruiter can use the public portfolio independently or watch the owner’s live demo. [GitHub port access](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace)
+5. Optional U.S. research uses three additional repository-scoped Codespaces secrets: `OPENAI_API_KEY`, `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY`. Stop and resume after adding or changing secrets. The website then offers generation where the engine supports it. Provider access, filing quality and model coverage determine the outcome. Keep keys in the host secret manager.
 
-[GitHub Codespaces billing](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces) · [Private ports](https://docs.github.com/en/codespaces/reference/security-in-github-codespaces) · [Codespaces secrets](https://docs.github.com/en/codespaces/managing-your-codespaces/managing-your-account-specific-secrets-for-github-codespaces)
+For native Linux installation and command-line verification, use the [portable setup](https://github.com/svemired-oss/equity-research-builder/blob/codespaces-demo/docs/portable-builder.md).
+
+## What to expect
+
+| Input | Demonstrated behavior |
+| --- | --- |
+| Nintendo, `XTKS:7974` | Live editable yen DCF, sensitivity table and a cited one-page PDF. Guided changes the post-guidance margin. The result is a balance-date scenario marked **Review**. |
+| GD, NVDA, FAST, SBUX and DHR on the deployment without U.S. provider credentials | SEC discovery and annual filing history. A filing check produces no downloads. Earlier local engine runs do not establish hosted generation coverage. |
+| GD, FDX and NEM on GitHub Pages | Dated portfolio illustrations with scenario comparisons. Public downloads are disabled. |
+
+The live-only demo runs from the source checkout without the original GD template, private reference files or pre-generated downloads. The desk-model fidelity and coverage work is tracked in the [model backlog](https://github.com/svemired-oss/equity-research-builder/blob/codespaces-demo/docs/model-backlog.md).
+
+## Recovery and operating costs
+
+- Refresh the same tab to return to its latest job. **Check this run again** reconnects after a dropped response. Completed files are retained for 24 hours while the Codespace exists. The site shows their expiry. A restart interrupts unfinished jobs. Start a fresh Automated run to enable Guided after a restart.
+- One worker processes up to four running or queued submissions. The whole demo shares eight new runs per rolling hour and 20 per rolling 24 hours. Filing checks and Guided submissions count. Duplicate in-flight submissions share a job. Each file pair is limited to 16 MiB.
+- Expected infrastructure bill is **$0/month** within the personal GitHub Free allowance of 120 core-hours and 15 GB-month. For example, a two-core Codespace running 10 hours uses 20 core-hours. Storage includes the custom image and persists while stopped. Paid overage, if enabled, is $0.18 per two-core running hour and $0.07 per GB-month beyond the allowance. With overage blocked, exhaustion can interrupt the demo. [GitHub pricing](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)
+- Nintendo has no OpenAI or Alpaca usage. Optional U.S. generation can incur separate provider charges. A ChatGPT subscription does not fund API calls. Stop the Codespace after a demo to conserve compute.

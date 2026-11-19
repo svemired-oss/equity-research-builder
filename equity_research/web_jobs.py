@@ -58,8 +58,11 @@ class JobStore:
                 self.db.execute("DELETE FROM runs WHERE expires <= ?", (now,))
             return expired
 
-    def starts_since(self, cutoff):
-        return self.db.execute("SELECT COUNT(*) FROM runs WHERE started > ?", (cutoff,)).fetchone()[0]
+    def next_slot(self, now, window, maximum):
+        row = self.db.execute(
+            "SELECT started FROM runs WHERE started > ? ORDER BY started DESC LIMIT 1 OFFSET ?",
+            (now - window, maximum - 1)).fetchone()
+        return row[0] + window if row else now
 
     def download(self, run_id, kind):
         # The HTTP handler supplies one of these two known column names.

@@ -8,7 +8,7 @@ from functools import partial
 from hashlib import sha256
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from math import isfinite
+from math import ceil, isfinite
 import json
 import logging
 import mimetypes
@@ -401,7 +401,8 @@ class _ResearchService:
             if self.catalog.get("operating_generation"):
                 return enqueue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat(),
                                     "source_mode": "operating_research"}, self._finish_operating)
-            return enqueue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat()}, self._finish_screen)
+            return enqueue({"ticker": ticker, "mode": mode, "as_of": date.today().isoformat(),
+                            "source_mode": "filing_screen"}, self._finish_screen)
         run = {"ticker": ticker, "mode": mode, "case": case, "as_of": item["as_of"],
                "price_date": item["price_date"], "target_date": item["target_date"]}
         if mode == "automated":
@@ -425,9 +426,13 @@ class _ResearchService:
             if pending >= _MAX_PENDING:
                 raise _APIError(429, "The research queue is full. Try again after an existing run completes.")
             now = time()
-            for window, maximum, label in _RUN_LIMITS:
-                if self.jobs.starts_since(now - window) >= maximum:
-                    raise _APIError(429, f"The demo allows {maximum} new runs per {label}. Try again when the limit resets.")
+            available, maximum, label = max(
+                (self.jobs.next_slot(now, window, maximum), maximum, label)
+                for window, maximum, label in _RUN_LIMITS)
+            if available > now:
+                minutes = ceil((available - now) / 60)
+                raise _APIError(429, f"The demo allows {maximum} new runs per {label}. "
+                                f"Try again in {minutes} min. Existing downloads remain available until expiry.")
             run.update(id=run_id, state="queued")
             self.jobs.admit(run, now, token, fingerprint)
             self.runs[run_id] = run

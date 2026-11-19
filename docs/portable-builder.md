@@ -36,7 +36,6 @@ These commands are for a Linux Docker host. Pass each credential by name with an
 
 - Live export uses openpyxl and LibreOffice in place of the bundled Node spreadsheet package. It uses the same workbook plan, intended cell values, scenario checks and assumption probe. Styling can differ between renderers.
 - Live-only startup works without saved example downloads, dated input files, or the original GD V4 workbook. The separate dated portfolio and GD template workflow retain those dependencies. Keep source models, generated files, credentials, and evidence caches private.
-- The application needs a writable `private/web-runs` directory for temporary rendering. Completed downloads and active jobs are held in memory and expire on restart.
-- The clean install test uses native Ubuntu. The Docker recipe still needs an image build and smoke test on a Docker host.
+- The application needs a writable `private/web-runs` directory. SQLite retains completed job details and both files for 24 hours. Keep this directory across restarts. Removing a disposable container without a persistent volume removes its files. Restarting marks unfinished jobs as interrupted.
 
-A hosted private release still needs an HTTPS access layer on the same host that proxies to loopback, runtime secrets for credentialed research, and hosted acceptance tests. The public portfolio has a separate deployment.
+GitHub Codespaces provides the private HTTPS forwarding used by the hosted demo. Follow the [setup and demonstration guide](github-demo.md) for the supported ticker, access, limits and costs.
