@@ -7,7 +7,7 @@ from .sec_guidance import _ReleaseText
 HEADING = re.compile(r"^item\s+(1a|1b|1|2)\s*[.\u2014:\-]?\s*(business|risk factors|unresolved staff comments|properties)?\s*$", re.I)
 EVENT = re.compile(r"\b(?:expects?|announced|outlook|guidance|completed|launched|scheduled)\b", re.I)
 BOILERPLATE = re.compile(r"\b(?:risk factors should be considered|following risks could harm|"
-                         r"additional risks and uncertainties|forward-looking statements|safe harbor)\b", re.I)
+                         r"additional risks|forward-looking statements|safe harbor)\b", re.I)
 
 
 def annual_passages(html):
@@ -25,7 +25,8 @@ def annual_passages(html):
         sentences = []
         for block in blocks:
             for sentence in re.split(r"(?<=[.!?])\s+(?=[A-Z])", block):
-                if (50 <= len(sentence) <= 370 and not BOILERPLATE.search(sentence)
+                sentence = sentence.lstrip(" •\ufffd\u2022\u25cf")
+                if (50 <= len(sentence) <= 370 and "\ufffd" not in sentence and not BOILERPLATE.search(sentence)
                         and (pattern is None or pattern.search(sentence))):
                     sentences.append(sentence)
         return list(dict.fromkeys(sentences))
@@ -58,7 +59,7 @@ def collect(packet, client):
             continue
         passage = next((s for b in blocks for s in re.split(r"(?<=[.!?])\s+(?=[A-Z])", b)
                         if 65 <= len(s) <= 360 and EVENT.search(s)
-                        and not s.rstrip().endswith(":") and not BOILERPLATE.search(s)), None)
+                        and "\ufffd" not in s and not s.rstrip().endswith(":") and not BOILERPLATE.search(s)), None)
         if passage:
             records.append({"kind":"catalyst","filed_on":item["filed_on"],"url":item["url"],"text":passage})
     packet["report_evidence"] = records

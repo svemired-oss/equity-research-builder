@@ -14,12 +14,12 @@ from test_market_valuation import fixture_model
 def test_business_and_risk_passages_are_scoped():
     html = (
         "<p>Item 1. Business</p><p>Our customers compete in numerous industry markets across the world.</p>"
-        "<p>Item 1A. Risk Factors</p><p>Customer demand and component supply could materially affect operating results.</p>"
+        "<p>Item 1A. Risk Factors</p><p>\ufffdCustomer demand and component supply could materially affect operating results.</p>"
         "<p>Item 2. Properties</p><p>We sell office property in unrelated international markets.</p>"
     )
     result = annual_passages(html)
     assert "customers compete" in result["industry"][0]
-    assert "component supply" in result["risk"][0]
+    assert result["risk"][0].startswith("Customer demand and component supply")
     assert all("property" not in text for passages in result.values() for text in passages)
 
 
