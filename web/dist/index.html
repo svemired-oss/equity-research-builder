@@ -49,6 +49,10 @@
             </div>
             <label for="reason">Reason for change</label>
             <input type="text" id="reason" name="reason" placeholder="e.g. Higher expected gold prices" maxlength="240">
+            <div id="guided-batch" hidden>
+              <button type="button" class="secondary-action" id="add-guided-change">Add change</button>
+              <ul id="guided-change-list" aria-label="Queued Guided edits"></ul>
+            </div>
           </div>
           <button id="run-button" class="run" type="submit" disabled><span id="run-label">Generate research</span><span aria-hidden="true">→</span></button>
           <button id="resume-run" class="secondary-action run-resume" type="button" hidden>Check this run again</button>

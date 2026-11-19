@@ -412,6 +412,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "cost": cost, "wacc": wacc, "growth": growth, "roic": roic, "stub": stub, "scenarios": scenarios, "revenue": revenues,
         "margin_step": margin_step, "implied_margin": implied_margin,
         "revenue_anchor": target, "guided_defaults": defaults, "overrides": list(overrides),
+        "filed_ytd_revenue": _read(bridge_metrics, "revenue") if interim else 0,
         "payout_ratio": min(1., max(0., median(payouts))) if len(payouts) == 3 else None,
         "sources": {"Annual financials and revenue lines": source, "Latest balance sheet": bridge_period["filing"]["url"],
                     **({"Operating driver disclosure": driver["url"]} if path else {}),

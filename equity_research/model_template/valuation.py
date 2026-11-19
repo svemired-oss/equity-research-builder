@@ -123,7 +123,9 @@ def _reverse(book, model):
             previous=f"'Income Statement'!$L$4*(1+$D{row})^{i-1}"
             sales=f"({previous})*(1+$D{row})"
             capex=f"Schedules!{forecast_col}5/'Income Statement'!{forecast_col}4"
-            cash=f"({sales})*(SUM(Assumptions!$B$3,Assumptions!$B$11)*(1-Assumptions!$B$4)+Assumptions!$B$5-{capex})-({sales}-({previous}))*(Assumptions!$B$7-Assumptions!$B$8)"
+            opening_wc = "Schedules!$L$12" if i==1 else f"({previous})*Assumptions!$B$32"
+            cash=(f"({sales})*(SUM(Assumptions!$B$3,Assumptions!$B$11)*(1-Assumptions!$B$4)+Assumptions!$B$5-{capex})"
+                  f"-(({sales})*Assumptions!$B$32-{opening_wc})")
             book.put(tab,f"{col}{row}",f"=({cash})"+("*Assumptions!$B$12" if i==1 else "")+f"/(1+$B$3)^{forecast_col}$20")
         terminal=f"'Income Statement'!$L$4*(1+D{row})^5*SUM(Assumptions!$B$3,Assumptions!$B$11)*(1-Assumptions!$B$4)*(1+$B$4)*(1-$B$4/$B$5)/($B$3-$B$4)/(1+$B$3)^$F$20"
         book.put(tab,f"E{row}",f"=(SUM(F{row}:J{row})+{terminal}+$B$6+$B$7-SUM($B$8:$B$10))/$B$12")

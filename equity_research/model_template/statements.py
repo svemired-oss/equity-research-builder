@@ -175,6 +175,9 @@ def build_statements(book, model, revenue_total):
     base = "L"
     book.put("Assumptions", "A18", "Forecast days convention")
     book.input("Assumptions", "B18", 365, basis="Analyst assumption | 365-day working-capital convention")
+    for row,label in ((30,"Operating current asset intensity"),(31,"Operating current liability intensity")):
+        book.put("Assumptions",f"A{row}",label)
+        book.input("Assumptions",f"B{row}",1,basis="Analyst multiplier on the filed operating balance-to-sales ratio",fmt="0.00%")
     book.put("Assumptions", "A19", "Cost of revenue / sales")
     book.formulas("Assumptions", "B", {19: f"""IF(COUNT('{INCOME}'!{base}11)=1,'{INCOME}'!{base}11/'{INCOME}'!{base}4,"Unavailable")"""})
     for row, label in ((20, "Annual debt issuance"), (21, "Annual debt repayment"), (22, "Annual buybacks")):
@@ -210,8 +213,9 @@ def build_statements(book, model, revenue_total):
         annual_days = "Assumptions!$B$18"
         for sr, br, flow, hflow in ((9, 6, f"{inc}4", f"'{INCOME}'!$L$4"), (10, 7, cost, hist_cost),
                                     (11, 17, cost, hist_cost)):
+            intensity = 31 if br == 17 else 30
             book.formulas("Schedules", col, {
-                sr: f'IF(ISNUMBER({hb}{br}),{hb}{br}/{hflow}*{annual_days},"Unavailable")',
+                sr: f'IF(ISNUMBER({hb}{br}),{hb}{br}/{hflow}*{annual_days}*Assumptions!$B${intensity},"Unavailable")',
             })
             book.formulas(BALANCE, col, {
                 br: f'IF(ISNUMBER({sc}{sr}),{sc}{sr}/{annual_days}*{flow},"Grouped")',
@@ -229,13 +233,13 @@ def build_statements(book, model, revenue_total):
             28: f"{inc}7", 29: "Assumptions!$B$4", 30: f"{col}28*{col}29", 31: f"{inc}5*{col}29",
         })
         fixed = {r: f'{pb}{r}' for r in (5, 11, 12, 13, 14, 24, 25, 26, 31)}
-        scaled = {r: f'IF(ISNUMBER({hb}{r}),{hb}{r}*{inc}4/\'{INCOME}\'!$L$4,"Grouped")'
+        scaled = {r: f'IF(ISNUMBER({hb}{r}),{hb}{r}*{inc}4/\'{INCOME}\'!$L$4*Assumptions!$B$31,"Grouped")'
                   for r in (18, 19)}
         book.formulas(BALANCE, col, {
             **fixed, **scaled,
-            4: f"{cf}25", 8: f"{hb}8*{inc}4/'{INCOME}'!$L$4", 9: f"SUM({col}4:{col}8)",
+            4: f"{cf}25", 8: f"{hb}8*{inc}4/'{INCOME}'!$L$4*Assumptions!$B$30", 9: f"SUM({col}4:{col}8)",
             10: f"{sc}7", 15: f"SUM({col}9:{col}14)",
-            20: f"{hb}20*{inc}4/'{INCOME}'!$L$4",
+            20: f"{hb}20*{inc}4/'{INCOME}'!$L$4*Assumptions!$B$31",
             21: f"MAX(0,{pb}21-{sc}17)", 22: f"SUM({col}17:{col}21)",
             23: f"{sc}18-{col}21", 27: f"SUM({col}22:{col}26)",
             29: f'IF(ISNUMBER({pb}29),{pb}29+{inc}9-{sc}23,"Grouped")',
