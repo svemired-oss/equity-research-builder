@@ -66,13 +66,23 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     if candidates != evidence["candidates"]:
         raise ValueError("Cached revenue candidates differ from the reconciled filing evidence.")
     selection = evidence["selection"] if not legacy else {**evidence["selection"], "driver_type": "segment_growth"}
-    model = prepare_operating_model(evidence["packet"], evidence["treasury"], evidence["quote"],
+    packet = evidence["packet"] if not legacy else {
+        k:v for k,v in evidence["packet"].items() if k not in ("valuation_market","valuation_comps")}
+    model = prepare_operating_model(packet, evidence["treasury"], evidence["quote"],
                                     selection, candidates)
     result["driver_type"] = model["driver"]["type"]
     result["driver_reason"] = model["driver"]["reason"]
     ratio = model["scenarios"]["Base"].value_per_share / model["close"]
     result.update(value_price_ratio=ratio, value=model["scenarios"]["Base"].value_per_share,
                   price=model["close"], cutoff=str(model["as_of"]))
+    rating = operating_rating(ratio - 1)
+    if "valuation_summary" in model and not legacy:
+        recommendation = model["valuation_summary"]
+        rating = recommendation["rating"]
+        blended = recommendation["blended"]
+        result.update(valuation_basis="phase4_blended", dcf_value_price_ratio=ratio,
+                      target_price=recommendation["target"], rating=rating,
+                      value_price_ratio=blended/model["close"] if blended is not None else None)
     review = verify_valuation_range(model)
     if review:
         model["notes"] += (review,)
@@ -85,7 +95,7 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     workbook, report = exporter(model, folder, None, None)
     run = {"ticker": ticker, "source_mode": "operating_research",
            "summary": {"spot_value_usd": model["scenarios"]["Base"].value_per_share,
-                       "rating": operating_rating(ratio - 1), "reference_close_usd": model["close"]}}
+                       "rating": rating, "reference_close_usd": model["close"]}}
     check_pair(run, workbook.read_bytes(), report.read_bytes())
     if artifacts is not None:
         from shutil import copyfile
@@ -93,7 +103,7 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
         artifacts.mkdir(parents=True, exist_ok=True)
         for file in (workbook, report):
             copyfile(file, artifacts / file.name)
-    return {"value_price_ratio": ratio, "value": model["scenarios"]["Base"].value_per_share,
+    return {"value_price_ratio": result["value_price_ratio"], "value": model["scenarios"]["Base"].value_per_share,
             "price": model["close"], "cutoff": str(model["as_of"]),
             "workbook_sha256": sha256(workbook.read_bytes()).hexdigest()}
 
@@ -175,6 +185,21 @@ def write_results(output, results):
     from collections import Counter
     counts = Counter(row.get("failure_type", failure_type(row["reason"])) for row in results if row["status"] != "PASS")
     lines.extend(f"| {label} | {count} |" for label, count in sorted(counts.items()))
+    from statistics import median
+    lines.extend(["", "## Sector valuation review", "",
+                  "Median blended present value / close among verified Phase 4 pairs.",
+                  "Legacy caches and failed runs are excluded.", "",
+                  "| Sector | Verified Phase 4 values | Median value / price | Status |",
+                  "| --- | ---: | ---: | --- |"])
+    for sector in sorted({r["sector"] for r in results}):
+        ratios = [r["value_price_ratio"] for r in results if r["sector"] == sector and r["status"] == "PASS"
+                  and r.get("valuation_basis") == "phase4_blended" and r["value_price_ratio"] is not None]
+        if ratios:
+            center = median(ratios)
+            flag = "Review" if center < .7 or center > 1.4 else "Within range"
+            lines.append(f"| {sector} | {len(ratios)} | {center:.4f} | {flag} |")
+        else:
+            lines.append(f"| {sector} | 0 | — | No evidence |")
     lines.extend(["", "## Per-ticker outcomes", "",
              "| Ticker | Sector | Status | Driver | Stage | Value / price | Reason |",
              "| --- | --- | --- | --- | --- | --- | --- |"])

@@ -518,6 +518,10 @@ class _ResearchService:
             upside = value / model["close"] - 1
             summary = {"reference_close_usd": model["close"], "spot_value_usd": value, "spot_upside": upside,
                        "rating": operating_rating(upside)}
+            if "valuation_summary" in model:
+                recommendation = model["valuation_summary"]
+                summary.update(rating=recommendation["rating"], target_value_usd=recommendation["target"],
+                               target_total_return=recommendation["return"])
             annual = model["sources"]["Annual financials and revenue lines"]
             fields = [{"target": name, "label": label, "unit": "decimal", "min": low, "max": high,
                        "default": model["guided_defaults"][name],
@@ -724,7 +728,7 @@ class _ResearchService:
                 if symbol == subject or symbol not in quotes:
                     continue
                 try:
-                    peers[symbol] = collect_ticker_evidence(client, symbol, as_of=as_of, years=2, statements_only=True)
+                        peers[symbol] = collect_ticker_evidence(client, symbol, as_of=as_of, years=3, release_limit=1)
                 except ValueError as exc:
                     _LOG.info("Peer %s was unavailable: %s", symbol, exc)
 
@@ -750,6 +754,36 @@ class _ResearchService:
                     comps = updated
             except ResearchGap:
                 _LOG.info("Alternate peer selection was unavailable for %s", subject)
+        from .drivers import choose
+        from .market_valuation import collect_market_inputs
+        from .valuation_comps import collect_forward_eps, prepare as prepare_valuation_comps, same_business
+        kind = choose(packet, selection)["type"]
+        if kind != "segment_growth":
+            for peer in peers.values():
+                try:
+                    collect(peer, client)
+                except ValueError:
+                    continue
+        sic = str(packet["issuer"].get("sic") or "")
+        industry_peers = [ticker for ticker, peer in peers.items() if len(sic) == 4
+                          and str(peer["issuer"].get("sic") or "")[:3] == sic[:3]
+                          and same_business(packet, peer, kind)]
+        try:
+            packet["valuation_market"] = collect_market_inputs(packet, price_client, quote, industry_peers, treasury["rate"])
+        except (ValueError, OSError, KeyError) as exc:
+            raise ResearchGap(f"Market WACC evidence unavailable. {exc}") from exc
+        try:
+            collect_forward_eps(packet, client)
+            for peer in peers.values():
+                collect_forward_eps(peer, client)
+                try:
+                    enrich_operating_bridge(peer, client)
+                except ValueError:
+                    continue
+            packet["valuation_comps"] = prepare_valuation_comps(
+                packet, [{"ticker": ticker} for ticker in peers], peers, quotes, kind)
+        except ResearchGap as exc:
+            packet["valuation_comps"] = {"value": None, "rows": [], "summary": {}, "reason": str(exc)}
         return packet, treasury, quote, selection, candidates, comps
 
     def _foreign_screen(self, screen, client, as_of):

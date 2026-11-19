@@ -319,8 +319,10 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     margin, capex, growth, roic = (used[key] for key in OPERATING_GUIDES)
     if not .03 < margin < .8 or not 0 < tax < .5:
         raise ResearchGap("Profitability or taxes require normalization outside the standard model.")
-    cost = CostOfCapitalInputs(as_of, treasury["rate"], .045, 1., close * shares,
-                               treasury["rate"] + .02, bridge_debt, tax, 0, 0)
+    market = packet.get("valuation_market")
+    cost = CostOfCapitalInputs(as_of, treasury["rate"], market["erp"]["value"] if market else .045,
+                               market["beta"]["value"] if market else 1., close * shares,
+                               market["debt"]["value"] if market else treasury["rate"] + .02, bridge_debt, tax, 0, 0)
     wacc = calculate_cost_of_capital(cost).wacc
     nci = bridge_metrics.get("noncontrolling_interest", 0)
     affiliate_book_value = bridge_period.get("nonoperating_equity_investments", 0) / 1e6
@@ -383,7 +385,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     implied_margin = margin + (close - scenarios["Base"].value_per_share) / margin_value_per_point
     source = latest["filing"]["url"]
     labels = {key: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", key.removesuffix("Member").removesuffix("Segment")) for key in data["latest"]}
-    return {
+    model = {
         "ticker": issuer["ticker"], "company": issuer["name"], "as_of": as_of, "close": close, "price_date": quote_day,
         "lines": labels, "history": history, "dates": dates, "old_sales": data["prior"], "sales": data["latest"],
         "comparable_revenue_interim": recent,
@@ -428,7 +430,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
              if path else "Revenue growth fades halfway each year toward terminal growth."),
             "Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario shifts are capped at 25% of base margin or three percentage points, whichever is smaller.",
             "D&A uses the annual median ratio. Initial capex uses the greater of the annual median, available interim ratio and D&A ratio. It converges linearly to capex consistent with terminal reinvestment, adjusting for working capital.",
-            "WACC includes a 4.5% equity risk premium, beta of 1.0, and debt spread of 2 points. Terminal incremental ROIC is 15%. These are editable analyst defaults.",
+            ("WACC uses dated implied ERP, Blume-adjusted beta and the debt-cost basis recorded on the WACC tab."
+             if market else "Legacy WACC uses a 4.5% ERP, beta of 1.0 and a debt spread of 2 points."),
             "The first DCF period prorates full-year cash flow by remaining days. The equity bridge uses the latest filed balances, short-term investments, carrying debt, and ending common shares.",
             "The standard model holds noncurrent residual balances and funded debt flat. When three years of dividend payments are available, projected payouts use the median historical payout ratio. Buybacks and acquisitions are outside the forecast.",
             "Where no standalone liabilities total is tagged, the model derives it from filed liabilities and equity less equity.",
@@ -443,6 +446,17 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
               if movements else ()),
         ),
     }
+    if market:
+        from .valuation_summary import summarize
+        comps = packet.get("valuation_comps")
+        model["valuation_market"] = market
+        model["valuation_comps"] = comps
+        model["valuation_summary"] = summarize(model, comps)
+        model["sources"].update({"Damodaran implied ERP": market["erp"]["url"],
+                                  "Broad market benchmark": market["beta"]["index_url"],
+                                  "Beta price observations": market["beta"]["url"],
+                                  "Pretax debt cost": market["debt"]["url"]})
+    return model
 
 
 def verify_valuation_range(model):

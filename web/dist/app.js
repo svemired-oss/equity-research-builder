@@ -453,10 +453,16 @@ async function runResearch(snapshot, payload, resumeId = null) {
         ui.spot.textContent = denomination.format(run.summary.spot_value_local ?? run.summary.spot_value_usd);
         ui.spot.previousElementSibling.textContent = bankValuation ? 'Distribution value per share'
           : localValuation ? 'DCF per ordinary share' : 'DCF per U.S. ADS';
-        ui.target.parentElement.hidden = true;
-        ui['total-return'].previousElementSibling.textContent = 'Value vs market close';
-        ui['total-return'].textContent = percent.format(run.summary.spot_upside);
-        ui['total-return'].dataset.direction = run.summary.spot_upside < 0 ? 'down' : 'up';
+        const hasTarget = Number.isFinite(run.summary.target_value_usd);
+        ui.target.parentElement.hidden = !hasTarget;
+        if (hasTarget) {
+          ui.target.textContent = denomination.format(run.summary.target_value_usd);
+          ui.target.previousElementSibling.textContent = '12-month target';
+        }
+        const displayedReturn = hasTarget ? run.summary.target_total_return : run.summary.spot_upside;
+        ui['total-return'].previousElementSibling.textContent = hasTarget ? '12-month total return' : 'Value vs market close';
+        ui['total-return'].textContent = percent.format(displayedReturn);
+        ui['total-return'].dataset.direction = displayedReturn < 0 ? 'down' : 'up';
       }
       ui['scenario-section'].hidden = true;
       if (run.downloads) {

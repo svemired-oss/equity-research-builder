@@ -311,7 +311,18 @@ def _write_pdf(model, workbook, pdf):
         if abs(cached["Cover"]["B7"].value - base) > 1e-6:
             raise ValueError("PDF valuation differs from the saved workbook.")
         rating = cached["Cover"]["B9"].value
-        if comps is not None:
+        if "valuation_summary" in model:
+            recommendation = model["valuation_summary"]
+            for tab, cell, key in (("Cover","B16","target"),("Cover","B13","peer"),
+                                   ("DCF","B38","implied_cagr"),("DCF","B89","terminal_gap")):
+                actual, expected = cached[tab][cell].value, recommendation[key]
+                if (expected is None and actual != "Unavailable") or (expected is not None and
+                        (type(actual) not in (float,int) or abs(actual-expected)>1e-6)):
+                    raise ValueError(f"PDF diagnostics differ from workbook {tab}!{cell}.")
+            if rating != recommendation["rating"]:
+                raise ValueError("PDF rating differs from the workbook.")
+            comps = None
+        elif comps is not None:
             comp_value = cached["Comps"]["B14"].value
             expected = comps["value"]
             if (expected is None and comp_value != "Unavailable"
@@ -330,6 +341,30 @@ def _write_pdf(model, workbook, pdf):
     paragraph(f"{ticker} | {as_of:%B %d, %Y} | Private pilot")
     paragraph(f"DCF fair value ${base:.2f} | Reference close ${close:.2f} | {base/close-1:+.1%} | {rating}", "Heading2")
     paragraph("Investment thesis", "Heading2")
+    if "valuation_summary" in model:
+        from .valuation_summary import TERMINAL_GAP
+        target = recommendation["target"]
+        if target is not None:
+            paragraph(f"12-month price target ${target:.2f} | Expected total return {recommendation['return']:+.1%}.")
+        else:
+            paragraph("12-month target unavailable. A blended peer value and a supported dividend forecast are required.")
+        if recommendation["peer"] is not None:
+            paragraph(f"Peer-implied value ${recommendation['peer']:.2f} across eligible multiple methods.")
+            distributions = model["valuation_comps"]["summary"]
+            table = Table([["Peer multiple", "Q1", "Median", "Q3", "Peers"]] + [
+                [label, *(f"{value:.2f}x" for value in values["quartiles"]), str(values["count"])]
+                for label, values in distributions.items()])
+            table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#17365D")),
+                                       ("TEXTCOLOR", (0,0), (-1,0), colors.white)]))
+            story.append(table)
+        if recommendation["implied_cagr"] is not None:
+            paragraph(f"Market-implied revenue CAGR {recommendation['implied_cagr']:.2%} at the base EBIT margin.")
+        if recommendation["terminal_gap"] is not None:
+            gap = recommendation["terminal_gap"]
+            paragraph(f"Gordon and exit-multiple terminal values diverge by {gap:.1%}."
+                      + (" Terminal value review required." if gap > TERMINAL_GAP else ""))
+        elif recommendation["exit_value"] is None:
+            paragraph("Exit-multiple cross-check unavailable without an eligible peer EV/EBITDA median.")
     paragraph(model.get("thesis", "The model prices Apple as a hardware and services business. iPhone is the largest source of sales, while Services grows from a smaller base. A three-point margin change tests how mix, demand and cost pressure could affect valuation."))
     table = Table([["Case", "Fair value", "EBIT margin shift"]] + [
         [name, f"${result.value_per_share:.2f}", f"{MARGIN_SHIFT[name] / .03 * model.get('margin_step', .03):+.1%}"]
@@ -354,7 +389,7 @@ def _write_pdf(model, workbook, pdf):
     story.append(chart)
     paragraph("Catalysts and risks", "Heading2")
     paragraph(model.get("risks", "Watch iPhone upgrade demand, Services growth, product mix and gross margins. Hardware competition, supply-chain exposure and regulatory changes to platform economics can alter growth and margins."))
-    if "implied_margin" in model:
+    if "implied_margin" in model and "valuation_summary" not in model:
         paragraph("The report values the company at the cutoff. A 12-month target requires a separately verified cash, debt, and share-count forecast at the target date.")
     story.append(PageBreak())
     if comps is not None:
