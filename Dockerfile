@@ -12,7 +12,7 @@ RUN python3 -m venv /opt/venv \
     && install -d -o builder -g builder /app/private/web-runs
 
 COPY equity_research/ equity_research/
+COPY deploy/ deploy/
 COPY web/dist/index.html web/dist/app.js web/dist/styles.css web/dist/
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-USER builder
-CMD ["/opt/venv/bin/python", "-m", "equity_research", "serve-research", "--live-only", "--port", "8053"]
+CMD ["runuser", "-u", "builder", "--", "/opt/venv/bin/python", "-m", "equity_research", "serve-research", "--live-only", "--port", "8053"]

@@ -105,7 +105,9 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
             copyfile(file, artifacts / file.name)
     return {"value_price_ratio": result["value_price_ratio"], "value": model["scenarios"]["Base"].value_per_share,
             "price": model["close"], "cutoff": str(model["as_of"]),
-            "workbook_sha256": sha256(workbook.read_bytes()).hexdigest()}
+            "price_date": str(model["price_date"]), "rating": rating,
+            "workbook_sha256": sha256(workbook.read_bytes()).hexdigest(),
+            "report_sha256": sha256(report.read_bytes()).hexdigest()}
 
 
 def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False, *, legacy=False, artifacts=None):

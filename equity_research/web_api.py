@@ -1,11 +1,13 @@
 """Serve dated portfolio research and verified guided runs over a local HTTP API."""
 
 from concurrent.futures import ThreadPoolExecutor
+from base64 import b64encode
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from functools import partial
 from hashlib import sha256
+from hmac import compare_digest
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from math import ceil, isfinite
@@ -208,6 +210,18 @@ class _ResearchService:
         self.oracle_evidence = oracle_evidence
         self.oracle_dated_closes = oracle_dated_closes
         self.oracle = oracle
+        self.hosted_name = environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+        self.hosted_auth = None
+        self.spend_limit = None
+        if self.hosted_name:
+            from .spend_budget import MODEL, daily_limit
+            password = environ.get("RECRUITER_PASSWORD", "")
+            if not re.fullmatch(r"[!-~]{16,128}",password):
+                raise ValueError("Set a recruiter password of 16 to 128 printable ASCII characters without spaces.")
+            if environ.get("RESEARCH_MODEL") != MODEL:
+                raise ValueError(f"Hosted spend limits are priced for {MODEL}.")
+            self.hosted_auth = b"Basic " + b64encode(("recruiter:"+password).encode("ascii"))
+            self.spend_limit = daily_limit(environ.get("OPENAI_DAILY_CAP_USD"))
         self.gd_template = environ.get("GD_V4_WORKBOOK", "").strip()
         self.contact = configured_sec_contact() if oracle else ""
         if oracle:
@@ -260,7 +274,7 @@ class _ResearchService:
                 artifact["path"] = _download_path("companies", ticker, kind)
         store_path = ":memory:"
         if self.catalog.get("live_only"):
-            work_dir = root / "private" / "web-runs"
+            work_dir = Path(environ["RESEARCH_STATE_DIR"]) if self.hosted_name else root / "private" / "web-runs"
             work_dir.mkdir(parents=True, exist_ok=True, mode=0o700)
             store_path = work_dir / "research-jobs.sqlite3"
         self.jobs = JobStore(store_path)
@@ -422,6 +436,14 @@ class _ResearchService:
                 with self.jobs.db:
                     self.jobs.alias(token, fingerprint, duplicate)
                 return HTTPStatus.ACCEPTED, deepcopy(self.runs[duplicate])
+            if self.hosted_auth and run["mode"] == "automated":
+                now = time()
+                midnight = datetime.fromtimestamp(now,timezone.utc).replace(hour=0,minute=0,second=0,microsecond=0)
+                cached = self.jobs.completed_duplicate(fingerprint,midnight.timestamp(),now)
+                if cached:
+                    with self.jobs.db:
+                        self.jobs.alias(token,fingerprint,cached)
+                    return HTTPStatus.OK, deepcopy(self.runs[cached])
             if self.reloading:
                 raise _APIError(503, "The private server is reloading. Retry in a moment.")
             pending = sum(row["state"] in ("queued", "running") for row in self.runs.values())
@@ -442,8 +464,11 @@ class _ResearchService:
             return HTTPStatus.ACCEPTED, deepcopy(run)
 
     def _execute(self, finish, run_id, *arguments):
+        from .spend_budget import enforce
+        context = (self.jobs,self.lock,self.spend_limit) if self.spend_limit is not None else None
         try:
-            finish(run_id, *arguments)
+            with enforce(context):
+                finish(run_id, *arguments)
         except Exception:
             _LOG.exception("Unhandled failure in research job %s", run_id)
         with self.lock:
@@ -1185,6 +1210,8 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(content)))
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Cache-Control", "no-store")
+        if status == 401:
+            self.send_header("WWW-Authenticate", 'Basic realm="Private equity research", charset="UTF-8"')
         if filename:
             self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
         self.end_headers()
@@ -1195,7 +1222,19 @@ class _Handler(BaseHTTPRequestHandler):
         self._send(json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8"), status=status)
 
     def _path(self):
-        if self.server.research.oracle:
+        service = self.server.research
+        hosted = getattr(service,"hosted_name","")
+        if hosted:
+            if self.headers.get_all("Host",[]) != [hosted]:
+                raise _APIError(421,"Use the configured research hostname.")
+            if self.command in ("GET","HEAD") and self.path == "/healthz":
+                return self.path
+            if self.headers.get_all("X-Forwarded-Proto",[]) != ["https"]:
+                raise _APIError(403,"Open the research site over HTTPS.")
+            auth = self.headers.get_all("Authorization",[])
+            if len(auth)!=1 or not compare_digest(auth[0].encode("latin-1"),service.hosted_auth):
+                raise _APIError(401,"Sign in with the recruiter password.")
+        if service.oracle and not hosted:
             port = self.server.server_port
             allowed = {f"127.0.0.1:{port}", f"localhost:{port}"}
             codespaces = environ.get("CODESPACES") == "true"
@@ -1212,6 +1251,8 @@ class _Handler(BaseHTTPRequestHandler):
             landing_page = codespaces and self.command in ("GET", "HEAD") and self.path == "/"
             if self.headers.get("Sec-Fetch-Site") == "cross-site" and not landing_page:
                 raise _APIError(403, "Open the private builder directly in your browser.")
+        if hosted and self.command=="POST" and self.headers.get("Sec-Fetch-Site") == "cross-site":
+            raise _APIError(403,"Open the research site directly in your browser.")
         try:
             path = unquote(urlsplit(self.path).path, errors="strict")
         except ValueError as exc:
@@ -1251,7 +1292,9 @@ class _Handler(BaseHTTPRequestHandler):
             path = self._path()
             parts = path.removeprefix("/").split("/")
             service = self.server.research
-            if parts == ["api", "companies"]:
+            if path == "/healthz":
+                self._json({"status":"ok"})
+            elif parts == ["api", "companies"]:
                 self._json(service.catalog)
             elif len(parts) == 3 and parts[:2] == ["api", "runs"]:
                 self._json(service.get_run(parts[2]))
@@ -1289,7 +1332,7 @@ def _server(root, host, port, node, node_modules, catalog, *, oracle=False, orac
         raise ValueError("Configure both the Node executable and module directory to enable guided runs.")
     if node is not None and (not node.is_file() or not node_modules.is_dir()):
         raise ValueError("Guided runtime paths must point to a Node executable and module directory.")
-    if oracle and host != "127.0.0.1":
+    if oracle and host != "127.0.0.1" and not environ.get("RENDER_EXTERNAL_HOSTNAME"):
         raise ValueError("Live generation requires a localhost server.")
     if oracle and node is None and not which("soffice"):
         raise ValueError("Install LibreOffice Calc (soffice on PATH) or configure the Node spreadsheet runtime.")

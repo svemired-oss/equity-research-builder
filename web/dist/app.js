@@ -18,7 +18,7 @@ const saved = new Map();
 const operatingRuns = new Map();
 const publicPreview = document.documentElement.dataset.preview === 'public';
 const codespaceHost = location.hostname.endsWith('-8053.app.github.dev');
-const privateBuilder = !publicPreview && (codespaceHost || (location.port === '8053'
+const privateBuilder = !publicPreview && (location.hostname.endsWith('.onrender.com') || codespaceHost || (location.port === '8053'
   && ['127.0.0.1', 'localhost'].includes(location.hostname)));
 const mode = () => ui['run-form'].elements.mode.value;
 const formatDate = (value) => {
@@ -346,13 +346,13 @@ function renderDownloads(downloads) {
 
 function render(snapshot, run = null) {
   const metrics = run?.summary ?? snapshot;
-  const spotOnly = typeof run?.summary?.spot_upside === 'number';
+  const spotOnly = typeof metrics.spot_upside === 'number' && !Number.isFinite(metrics.target_price_usd);
   const generated = run?.mode === 'guided';
   ui.close.closest('.metrics').hidden = false;
   ui['scenario-section'].hidden = false;
   ui['company-sector'].textContent = `${snapshot.ticker} · ${snapshot.sector}`;
   ui.company.textContent = snapshot.company;
-  const basis = spotOnly ? (generated ? 'Guided run · original evidence' : oracleSources[run.source_mode]?.[1] ?? 'Valuation run')
+  const basis = spotOnly ? (generated ? 'Guided run · original evidence' : oracleSources[run?.source_mode]?.[1] ?? 'Valuation run')
     : generated ? `${titleCase(run.case)} guided case` : run?.source_mode === 'reference_regeneration'
       ? 'Generated from dated inputs' : 'Dated research snapshot';
   ui['snapshot-date'].textContent = `${formatDate(run?.as_of ?? snapshot.as_of)} cutoff · ${basis}`;
@@ -376,7 +376,7 @@ function render(snapshot, run = null) {
   ui['scenario-title'].textContent = spotOnly ? 'DCF value by case' : '12-month target by case';
   drawScenarios(run?.cases ?? (generated ? [] : snapshot.cases), metrics.reference_close_usd,
     spotOnly ? 'spot_value_usd' : 'target_price_usd');
-  renderDownloads(publicPreview ? null : run?.downloads ?? snapshot.downloads);
+  renderDownloads(run?.downloads ?? snapshot.downloads);
   ui['download-status'].textContent = run?.downloads ? 'Verified generated files' : 'Verified snapshot';
   showResultContent();
 }
@@ -671,7 +671,9 @@ async function loadCatalog() {
     addChoices(catalog.snapshots);
     if (publicPreview) {
       ui['workspace-title'].textContent = 'Equity research portfolio';
-      ui['workspace-intro'].textContent = 'Explore three dated company valuations and their bear, base, and bull scenarios.';
+      ui['workspace-intro'].textContent = catalog.public_downloads
+        ? 'Browse dated, verified valuations and download the editable workbook and matching PDF.'
+        : 'Explore dated company valuations and their bear, base, and bull scenarios.';
       ui['site-context'].textContent = 'Dated portfolio research';
     } else if (operatingGeneration && catalog.live_only) {
       ui['workspace-intro'].textContent = 'Enter a ticker to research a U.S. company, or try XTKS:7974 for the Nintendo demo. Downloads appear when the valuation checks pass.';
@@ -681,6 +683,22 @@ async function loadCatalog() {
         : tickerScreening
         ? 'Check a ticker’s filing coverage and open dated portfolio research.'
         : 'Open a dated research package to view the valuation and download its files.';
+    }
+    if (publicPreview && catalog.benchmark) {
+      const section = document.getElementById('benchmark-review');
+      const benchmark = catalog.benchmark;
+      section.hidden = false;
+      section.append(node('p','',`${benchmark.phase} · ${benchmark.passed}/${benchmark.total} verified (${percent.format(benchmark.passed/benchmark.total)}).`));
+      const list = node('ul','','');
+      for (const [reason,count] of Object.entries(benchmark.failures)) {
+        list.append(node('li','',`${reason.replaceAll('_',' ')} · ${count}`));
+      }
+      section.append(list);
+      if (benchmark.source) {
+        const source = node('a','','Full benchmark and ticker outcomes');
+        source.href=benchmark.source;
+        section.append(source);
+      }
     }
     if (tickerScreening) {
       syncMode();
