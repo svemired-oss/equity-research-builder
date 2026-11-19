@@ -280,6 +280,8 @@ def workbook_plan(model):
     book.put("Assumptions", "B7", "=SUM('Balance Sheet'!L6:L8)/'Income Statement'!L4", fmt=PCT)
     book.put("Assumptions", "B8", "=SUM('Balance Sheet'!L17:L20)/'Income Statement'!L4", fmt=PCT)
     _legacy_sources(book, model, revenue_total)
+    from ..drivers import formula_block
+    formula_block(book, model)
     _sensitivity(book)
     if "Comps" not in cells:
         book.put("Comps", "A1", "Comparable valuation", "title")
