@@ -7,12 +7,11 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event
 from types import SimpleNamespace
-from unittest import TestCase, skipUnless
+from unittest import TestCase
 from unittest.mock import patch
 from urllib.error import URLError
 
 from equity_research.web_api import _Handler, _ResearchService
-from equity_research.web_catalog import build_catalog
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -154,12 +153,26 @@ class HostedJobTests(TestCase):
         self.assertNotIn("downloads", run)
 
 
-@skipUnless((ROOT / "outputs" / "gd-2026-11-09" / "GD_model_2026-11-09.xlsx").is_file(),
-            "requires the dated research outputs")
 class ResearchWebAPITests(TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.service = _ResearchService(ROOT, Path("node"), Path("node_modules"), build_catalog(ROOT))
+        cls.catalog = json.loads((ROOT / "tests/fixtures/web_catalog.json").read_text())
+        cls.contents = {"workbook": b"synthetic workbook bytes", "report": b"synthetic report bytes"}
+        for item in cls.catalog["snapshots"]:
+            item["downloads"] = {kind: {
+                "filename": item["ticker"] + (".xlsx" if kind == "workbook" else ".pdf"),
+                "size_bytes": len(content), "sha256": sha256(content).hexdigest(),
+            } for kind, content in cls.contents.items()}
+        cls.downloads_patch = patch("equity_research.web_catalog.read_demo_download",
+            side_effect=lambda root, ticker, kind: cls.contents[kind])
+        cls.downloads_patch.start()
+        cls.addClassCleanup(cls.downloads_patch.stop)
+        from equity_research.web_api import _GUIDES
+        cls.defaults_patch = patch("equity_research.web_api._defaults",
+            side_effect=lambda ticker, *_: {field.target: (field.min + field.max) / 2 for field in _GUIDES[ticker]})
+        cls.defaults_patch.start()
+        cls.addClassCleanup(cls.defaults_patch.stop)
+        cls.service = _ResearchService(ROOT, Path("node"), Path("node_modules"), cls.catalog)
 
     @classmethod
     def tearDownClass(cls):

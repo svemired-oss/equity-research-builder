@@ -1,0 +1,27 @@
+name: Phase 0 offline verification
+on:
+  push:
+    branches: [phase-0-baseline, codespaces-demo]
+  pull_request:
+    branches: [codespaces-demo]
+permissions:
+  contents: read
+jobs:
+  pytest:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+      - name: Install LibreOffice from the Ubuntu archive
+        run: |
+          printf '%s\n' 'https://archive.ubuntu.com/ubuntu/' | sudo tee /etc/apt/apt-mirrors.txt
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 update
+          sudo apt-get -o Acquire::Retries=2 -o Acquire::https::Timeout=30 install -y --no-install-recommends libreoffice-calc
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest -q
+

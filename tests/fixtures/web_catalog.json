@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "snapshots": [
+    {
+      "ticker": "GD",
+      "company": "GD Synthetic",
+      "sector": "Synthetic fixture",
+      "as_of": "2026-11-12",
+      "price_date": "2026-11-11",
+      "target_date": "2027-11-12",
+      "case": "base",
+      "reference_close_usd": 100,
+      "spot_value_usd": 90,
+      "target_price_usd": 95,
+      "total_return": -0.05,
+      "rating": "Hold",
+      "cases": [],
+      "downloads": {}
+    },
+    {
+      "ticker": "FDX",
+      "company": "FDX Synthetic",
+      "sector": "Synthetic fixture",
+      "as_of": "2026-11-12",
+      "price_date": "2026-11-11",
+      "target_date": "2027-11-12",
+      "case": "base",
+      "reference_close_usd": 100,
+      "spot_value_usd": 90,
+      "target_price_usd": 95,
+      "total_return": -0.05,
+      "rating": "Hold",
+      "cases": [],
+      "downloads": {}
+    },
+    {
+      "ticker": "NEM",
+      "company": "NEM Synthetic",
+      "sector": "Synthetic fixture",
+      "as_of": "2026-11-12",
+      "price_date": "2026-11-11",
+      "target_date": "2027-11-12",
+      "case": "base",
+      "reference_close_usd": 100,
+      "spot_value_usd": 90,
+      "target_price_usd": 95,
+      "total_return": -0.05,
+      "rating": "Hold",
+      "cases": [],
+      "downloads": {}
+    }
+  ]
+}
