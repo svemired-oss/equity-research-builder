@@ -21,6 +21,19 @@ def test_fixed_universe(benchmark):
     assert {"GD", "FAST", "SBUX", "DHR", "NVDA"} <= {row["ticker"] for row in rows}
 
 
+def test_collector_screening_result_returns_gap_without_missing_service_state(benchmark, tmp_path, monkeypatch):
+    from datetime import date
+    monkeypatch.setenv("SEC_USER_AGENT", "Test contact@example.com")
+    from equity_research import sec_intake, web_api
+    packet = {"issuer": {"cik": "0000034088", "ticker": "XOM", "sic": "2911"},
+              "coverage": {"annual_statement_history": 0}}
+    monkeypatch.setattr(sec_intake, "collect_ticker_evidence", lambda *args, **kwargs: packet)
+    monkeypatch.setattr(web_api, "_screen_ticker", lambda *args, **kwargs: {
+        "missing": "Valuation requires normalized annual financials from the issuer's reporting framework."})
+    with pytest.raises(benchmark.ResearchGap, match="normalized annual financials"):
+        benchmark.capture("XOM", date(2026, 11, 19), tmp_path)
+
+
 def test_missing_cache_and_recorded_failure_are_not_passes(benchmark, tmp_path):
     row = {"ticker": "TEST", "sector": "synthetic"}
     missing = benchmark.run_one(row, tmp_path, None, False, tmp_path)
@@ -35,6 +48,19 @@ def test_missing_cache_and_recorded_failure_are_not_passes(benchmark, tmp_path):
     assert failed["reason"] == "A verified balance is unavailable."
     benchmark.write_results(tmp_path / "results.md", [missing, failed])
     assert "0/2 (0.0%)" in (tmp_path / "results.md").read_text()
+
+
+def test_targeted_refresh_archives_failed_cache(benchmark, tmp_path, monkeypatch):
+    path = tmp_path / "TEST.json.gz"
+    benchmark.cache_write(path, {"schema_version": 1, "ticker": "TEST", "cutoff": "2026-06-30",
+                               "stage": "collection", "error": "Old harness failure"})
+    old = path.read_bytes()
+    def fail_collection(*args):
+        raise benchmark.ResearchGap("Actual filing gap")
+    monkeypatch.setattr(benchmark, "capture", fail_collection)
+    result = benchmark.run_one({"ticker": "TEST", "sector": "synthetic"}, tmp_path, None, True, tmp_path, True)
+    assert result["reason"] == "Actual filing gap"
+    assert list((tmp_path / ".history").glob("TEST-*.gz"))[0].read_bytes() == old
 
 
 def test_export_failure_cannot_count_as_success(benchmark, tmp_path, monkeypatch):

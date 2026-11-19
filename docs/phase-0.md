@@ -36,3 +36,18 @@ The runner writes `benchmarks/results.md` and `benchmarks/results.json` after ev
 The private cache contains public research evidence and provider decisions. Review it before redistribution. Generated workbooks and PDFs are temporary and remain in private working storage. The benchmark bypasses the website queue and its per-hour cap, so run one benchmark process at a time on a separate test checkout.
 
 Missing caches count as failures in the full-set rate and are shown separately. A run with missing caches is an infrastructure report. A full model baseline requires a recorded collection attempt for all 50 companies. Test fixture numbers are never used as company benchmark evidence.
+
+## Initial hosted result
+
+The owner supplied the full output of collector `e26dec2` on November 19, 2026. It recorded all 50 attempts with no missing caches and seven verified pairs (14%). The successful symbols were NVDA, ADBE, KO, LMT, WMT, COST and HD. The committed report preserves the supplied four-decimal ratios and failure text. The raw caches and files remain in the owner's Codespace.
+
+The initial XOM result revealed a benchmark bug. A screening-only response called the service's normal completion handler, but the harness had bypassed service initialization. The repaired collector uses an initialized service and reports that response's actual evidence gap. Its offline regression exercises this exact branch. ORCL's unexpected `dimensions` key error remains a collector problem for a later phase.
+
+After updating `scripts/benchmark.py` in the collection checkout, run:
+
+```sh
+/opt/venv/bin/python scripts/benchmark.py --collect --refresh XOM --as-of 2026-11-19
+/opt/venv/bin/python scripts/benchmark.py
+```
+
+The first command archives the old XOM cache, recollects only XOM and replays every other cached input. The second command blocks network access and repeats all 50 cached outcomes. A repaired XOM outcome and a completed replay are still pending. The existing checks and financial calculations retain their current behavior.

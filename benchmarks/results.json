@@ -2,451 +2,501 @@
   {
     "ticker": "NVDA",
     "sector": "tech",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.8045,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "MSFT",
     "sector": "tech",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: finance lease current.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "ADBE",
     "sector": "tech",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 1.0801,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "CRM",
     "sector": "tech",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "ORCL",
     "sector": "tech",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "'dimensions'",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "SBUX",
     "sector": "consumer",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "MCD",
     "sector": "consumer",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "McDonald's interim balance sheet combines operating and finance leases. The latest separate finance lease liability is needed to finish the live valuation bridge.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "PG",
     "sector": "consumer",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "KO",
     "sector": "consumer",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.2986,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "PEP",
     "sector": "consumer",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Minority or preferred interests need a reviewed valuation bridge.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "GD",
     "sector": "industrials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Conflicting facts were found in the filed balance-sheet bridge.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "FAST",
     "sector": "industrials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "CAT",
     "sector": "industrials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "HON",
     "sector": "industrials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Minority or preferred interests need a reviewed valuation bridge.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "LMT",
     "sector": "industrials",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.589,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "DHR",
     "sector": "healthcare",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "The latest interim filing reports $9.88B in acquisition-related cash outlays. A comparable post-acquisition revenue and margin base and an acquisition financing bridge are required before issuing the valuation.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "ABT",
     "sector": "healthcare",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "The latest interim filing reports $20.08B in acquisition-related cash outlays. A comparable post-acquisition revenue and margin base and an acquisition financing bridge are required before issuing the valuation.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "JNJ",
     "sector": "healthcare",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "PFE",
     "sector": "healthcare",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "MRK",
     "sector": "healthcare",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "The latest interim filing reports $8.78B in acquisition-related cash outlays. A comparable post-acquisition revenue and margin base and an acquisition financing bridge are required before issuing the valuation.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "XOM",
     "sector": "energy",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "'_ResearchService' object has no attribute 'lock'",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "CVX",
     "sector": "energy",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Conflicting facts were found in the filed balance-sheet bridge.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "COP",
     "sector": "energy",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "EOG",
     "sector": "energy",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "SLB",
     "sector": "energy",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "NEM",
     "sector": "materials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: finance lease current.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "FCX",
     "sector": "materials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "NUE",
     "sector": "materials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Minority or preferred interests need a reviewed valuation bridge.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "DOW",
     "sector": "materials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "APD",
     "sector": "materials",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "NEE",
     "sector": "utilities",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "DUK",
     "sector": "utilities",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "SO",
     "sector": "utilities",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "AEP",
     "sector": "utilities",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: The filed balance sheet did not reconcile.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "EXC",
     "sector": "utilities",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "GOOGL",
     "sector": "communications",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "META",
     "sector": "communications",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "NFLX",
     "sector": "communications",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "VZ",
     "sector": "communications",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "CMCSA",
     "sector": "communications",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "FDX",
     "sector": "transport",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "UPS",
     "sector": "transport",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "UNP",
     "sector": "transport",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Union Pacific's filing reports a pending Norfolk Southern acquisition. A current model requires stand-alone and merger cases and the financing terms.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "CSX",
     "sector": "transport",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "DAL",
     "sector": "transport",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "collection",
+    "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "WMT",
     "sector": "retail",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.2269,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "COST",
     "sector": "retail",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.2565,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "HD",
     "sector": "retail",
-    "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
-    "value_price_ratio": null,
-    "seconds": 0.0
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.5458,
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "TGT",
     "sector": "retail",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   },
   {
     "ticker": "AMZN",
     "sector": "retail",
     "status": "FAIL",
-    "stage": "cache",
-    "reason": "ValueError: Cached evidence is missing. Collect this ticker before evaluating model coverage.",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: The standard DCF is outside 25% to 400% of the verified close. The base scenario gives $56.38 per share versus a $267.74 close. The model uses a 10.8% EBIT margin and implies a 36.2% margin at the verified close with other assumptions fixed. Review reinvestment, profit margins, and the equity bridge before issuing a valuation.",
     "value_price_ratio": null,
-    "seconds": 0.0
+    "provenance": "Owner supplied the hosted Markdown output on 2026-11-19. Ratios are rounded to four decimals.",
+    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5"
   }
 ]

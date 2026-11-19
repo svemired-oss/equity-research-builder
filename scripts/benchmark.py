@@ -18,7 +18,8 @@ sys.path.insert(0, str(ROOT))
 from equity_research.acceptance import check_pair
 from equity_research.apple_export import export_apple
 from equity_research.operating_research import (
-    operating_rating, prepare_operating_model, revenue_candidates, verify_comparable_operating_basis, verify_valuation_range,
+    ResearchGap, operating_rating, prepare_operating_model, revenue_candidates,
+    verify_comparable_operating_basis, verify_valuation_range,
 )
 from equity_research.sec_client import configured_sec_contact
 from equity_research.web_api import _ResearchService
@@ -36,13 +37,17 @@ def load_universe(path):
 
 def capture(ticker, cutoff, work_dir):
     """Use the same collector as the web worker, including AI and verified peer selection."""
-    service = object.__new__(_ResearchService)
-    service.contact = configured_sec_contact()
-    service.inputs_dir = work_dir / "inputs"
-    inputs = service._collect_operating("benchmark", ticker, cutoff)
-    if inputs is None:
-        raise ValueError("The generic operating collector did not return a model input.")
-    return dict(zip(("packet", "treasury", "quote", "selection", "candidates", "comparables"), inputs, strict=True))
+    service = _ResearchService(work_dir, None, None, {"snapshots": []}, oracle=True)
+    service.runs["benchmark"] = {"id": "benchmark", "ticker": ticker, "state": "running"}
+    try:
+        inputs = service._collect_operating("benchmark", ticker, cutoff)
+        if inputs is None:
+            outcome = service.runs["benchmark"]
+            raise ResearchGap(outcome.get("error") or outcome.get("evidence", {}).get("missing")
+                              or "The generic operating collector did not return a model input.")
+        return dict(zip(("packet", "treasury", "quote", "selection", "candidates", "comparables"), inputs, strict=True))
+    finally:
+        service.close()
 
 
 def cache_write(path, value):
@@ -82,12 +87,12 @@ def replay(ticker, evidence, folder, result):
             "workbook_sha256": sha256(workbook.read_bytes()).hexdigest()}
 
 
-def run_one(row, cache_dir, cutoff, collect, work_dir):
+def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False):
     started = monotonic()
     result = {**row, "status": "FAIL", "stage": "cache", "reason": "", "value_price_ratio": None}
     path = cache_dir / (row["ticker"] + ".json.gz")
     try:
-        if collect and not path.exists():
+        if collect and (refresh or not path.exists()):
             try:
                 evidence = capture(row["ticker"], cutoff, work_dir)
                 record = {"schema_version": 1, "ticker": row["ticker"], "cutoff": str(cutoff),
@@ -95,6 +100,11 @@ def run_one(row, cache_dir, cutoff, collect, work_dir):
             except Exception as exc:
                 record = {"schema_version": 1, "ticker": row["ticker"], "cutoff": str(cutoff),
                           "stage": "collection", "error_type": type(exc).__name__, "error": str(exc)}
+            if path.exists():
+                old = path.read_bytes()
+                history = cache_dir / ".history" / (row["ticker"] + "-" + sha256(old).hexdigest() + ".json.gz")
+                history.parent.mkdir(parents=True, exist_ok=True)
+                history.write_bytes(old)
             cache_write(path, record)
         if not path.exists():
             raise ValueError("Cached evidence is missing. Collect this ticker before evaluating model coverage.")
@@ -144,6 +154,7 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT / "benchmarks/results.md")
     parser.add_argument("--as-of", type=date.fromisoformat, default=date.today())
     parser.add_argument("--collect", action="store_true", help="Collect uncached tickers using configured providers. Incurs API usage.")
+    parser.add_argument("--refresh", nargs="+", default=[], help="Recollect only these tickers, archiving their old caches. Requires --collect.")
     args = parser.parse_args()
     if args.collect:
         import os
@@ -155,11 +166,13 @@ def main():
             raise RuntimeError("Offline benchmark attempted a network request.")
         socket.socket = blocked_network
     rows = load_universe(args.tickers)
+    if args.refresh and (not args.collect or set(args.refresh) - {row["ticker"] for row in rows}):
+        parser.error("--refresh requires --collect and symbols in the benchmark universe.")
     work = ROOT / "private/benchmark-work"
     work.mkdir(parents=True, exist_ok=True)
     results = []
     for row in rows:
-        result = run_one(row, args.cache, args.as_of, args.collect, work)
+        result = run_one(row, args.cache, args.as_of, args.collect, work, row["ticker"] in args.refresh)
         results.append(result)
         write_results(args.output, results)
         print(f"{row['ticker']} {result['status']} {result['reason']}", flush=True)
