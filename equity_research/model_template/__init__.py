@@ -14,6 +14,11 @@ PCT = "0.00%"
 PRICE = '"$"0.00'
 
 
+def ordered_sheets(cells):
+    """Place common presentation tabs before issuer detail tabs."""
+    return {name:cells[name] for name in (*SHEETS,*(tab for tab in cells if tab not in SHEETS))}
+
+
 class Template:
     def __init__(self, plan):
         self.cells = plan["cells"]
@@ -301,7 +306,7 @@ def workbook_plan(model):
     add_report_inputs(book, model, revenue_total)
     plan["inputSources"] = book.write_sources(model)
     plan["formulaColor"] = "000000"
-    plan["cells"] = {name: cells[name] for name in (*SHEETS, *(name for name in cells if name not in SHEETS))}
+    plan["cells"] = ordered_sheets(cells)
     plan["recalculationProbe"]["unchanged"] = [{"sheet": INCOME, "address": "L4"}]
     plan["recalculationProbe"]["expected"] = {"Checks": {key: 0 for key in book.expected["Checks"]
                                                        if key[0] in "BCDEF"}}

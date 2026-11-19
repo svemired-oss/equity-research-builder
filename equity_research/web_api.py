@@ -16,6 +16,7 @@ import logging
 import mimetypes
 from os import environ
 from pathlib import Path
+from shutil import which
 import re
 from tempfile import TemporaryDirectory
 from threading import Event, Lock, Thread
@@ -222,7 +223,6 @@ class _ResearchService:
                 raise ValueError(f"Hosted spend limits are priced for {MODEL}.")
             self.hosted_auth = b"Basic " + b64encode(("recruiter:"+password).encode("ascii"))
             self.spend_limit = daily_limit(environ.get("OPENAI_DAILY_CAP_USD"))
-        self.gd_template = environ.get("GD_V4_WORKBOOK", "").strip()
         self.contact = configured_sec_contact() if oracle else ""
         if oracle:
             self.catalog["ticker_screening"] = bool(self.contact)
@@ -249,13 +249,14 @@ class _ResearchService:
                 "as_of": (date.today() if source_mode == "live_collection" else REVIEW_DATE).isoformat(),
                 "source_mode": source_mode,
             }
+        spreadsheet_available = bool(which("soffice"))
         for item in self.catalog["snapshots"]:
             ticker, date_text = item["ticker"], item["as_of"]
             self.companies[ticker] = item
             if oracle:
-                item["regenerate"] = ticker in ("FDX", "NEM") or bool(self.gd_template)
+                item["regenerate"] = spreadsheet_available and ticker in ("GD","FDX","NEM")
             fields = _GUIDES.get(ticker, ())
-            enabled = bool(fields and node and node_modules)
+            enabled = bool(fields and spreadsheet_available)
             defaults = _defaults(ticker, date.fromisoformat(date_text), self.inputs_dir) if enabled else {}
             item["guided"] = {
                 "available": enabled,
@@ -491,9 +492,8 @@ class _ResearchService:
         filenames = {kind: f"{Path(entry['filename']).stem}_{mode}_{case}{Path(entry['filename']).suffix}"
                      for kind, entry in item["downloads"].items()}
         try:
-            options = {"gd_template": Path(self.gd_template)} if item["ticker"] == "GD" else {}
             summary, cases, contents = _generate(item["ticker"], date.fromisoformat(item["as_of"]), self.inputs_dir,
-                                                 self.node, self.node_modules, case, overrides, filenames, **options)
+                                                 self.node, self.node_modules, case, overrides, filenames)
             self._save_result(run_id, filenames, summary, cases, contents)
         except Exception:
             _LOG.exception("Research run %s failed", run_id)
@@ -1389,8 +1389,6 @@ def serve_research(root: Path, *, host: str = "127.0.0.1", port: int = 8000,
     if live_only and not environ.get("SEC_USER_AGENT", "").strip():
         raise ValueError("Set SEC_USER_AGENT to the project name and contact before starting live research.")
     catalog = {"schema_version": 1, "snapshots": [], "live_only": True} if live_only else build_catalog(root)
-    if not live_only and oracle and node is None:
-        raise ValueError("The dated example exporters require the Node spreadsheet runtime. Use --live-only with LibreOffice.")
     server = _server(root, host, port, node, node_modules, catalog,
                      oracle=oracle or live_only, oracle_evidence=oracle_evidence, oracle_dated_closes=oracle_dated_closes)
     stop, reload_requested = Event(), Event()

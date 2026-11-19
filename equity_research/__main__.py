@@ -159,18 +159,13 @@ def main() -> int:
     fdx_valuation.add_argument("--guided", type=Path, help="Optional guided Q4 revenue overrides")
     fdx_valuation.add_argument("--json", action="store_true", help="Print the DCF, peer valuations, sensitivities and sources")
 
-    fdx_export = commands.add_parser("export-fdx-excel", help="Export the editable FedEx portfolio replay")
-    fdx_verify = commands.add_parser("verify-fdx-excel", help="Verify saved FedEx formulas and calculations")
-    for fdx_command in (fdx_export, fdx_verify):
-        fdx_command.add_argument("template", type=Path, help="Path to the original FedEx final.xlsx")
-        fdx_command.add_argument("workbook", type=Path, help="Path to the generated workbook")
-    fdx_export.add_argument("--node", required=True, type=Path, help="Bundled Node.js executable")
-    fdx_export.add_argument("--node-modules", required=True, type=Path, help="Bundled node_modules directory")
-    fdx_export.add_argument("--preview-dir", type=Path, help="Optional directory for visual review renders")
+    fdx_verify = commands.add_parser("verify-fdx-excel", help="Verify an archived FedEx workbook")
+    fdx_verify.add_argument("template", type=Path)
+    fdx_verify.add_argument("workbook", type=Path)
 
     fdx_fresh_excel = commands.add_parser("export-fdx-fresh-excel", help="Export the dated, editable FedEx workbook")
-    fdx_fresh_excel.add_argument("--node", required=True, type=Path, help="Bundled Node.js executable")
-    fdx_fresh_excel.add_argument("--node-modules", required=True, type=Path, help="Bundled node_modules directory")
+    fdx_fresh_excel.add_argument("--node", type=Path, help="Bundled Node.js executable")
+    fdx_fresh_excel.add_argument("--node-modules", type=Path, help="Bundled node_modules directory")
     fdx_fresh_excel.add_argument("--preview-dir", type=Path, help="Optional directory for visual review renders")
     fdx_verify_fresh_excel = commands.add_parser("verify-fdx-fresh-excel", help="Check saved FedEx formulas and values")
     fdx_fresh_pdf = commands.add_parser("export-fdx-fresh-pdf", help="Export dated FedEx research matched to the workbook")
@@ -211,8 +206,8 @@ def main() -> int:
     nem_nav.add_argument("--json", action="store_true", help="Print the NAV, mine cash flows, sensitivity grids and sources")
 
     nem_excel = commands.add_parser("export-nem-fresh-excel", help="Export the dated, editable Newmont workbook")
-    nem_excel.add_argument("--node", type=Path, required=True, help="Bundled Node.js executable")
-    nem_excel.add_argument("--node-modules", type=Path, required=True, help="Bundled node_modules directory")
+    nem_excel.add_argument("--node", type=Path, help="Bundled Node.js executable")
+    nem_excel.add_argument("--node-modules", type=Path, help="Bundled node_modules directory")
     nem_excel.add_argument("--preview-dir", type=Path, help="Optional directory for visual review renders")
     nem_verify_excel = commands.add_parser("verify-nem-fresh-excel", help="Verify saved Newmont formulas and calculations")
     nem_pdf = commands.add_parser("export-nem-fresh-pdf", help="Export Newmont research paired with the dated workbook")
@@ -242,21 +237,15 @@ def main() -> int:
     oracle_mode.add_argument("--oracle-dated-closes", action="store_true",
                              help="Collect Oracle SEC and Treasury evidence and use verified November 13 closes")
 
-    excel = commands.add_parser("export-gd-excel", help="Export an editable model using the approved GD template")
-    excel.add_argument("template", type=Path, help="Path to the original portfolio GD V4.xlsx")
-    excel.add_argument("output", type=Path, help="New Excel output filename")
-    excel.add_argument("--guided", type=Path, help="JSON file of forecast overrides and reasons")
-    excel.add_argument("--json", action="store_true", help="Print the export result as JSON")
-
     fresh_excel = commands.add_parser("export-gd-fresh-excel", help="Export the dated, editable GD workbook")
-    fresh_excel.add_argument("template", type=Path, help="Path to the approved GD V4.xlsx")
+    fresh_excel.add_argument("template", type=Path, nargs="?", help="Optional legacy position. The dated model uses normalized evidence.")
     fresh_excel.add_argument("output", type=Path, help="New Excel output filename")
-    fresh_excel.add_argument("--node", required=True, type=Path, help="Bundled Node.js executable")
-    fresh_excel.add_argument("--node-modules", required=True, type=Path, help="Bundled node_modules directory")
+    fresh_excel.add_argument("--node", type=Path, help="Bundled Node.js executable")
+    fresh_excel.add_argument("--node-modules", type=Path, help="Bundled node_modules directory")
     fresh_excel.add_argument("--preview-dir", type=Path, help="Optional directory for visual review renders")
 
     verify_fresh_excel = commands.add_parser("verify-gd-fresh-excel", help="Compare saved GD Excel formulas and values with Python")
-    verify_fresh_excel.add_argument("template", type=Path, help="Path to the approved GD V4.xlsx")
+    verify_fresh_excel.add_argument("template", type=Path, nargs="?", help="Optional legacy position. The dated model uses normalized evidence.")
     verify_fresh_excel.add_argument("workbook", type=Path, help="Path to the saved fresh workbook")
     for workbook_parser in (fresh_excel, verify_fresh_excel):
         workbook_parser.add_argument("--as-of", required=True, type=date.fromisoformat)
@@ -272,7 +261,7 @@ def main() -> int:
     fresh_pdf = commands.add_parser("export-gd-fresh-pdf", help="Create a dated GD report verified against the fresh workbook")
     verify_fresh_pdf = commands.add_parser("verify-gd-fresh-pdf", help="Verify a dated GD PDF and its exact workbook partner")
     for report_parser in (fresh_pdf, verify_fresh_pdf):
-        report_parser.add_argument("template", type=Path, help="Path to the approved GD V4.xlsx")
+        report_parser.add_argument("template", type=Path, nargs="?", help="Optional legacy position. The dated model uses normalized evidence.")
         report_parser.add_argument("workbook", type=Path, help="Path to the saved fresh GD workbook")
         report_parser.add_argument("pdf", type=Path, help="Research PDF path")
         report_parser.add_argument("--as-of", required=True, type=date.fromisoformat)
@@ -376,13 +365,10 @@ def main() -> int:
                 print(f"Passed {len(report['checks']):,} reconciliation and cross-source checks.")
                 print("Valuation requires further inputs. Use --json for the drivers, sources and remaining gaps.")
             return 0
-        if args.command in ("export-fdx-excel", "verify-fdx-excel"):
-            from .fdx_excel import export_fdx_workbook, verify_fdx_workbook
+        if args.command == "verify-fdx-excel":
+            from .fdx_excel import verify_fdx_workbook
 
-            if args.command == "export-fdx-excel":
-                count = export_fdx_workbook(args.template, args.workbook, args.node, args.node_modules, preview_dir=args.preview_dir)
-            else:
-                count = verify_fdx_workbook(args.template, args.workbook)
+            count = verify_fdx_workbook(args.template, args.workbook)
             print(f"Verified {count:,} saved FedEx results against Python.")
             return 0
         if args.command in ("export-fdx-fresh-excel", "verify-fdx-fresh-excel"):
@@ -555,21 +541,6 @@ def main() -> int:
             print(f"{result.pages}-page GD report saved to {result.output}.")
             parity = result.data.parity
             print(f"Matched {parity.forecast_cells_matched:,} forecast results and {parity.sensitivity_cells_matched} Excel sensitivity values.")
-            return 0
-        if args.command == "export-gd-excel":
-            from .gd_excel import export_gd_excel
-
-            result = export_gd_excel(args.template, args.output, guided=args.guided)
-            if args.json:
-                print(json.dumps(asdict(result), default=str, indent=2, allow_nan=False))
-            else:
-                print(f"Editable GD model saved to {result.output}.")
-                print(f"Valuation date             {result.projection.as_of.isoformat()}")
-                print(f"Intrinsic value            ${result.projection.intrinsic_usd_per_share:,.2f} per share")
-                print(f"12-month target            ${result.projection.twelve_month_usd_per_share:,.2f} per share")
-                print(f"Modeled forecast cells     {result.forecast_cells_cached:,}")
-                print(f"Native sensitivity cells   {result.sensitivity_cells_cached}")
-                print("The Run inputs sheet records sources, guided changes, and outstanding model issues.")
             return 0
         if args.command == "value-nem":
             from .nem_nav import run_nem_nav

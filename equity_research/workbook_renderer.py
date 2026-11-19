@@ -1,6 +1,7 @@
 """Render the existing workbook plan with a local spreadsheet engine."""
 
 import json
+from datetime import date
 from math import ceil, isclose, isfinite
 from pathlib import Path
 from shutil import which
@@ -13,6 +14,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.utils.datetime import to_excel
 from openpyxl.worksheet.datavalidation import DataValidation
 
 
@@ -67,7 +69,11 @@ def render_workbook(plan, output, node=None, modules=None, *, previews=None, val
                 before.close()
                 after.close()
         calculate(plan["case"], plan["expected"])
-        _save_caches(stage / "model.xlsx", stage / "recalculated" / "model.xlsx", output)
+        literals = ({f"xl/worksheets/sheet{index}.xml": {addr:value for addr,(value,_,_) in cells.items()
+                                                       if type(value) in (int,float)}
+                     for index,cells in enumerate(plan["cells"].values(),1)}
+                    if plan.get("preserveLiteralNumbers") else {})
+        _save_caches(stage / "model.xlsx", stage / "recalculated" / "model.xlsx", output, literals=literals)
 
 
 def _author(plan):
@@ -131,7 +137,7 @@ def _author(plan):
             sheet.sheet_properties.tabColor = navy
         if name in ("Comps", "Sources"):
             sheet.freeze_panes = "A6" if name == "Comps" else "A5"
-    selector = book["Cover"]["B5"]
+    selector = book["Cover"][plan.get("caseSelector","B5")]
     selector.fill = PatternFill("solid", fgColor=editable)
     options = ",".join(plan["scenarioControls"].values())
     validation = DataValidation(type="list", formula1=f'"{options}"')
@@ -152,12 +158,14 @@ def _author(plan):
 
 def _matches(value, expected):
     if type(expected) in (int, float):
+        if isinstance(value,date):
+            value=to_excel(value)
         return type(value) in (int, float) and isclose(value, expected, rel_tol=1e-10, abs_tol=1e-6)
     return value == expected or (expected is None and value == "")
 
 
 def _calculate(book, plan, case, expected, office, stage):
-    book["Cover"]["B5"] = plan["scenarioControls"][case]
+    book["Cover"][plan.get("caseSelector","B5")] = plan["scenarioControls"][case]
     source = stage / "model.xlsx"
     destination = stage / "recalculated" / source.name
     destination.unlink(missing_ok=True)
@@ -185,7 +193,7 @@ def _calculate(book, plan, case, expected, office, stage):
     return calculated
 
 
-def _save_caches(source, calculated, output):
+def _save_caches(source, calculated, output, *, literals=None):
     # Keep the authored Excel formulas and formatting. Copy only the results
     # from Calc, which can rewrite formula expressions on export.
     namespace = "http://schemas.openxmlformats.org/spreadsheetml/2006/main"
@@ -197,9 +205,16 @@ def _save_caches(source, calculated, output):
             if entry.filename.startswith("xl/worksheets/sheet") and entry.filename.endswith(".xml"):
                 root, computed = ET.fromstring(data), ET.fromstring(cache.read(entry.filename))
                 results = {cell.get("r"): cell for cell in computed.iter(tag("c"))}
+                exact = (literals or {}).get(entry.filename,{})
                 strings = None
                 for cell in root.iter(tag("c")):
                     if cell.find(tag("f")) is None:
+                        # openpyxl formats numeric values at 16 significant digits.
+                        # Preserve the exact finite input used by the dated plan.
+                        authored = cell.find(tag("v"))
+                        address = cell.get("r")
+                        if address in exact and authored is not None and cell.get("t") in (None,"n"):
+                            authored.text = repr(exact[address])
                         continue
                     address = cell.get("r")
                     calc = results.get(address)

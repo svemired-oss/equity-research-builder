@@ -1,43 +1,74 @@
 # Equity Research Builder
 
-The `phase-1-coverage` branch adds evidence-conditioned balance assumptions, cash and financing reconciliation, book-value claim flags and acquisition revenue bases. See [Phase 1 rules and benchmark commands](docs/phase-1.md). The owner-supplied [Phase 1 collection and offline replay](benchmarks/results.md) recorded **9/50 verified pairs (18%)**, up from 7/50. FAST and HON are the new passes; all seven earlier passes remain. CI ran 57 tests successfully, including actual LibreOffice recalculation. This measures mechanical export completion, not analyst approval of the valuations.
+Enter a ticker to build an editable valuation workbook and a research PDF that reads the finished workbook. The [public portfolio](https://svemired-oss.github.io/equity-research-builder/) offers verified dated GD, FDX and NEM downloads and a benchmark summary. The live builder is intended for private use.
 
-Phase 0 adds an offline financial regression suite and a fixed 50-ticker benchmark on `phase-0-baseline`. See [test and benchmark instructions](docs/phase-0.md). The [Phase 0 hosted baseline and cached replay](https://github.com/svemired-oss/equity-research-builder/blob/phase-0-baseline/benchmarks/results.md) supplied by the owner report 7 verified pairs out of 50 (14%). All 50 have recorded collection attempts and no missing caches. The XOM harness defect was repaired before the final replay.
+## Scope
 
-Run a private ticker-to-download demo in GitHub Codespaces. Hosted acceptance on November 19, 2026 produced verified Excel and PDF downloads for Nintendo (`XTKS:7974`) and NVIDIA (`NVDA`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)
+The shared operating path targets U.S. non-financial operating companies with comparable SEC periods and verified market inputs. It supports automated research and Guided edits with recorded reasons. The dated GD, FDX and NEM paths retain their company-specific forecasts and valuation methods while using the same workbook structure and spreadsheet engine. Nintendo and the specialty valuation paths retain separate modeling methods.
 
-## Give a two-minute demonstration
+## Architecture
 
-1. Sign in to GitHub as the Codespace owner. Open the existing Codespace and select **Restart codespace** if it is stopped. Under **Ports**, open the browser link for private port **8053**. Bookmark that link for subsequent visits. [Your Codespaces](https://github.com/codespaces)
-2. Enter **XTKS:7974**, keep **Automated** selected and choose **Generate research**. When the download links appear, select **Excel financial model** and **Equity research report**. Open both. Compare the value per share on the workbook’s **Cover** with the first line of the report.
-3. To show Guided mode, select **Edit assumptions**. Change the post-guidance operating margin to `0.20`, enter a reason and choose **Regenerate research**. Download the new pair. The PDF records the change and the fingerprint of the workbook it accompanies.
+```mermaid
+flowchart LR
+    A[Private ticker or Guided request] --> B[Queued research job]
+    B --> C[SEC filings and market evidence]
+    C --> D[Driver and peer selection]
+    D --> E[Operating model]
+    F[Dated GD / FDX / NEM evidence] --> G[Issuer forecasts]
+    E --> H[Shared workbook template]
+    G --> H
+    H --> I[LibreOffice recalculation and model checks]
+    I --> J[Editable Excel workbook]
+    J --> K[Workbook-backed research PDF]
+    J --> L[Verified pair]
+    K --> L
+    L --> M[Protected downloads]
+    L --> N[Approved dated pairs on Pages]
+```
 
-## First-time Codespaces setup
+The live research agent selects among evidence-backed options. Financial figures come from normalized filings, dated market data and labeled analyst assumptions. The report draws its figures from the recalculated workbook. The generic report verifies extracted claims, source links and the workbook hash. The dated issuer reports verify their model-specific values and exact workbook partner.
 
-1. Use a personal GitHub account with Codespaces enabled. In billing, keep paid Codespaces overage blocked for a zero-infrastructure-spend demo.
-2. Create a **Codespaces** secret named `SEC_USER_AGENT` containing a monitored contact email. A complete project name and email also works. The server adds its project name to an email-only setting. Grant the secret access to this repository. Nintendo uses public sources and requires no paid API. [Manage Codespaces secrets](https://github.com/settings/codespaces)
-3. Open the **codespaces-demo** branch. Select **Code → Codespaces → Create codespace** on this branch, using a two-core machine. The included dev container installs Python, the pinned packages and LibreOffice Calc. The post-start command launches the server on loopback. [Deployment branch](https://github.com/svemired-oss/equity-research-builder/tree/codespaces-demo)
-4. In **Ports**, confirm **8053** is **Private** and open it in the browser. GitHub supplies HTTPS and handles owner authentication. Resume the Codespace before a presentation. A recruiter can use the public portfolio independently or watch the owner’s live demo. [GitHub port access](https://docs.github.com/en/codespaces/developing-in-a-codespace/forwarding-ports-in-your-codespace)
-5. Optional U.S. research uses three additional repository-scoped Codespaces secrets: `OPENAI_API_KEY`, `APCA_API_KEY_ID` and `APCA_API_SECRET_KEY`. Stop and resume after adding or changing secrets. The website then offers generation where the engine supports it. Provider access, filing quality and model coverage determine the outcome. Keep keys in the host secret manager.
+## What works today
 
-For native Linux installation and command-line verification, use the [portable setup](https://github.com/svemired-oss/equity-research-builder/blob/codespaces-demo/docs/portable-builder.md).
-
-## What to expect
-
-| Input | Demonstrated behavior |
+| Workflow | Verified evidence |
 | --- | --- |
-| Nintendo, `XTKS:7974` | Live editable yen DCF, sensitivity table and a cited one-page PDF. Guided changes the post-guidance margin. The result is a balance-date scenario marked **Review**. |
-| NVIDIA, `NVDA`, with U.S. providers enabled | Automated generation produced 13 workbook sheets, 280 formulas and a four-page PDF. The November 19 test matched at $121.44 per share and the PDF fingerprint matched the downloaded workbook. The five forecast balance checks tied. Live inputs and AI text can change on subsequent runs. |
-| FAST with U.S. providers enabled | Passed the Phase 1 formula-workbook and paired-PDF benchmark. This is mechanical verification; economic assumptions still require review. |
-| GD, SBUX and DHR with U.S. providers enabled | Phase 1 stopped on conflicting filed balance facts, the valuation guard, and missing acquisition pro forma revenue, respectively. See the issuer-level backlog. |
-| General U.S. research without provider credentials | SEC discovery and annual filing history. A filing check produces no downloads. |
-| GD, FDX and NEM on GitHub Pages | Dated portfolio illustrations with scenario comparisons. Public downloads are disabled. |
+| Public portfolio | Signed-out Chrome downloaded both files for GD, FDX and NEM and matched their published hashes. |
+| General U.S. operating path | The last complete published 50-ticker benchmark recorded **9 verified pairs (18%)**, up from **7/50 (14%)** in Phase 0. These are earlier benchmark results. |
+| Guided editing | An offline acceptance test queued three edits, downloaded both files and verified the workbook and report against the same edited assumptions. |
+| Dated issuer migration | GD, FDX and NEM regenerated on the shared template. All six spot and 12-month target values matched the published pairs to six decimal places. |
 
-The live-only demo runs from the source checkout without the original GD template, private reference files or pre-generated downloads. The desk-model fidelity and coverage work is tracked in the [model backlog](https://github.com/svemired-oss/equity-research-builder/blob/codespaces-demo/docs/model-backlog.md).
+| Dated issuer | Spot value/share | 12-month target/share |
+| --- | ---: | ---: |
+| General Dynamics | $303.28 | $321.85 |
+| FedEx | $333.01 | $354.72 |
+| Newmont | $57.98 | $61.12 |
 
-## Recovery and operating costs
+The [full 50-ticker Phase 1 report](benchmarks/results.md) groups remaining failures. Revenue reconciliation (17) and missing financial facts (12) were the most common. The Phase 8 target is **above 60%** on a fresh run of that same cohort. A new credentialed run is required to measure it.
 
-- Refresh the same tab to return to its latest job. **Check this run again** reconnects after a dropped response. Completed files are retained for 24 hours while the Codespace exists. The site shows their expiry. A restart interrupts unfinished jobs. Start a fresh Automated run to enable Guided after a restart.
-- One worker processes up to four running or queued submissions. The whole demo shares eight new runs per rolling hour and 20 per rolling 24 hours. Filing checks and Guided submissions count. Duplicate in-flight submissions share a job. Each file pair is limited to 16 MiB.
-- Expected infrastructure bill is **$0/month** within the personal GitHub Free allowance of 120 core-hours and 15 GB-month. For example, a two-core Codespace running 10 hours uses 20 core-hours. Storage includes the custom image and persists while stopped. Paid overage, if enabled, is $0.18 per two-core running hour and $0.07 per GB-month beyond the allowance. With overage blocked, exhaustion can interrupt the demo. [GitHub pricing](https://docs.github.com/en/billing/concepts/product-billing/github-codespaces)
-- Nintendo has no OpenAI or Alpaca usage. Optional U.S. generation can incur separate provider charges. A ChatGPT subscription does not fund API calls. Stop the Codespace after a demo to conserve compute.
+## Run privately
+
+Install Python 3.12 and LibreOffice Calc, then install `requirements-dev.txt` in a virtual environment. Run the offline tests with `python -m pytest -q`. Store SEC contact and provider keys in the host secret manager. [Portable setup](docs/portable-builder.md)
+
+Use the existing private [Codespaces setup](https://github.com/svemired-oss/equity-research-builder/tree/codespaces-demo) or the [prepared Render configuration](docs/phase-7.md). The Render deployment still requires account access and spending approval.
+
+Check dated parity with the project’s private `inputs/` and `outputs/` directories. This produces new, independently checked pairs for the exact published cutoffs.
+
+```sh
+python scripts/reference_parity.py --root /path/to/private-project --output private/reference-parity
+```
+
+For current coverage, collect and replay the fixed 50-ticker benchmark using the configured providers and a new cache. Keep the collected market and filing evidence private.
+
+```sh
+python scripts/benchmark.py --collect --as-of 2026-11-19 --cache private/phase8-cache --output private/phase8-collection.md
+python scripts/benchmark.py --cache private/phase8-cache --output private/phase8-results.md
+```
+
+## Known limitations
+
+- Unreconciled financial facts, stale market data, unsupported acquisitions and missing peer inputs can stop a live run. Driver coverage is limited by the disclosures the parser can verify.
+- Dated issuer regeneration needs the normalized evidence and the archived public files for parity comparison. The GD workbook authoring step uses no original GD V4 template.
+- GitHub Pages has the three dated pairs. The ten additional benchmark pairs need a qualifying fresh run and release review.
+- Phase 1’s mechanical pass rate describes verified file generation. Investment judgments and model assumptions still require analyst review.
+
+See the [model backlog](docs/model-backlog.md) for issuer evidence and modeling gaps.
