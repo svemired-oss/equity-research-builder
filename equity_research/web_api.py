@@ -1072,7 +1072,8 @@ class _Handler(BaseHTTPRequestHandler):
         if self.server.research.oracle:
             port = self.server.server_port
             allowed = {f"127.0.0.1:{port}", f"localhost:{port}"}
-            if environ.get("CODESPACES") == "true":
+            codespaces = environ.get("CODESPACES") == "true"
+            if codespaces:
                 name = environ.get("CODESPACE_NAME", "")
                 domain = environ.get("GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN", "")
                 if re.fullmatch(r"[a-z0-9-]+", name) and re.fullmatch(r"[a-z0-9.-]+", domain):
@@ -1080,7 +1081,10 @@ class _Handler(BaseHTTPRequestHandler):
             hosts = self.headers.get_all("Host", [])
             if len(hosts) != 1 or hosts[0].lower() not in allowed:
                 raise _APIError(421, "Open the private builder at its localhost address.")
-            if self.headers.get("Sec-Fetch-Site") == "cross-site":
+            # The GitHub sign-in redirect can carry a cross-site fetch header
+            # on the first page request. Port authentication still applies.
+            landing_page = codespaces and self.command in ("GET", "HEAD") and self.path == "/"
+            if self.headers.get("Sec-Fetch-Site") == "cross-site" and not landing_page:
                 raise _APIError(403, "Open the private builder directly in your browser.")
         try:
             path = unquote(urlsplit(self.path).path, errors="strict")
