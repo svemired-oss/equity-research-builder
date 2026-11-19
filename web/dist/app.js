@@ -464,7 +464,8 @@ async function runResearch(snapshot, payload, resumeId = null) {
         showResultContent(evidence.missing);
         setStatus('Research is ready. Download the Excel model and PDF.');
       } else {
-        const screeningOnly = run.source_mode === 'filing_screen' || (!run.source_mode && !operatingGeneration);
+        // Earlier filing checks were saved without a source mode. Their scope survives configuration changes.
+        const screeningOnly = !run.source_mode || run.source_mode === 'filing_screen';
         showState('review', screeningOnly ? 'Filing check complete' : 'Evidence found · valuation unavailable',
           screeningOnly ? 'This was a filing check only. General U.S. valuation generation was disabled for this run. For an Excel model and PDF, enter XTKS:7974 and choose Automated.'
             : evidence.missing ?? 'The available evidence does not support a valuation package for this ticker.', { retainHeading: true });
@@ -526,7 +527,8 @@ ui.ticker.addEventListener('input', () => {
   setFields(operatingRuns.get(symbol) ?? saved.get(symbol));
   syncMode();
   if (symbol) showState('ready', 'Ready to research', saved.has(symbol)
-    ? 'Open the dated research package for this company.' : 'Submit this ticker to check available filings and valuation coverage.', { ticker: symbol });
+    ? 'Open the dated research package for this company.' : exchangeGeneration.includes(symbol)
+    ? 'Generate the workbook and report from Nintendo’s published financial results.' : 'Submit this ticker to check available filings and valuation coverage.', { ticker: symbol });
   else showStart();
 });
 ui.driver.addEventListener('change', setDriver);
@@ -598,6 +600,8 @@ async function loadCatalog() {
       ui['workspace-title'].textContent = 'Equity research portfolio';
       ui['workspace-intro'].textContent = 'Explore three dated company valuations and their bear, base, and bull scenarios.';
       ui['site-context'].textContent = 'Dated portfolio research';
+    } else if (operatingGeneration && catalog.live_only) {
+      ui['workspace-intro'].textContent = 'Enter a ticker to research a U.S. company, or try XTKS:7974 for the Nintendo demo. Downloads appear when the valuation checks pass.';
     } else if (!operatingGeneration) {
       ui['workspace-intro'].textContent = catalog.live_only
         ? 'Enter XTKS:7974 for the Nintendo demo. General U.S. company research is set to filing checks only.'
