@@ -1,7 +1,10 @@
 # AI Equity Research Builder
 
-[Live recruiter demo](https://svemired-oss.github.io/equity-research-builder/)
+[Public recruiter portfolio](https://svemired-oss.github.io/equity-research-builder/) · [Private generator source, setup and demo guide](https://github.com/svemired-oss/equity-research-builder/tree/codespaces-demo#readme)
 
+For the hosted demonstration, sign in to your private Codespace, enter **XTKS:7974**, select **Generate research**, then download the Excel financial model and PDF. The deployment branch documents private access, supported coverage, optional provider secrets and the $0/month infrastructure target within GitHub's free allowance. [Model coverage backlog](https://github.com/svemired-oss/equity-research-builder/blob/codespaces-demo/docs/model-backlog.md)
+
+## Dated portfolio on this branch
 A Python application that turns dated financial evidence into company-specific forecasts, valuations, editable Excel models, and cited research reports. The browser demo displays the valuation and scenario comparison for each covered company.
 
 | Company | Operating forecast | Valuation |
@@ -48,6 +51,6 @@ python -m equity_research value-nem --as-of 2026-11-12 --guided gold-scenario.js
 3. Discount projected cash flows, test sensitivity to key assumptions, and compare implied values with public peers.
 4. Export editable Excel formulas and a cited PDF. Verify the saved calculations against Python and tie the PDF to its exact workbook using a SHA-256 fingerprint.
 
-The repository contains the modeling engine, dated evidence, and the website source. To run the browser demo, supply the six verified snapshot files under `outputs/`, then run `python -m equity_research serve-research`. FedEx and Newmont guided exports require Node.js and `@oai/artifact-tool`. The GD workbook export requires the original layout template. The source checkout supports the three dated valuations without those assets.
+The repository contains the modeling engine, dated evidence, and the website source. To serve these dated files locally, supply the six verified snapshot files under `outputs/`, then run `python -m equity_research serve-research`. FedEx and Newmont guided exports require Node.js and `@oai/artifact-tool`. The GD workbook export requires the original layout template. The source checkout supports the three dated valuations without those assets.
 
-The current application covers three dated snapshots. Browser-guided runs use those snapshots as their starting point. Broader ticker coverage and ongoing evidence refresh are future work.
+This portfolio branch covers three dated snapshots. Browser-guided runs use those snapshots as their starting point. The private live generator is maintained on the linked deployment branch.
