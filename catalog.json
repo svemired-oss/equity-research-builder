@@ -5,10 +5,13 @@
       "ticker": "GD",
       "company": "General Dynamics",
       "sector": "Aerospace and defense",
+      "description": "Builds Gulfstream business jets and submarines, and operates Combat Systems and Technologies businesses.",
       "as_of": "2026-11-09",
       "price_date": "2026-11-06",
       "target_date": "2027-11-09",
+      "mode": "automated",
       "reference_close_usd": 354.06,
+      "case": "base",
       "spot_value_usd": 303.28371755679234,
       "target_price_usd": 321.8494299194469,
       "total_return": -0.07233821973832999,
@@ -35,16 +38,33 @@
           "total_return": 0.107,
           "rating": "Buy"
         }
-      ]
+      ],
+      "downloads": {
+        "workbook": {
+          "filename": "GD_model_2026-11-09.xlsx",
+          "path": "downloads/GD_model_2026-11-09.xlsx",
+          "sha256": "d16a6d77b07cb734ba6534f3cd5f6c87f9461c57d0fde8552c8017dcbff83a82",
+          "size_bytes": 104322
+        },
+        "report": {
+          "filename": "GD_research_2026-11-09.pdf",
+          "path": "downloads/GD_research_2026-11-09.pdf",
+          "sha256": "dbf2d1f07f1b51bb40f4a31640dcd550cc1160512466e90bc5685ad0b6438e29",
+          "size_bytes": 29371
+        }
+      }
     },
     {
       "ticker": "FDX",
       "company": "FedEx Corporation",
       "sector": "Transportation",
+      "description": "Provides parcel and air freight services through U.S. domestic and international networks.",
       "as_of": "2026-11-12",
       "price_date": "2026-11-11",
       "target_date": "2027-11-12",
+      "mode": "automated",
       "reference_close_usd": 322.63,
+      "case": "base",
       "spot_value_usd": 333.01207814343303,
       "target_price_usd": 354.72136208218103,
       "total_return": 0.1145936896202493,
@@ -71,16 +91,33 @@
           "total_return": 0.34237032304212867,
           "rating": "Buy"
         }
-      ]
+      ],
+      "downloads": {
+        "workbook": {
+          "filename": "FDX_model_2026-11-12.xlsx",
+          "path": "downloads/FDX_model_2026-11-12.xlsx",
+          "sha256": "8ed539d0a0e4a5277f4217e6c2c2f2eaf9608f620673b1fbf7e90586e2bc3252",
+          "size_bytes": 76855
+        },
+        "report": {
+          "filename": "FDX_research_2026-11-12.pdf",
+          "path": "downloads/FDX_research_2026-11-12.pdf",
+          "sha256": "cb8f297940df618a9b6307ee6db60924bdad66904ba29a5df19137a7b1491f01",
+          "size_bytes": 26277
+        }
+      }
     },
     {
       "ticker": "NEM",
       "company": "Newmont Corporation",
       "sector": "Gold mining",
+      "description": "Operates gold mines and produces copper, silver, lead and zinc at selected sites.",
       "as_of": "2026-11-12",
       "price_date": "2026-11-11",
       "target_date": "2027-11-12",
+      "mode": "automated",
       "reference_close_usd": 118.47,
+      "case": "base",
       "spot_value_usd": 57.97993211342843,
       "target_price_usd": 61.12188228661988,
       "total_return": -0.47529431681759193,
@@ -107,7 +144,38 @@
           "total_return": -0.3397145666198721,
           "rating": "Sell"
         }
-      ]
+      ],
+      "downloads": {
+        "workbook": {
+          "filename": "NEM_model_2026-11-12.xlsx",
+          "path": "downloads/NEM_model_2026-11-12.xlsx",
+          "sha256": "afad3b716cc6fcd1d7a4270e60e1ff438575092987a70d2601a003c642d5bea0",
+          "size_bytes": 409289
+        },
+        "report": {
+          "filename": "NEM_research_2026-11-12.pdf",
+          "path": "downloads/NEM_research_2026-11-12.pdf",
+          "sha256": "63f9be697c8e3920676914abb43f89ba2c4a792e35006ee0be8869079080f25d",
+          "size_bytes": 28481
+        }
+      }
     }
-  ]
+  ],
+  "public_downloads": true,
+  "benchmark": {
+    "phase": "Phase 1 benchmark",
+    "passed": 9,
+    "total": 50,
+    "failures": {
+      "acquisition_or_merger_basis": 4,
+      "conflicting_filing_facts": 2,
+      "financial_history": 1,
+      "missing_balance_fact": 12,
+      "other": 2,
+      "revenue_reconciliation": 17,
+      "statement_reconciliation": 1,
+      "valuation_guard": 2
+    },
+    "source": "https://github.com/svemired-oss/equity-research-builder/blob/phase-1-coverage/benchmarks/results.md"
+  }
 }

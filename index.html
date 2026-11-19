@@ -23,11 +23,11 @@
 
     <div class="workspace">
       <aside class="panel setup" aria-labelledby="setup-title">
-        <h2 id="setup-title">Explore a company</h2>
+        <h2 id="setup-title">Build a research package</h2>
         <form id="run-form">
           <div class="ticker-control">
             <label for="ticker">Stock ticker</label>
-            <div class="ticker-field"><input type="text" id="ticker" name="ticker" maxlength="13" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. INTU" required></div>
+            <div class="ticker-field"><input type="text" id="ticker" name="ticker" maxlength="13" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. XTKS:7974" required></div>
             <p class="error" id="ticker-error" hidden></p>
           </div>
 
@@ -38,7 +38,7 @@
               <label><input type="radio" name="mode" value="guided"><span>Guided</span></label>
             </div>
           </fieldset>
-          <p class="mode-note" id="mode-note">Explore the dated valuation and scenario targets for the selected company.</p>
+          <p class="mode-note" id="mode-note">Open the verified model and report from the selected research date.</p>
           <div id="guided-controls" hidden>
             <label for="driver">Forecast input</label>
             <select id="driver" name="driver"></select>
@@ -49,11 +49,18 @@
             </div>
             <label for="reason">Reason for change</label>
             <input type="text" id="reason" name="reason" placeholder="e.g. Higher expected gold prices" maxlength="240">
+            <div id="guided-batch" hidden>
+              <button type="button" class="secondary-action" id="add-guided-change">Add change</button>
+              <ul id="guided-change-list" aria-label="Queued Guided edits"></ul>
+            </div>
           </div>
           <button id="run-button" class="run" type="submit" disabled><span id="run-label">Generate research</span><span aria-hidden="true">→</span></button>
           <button id="resume-run" class="secondary-action run-resume" type="button" hidden>Check this run again</button>
           <p class="run-status" id="run-status" role="status"></p>
         </form>
+        <section id="benchmark-review" hidden aria-label="Benchmark coverage">
+          <h3>Benchmark coverage</h3>
+        </section>
         <div class="coverage" id="coverage" hidden>
           <h3>Portfolio examples</h3>
           <div class="ticker-options" id="tickers" aria-label="Dated portfolio examples"></div>
@@ -85,7 +92,7 @@
             <div id="scenario-chart" class="scenario-chart"></div>
             <div class="chart-key"><span aria-hidden="true"></span> Reference close</div>
           </section>
-          <section class="downloads" aria-labelledby="downloads-title" hidden>
+          <section class="downloads" aria-labelledby="downloads-title">
             <div class="section-heading"><h3 id="downloads-title">Research package</h3><span id="download-status">Verified snapshot</span></div>
             <div class="download-grid" id="downloads"></div>
           </section>
@@ -99,8 +106,8 @@
       <h2 id="method-title">From filings to valuation</h2>
       <div class="method-grid">
         <section><h3>Source the inputs</h3><p>Financial statements, earnings disclosures, and market prices are tied to a research cutoff.</p></section>
-        <section><h3>Model the business</h3><p>Aircraft and backlog drive GD, shipment volume and yield drive FDX, and mine production and metal prices drive NEM.</p></section>
-        <section><h3>Verify the outputs</h3><p>The model reconciles financial statements and valuation calculations. Each report is checked against its paired workbook.</p></section>
+        <section><h3>Model the business</h3><p>The available filings and operating drivers determine which forecasts the builder can produce.</p></section>
+        <section><h3>Verify the outputs</h3><p>The Checks sheet shows the reconciliations for the selected model. The report identifies its paired workbook.</p></section>
       </div>
     </section>
   </main>
