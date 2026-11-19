@@ -1,9 +1,9 @@
-name: Phase 0 offline verification
+name: Financial regression tests
 on:
   push:
-    branches: [phase-0-baseline, codespaces-demo]
+    branches: ['phase-*', codespaces-demo]
   pull_request:
-    branches: [codespaces-demo]
+    branches: ['phase-*', codespaces-demo]
 permissions:
   contents: read
 jobs:

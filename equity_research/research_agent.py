@@ -25,6 +25,7 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
         "revenue_candidates_usd_millions": candidates,
         "revenue_guidance": packet["revenue_guidance"],
         "event_guidance": packet["event_revenue_guidance"],
+        "acquisition_revenue_basis": packet.get("acquisition_revenue_basis"),
         "latest_earnings_releases": packet["earnings"]["releases"][:2],
         "unavailable_peers": list(rejected_peers),
     }

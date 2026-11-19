@@ -3,7 +3,7 @@
 from calendar import monthrange
 from datetime import date, timedelta
 from itertools import combinations
-from math import isclose
+from math import isclose, isfinite
 from statistics import median
 import re
 
@@ -67,20 +67,11 @@ def operating_rating(upside):
 
 
 def verify_comparable_operating_basis(packet):
-    """Require a pro forma base when material acquisitions invalidate annual drivers."""
-    annual = packet["actuals"]["periods"][-1:]
-    interim = packet["interim_actuals"]["periods"][-1:]
-    if not annual or not interim:
-        return
-    sales = annual[0]["metrics"].get("revenue")
-    if sales is None or sales <= 0:
-        return
-    for fact in packet["operating_facts"]["observations"]:
-        if (fact["metric"] == "cash_spent_on_acquisitions" and fact["period_end"] == interim[0]["period_end"]
-                and fact["value"] > .10*sales):
-            raise ResearchGap(f"The latest interim filing reports ${fact['value']/1e9:.2f}B in acquisition-related cash outlays. "
-                              "A comparable post-acquisition revenue and margin base and an acquisition financing "
-                              "bridge are required before issuing the valuation.")
+    """Require disclosed full-year pro forma sales when acquisitions invalidate the annual base."""
+    from .acquisition_basis import material_acquisitions
+    if material_acquisitions(packet) and not packet.get("acquisition_revenue_basis"):
+        raise ResearchGap("Material acquisition needs disclosed full-year combined pro forma revenue, "
+                          "or comparable acquiree revenue and revenue already included, for both annual periods.")
 
 
 def revenue_candidates(packet):
@@ -88,6 +79,24 @@ def revenue_candidates(packet):
     periods = packet["actuals"]["periods"]
     if len(periods) < 3:
         raise ResearchGap("Three normalized USD annual statements are required.")
+    acquisition = packet.get("acquisition_revenue_basis")
+    if acquisition:
+        prior, latest = acquisition["periods"]
+        if [row["period_end"] for row in (prior, latest)] != [row["period_end"] for row in periods[-2:]]:
+            raise ResearchGap("The acquisition revenue base does not match the annual comparison periods.")
+        for row, historical in zip((prior, latest), periods[-2:], strict=True):
+            if row["unit"] != "USD" or not row.get("url") or row["combined_revenue"] != row["reported_revenue"] + row["incremental_acquiree_revenue"]:
+                raise ResearchGap("The acquisition revenue reconciliation or source is incomplete.")
+            if (row["reported_revenue"] != historical["metrics"]["revenue"]
+                    or row["period_start"] != historical["period_start"]
+                    or not all(type(row[key]) in (int, float) and isfinite(row[key]) for key in
+                               ("combined_revenue", "reported_revenue", "incremental_acquiree_revenue"))
+                    or row["incremental_acquiree_revenue"] < 0):
+                raise ResearchGap("The acquisition revenue base differs from its matched annual evidence.")
+        return {"pro_forma_acquisition": {
+            "prior": {"CombinedOperations": prior["combined_revenue"] / 1e6},
+            "latest": {"CombinedOperations": latest["combined_revenue"] / 1e6},
+        }}
     prior, latest = periods[-2:]
     facts = packet["operating_facts"]["observations"]
     bases = {tuple(period.get("sources", {}).get("revenue", {}).get(field) for field in ("taxonomy", "tag"))
@@ -113,13 +122,17 @@ def _reconciled_revenue(prior, latest, facts):
     for fact in facts:
         group = fact["metric"]
         end = fact["period_end"]
+        if (group not in ("segment_revenue", "product_or_service_revenue", "corporate_nonsegment_revenue")
+                or fact.get("unit") != "USD" or fact.get("accession") != latest["filing"]["accession"]
+                or end not in (prior["period_end"], latest["period_end"])):
+            continue
+        if not isinstance(fact.get("dimensions"), list):
+            raise ResearchGap("A revenue fact is missing its reporting dimensions.")
         # The intake classifier accepts this qualifier because it marks the
         # reporting population rather than a second business dimension.
         dimensions = [item for item in fact["dimensions"]
                       if (item.get("axis"), item["member"]) != ("srt:ConsolidationItemsAxis", "us-gaap:OperatingSegmentsMember")]
-        if (group not in ("segment_revenue", "product_or_service_revenue", "corporate_nonsegment_revenue")
-                or len(dimensions) != 1 or fact["unit"] != "USD" or fact["accession"] != latest["filing"]["accession"]
-                or end not in (prior["period_end"], latest["period_end"])):
+        if len(dimensions) != 1:
             continue
         if group == "corporate_nonsegment_revenue":
             corporate.setdefault(end, set()).add(fact["value"] / 1e6)
@@ -177,6 +190,9 @@ def _read(metrics, key):
 
 
 def _balance(period):
+    from .operating_evidence import assume_absent_balances
+
+    assume_absent_balances(period)
     metrics = {key: value / 1e6 for key, value in period["metrics"].items() if value is not None}
     cash = _read(metrics, "cash_and_equivalents")
     investments = next((metrics[key] for key in ("short_term_investments", "available_for_sale_debt_securities_current")
@@ -204,11 +220,16 @@ def _balance(period):
     if liabilities is None and equity is not None:
         liabilities = _read(metrics, "liabilities_and_equity") - equity
         metrics["total_liabilities"] = liabilities
-    if equity is None or not isclose(assets - liabilities, equity, abs_tol=1):
+    if equity is None or not isclose(assets - liabilities, equity, rel_tol=0, abs_tol=1):
         raise ResearchGap("The filed balance sheet did not reconcile.")
-    if ((metrics.get("noncontrolling_interest", 0) and not period.get("use_nci_book_value"))
-            or metrics.get("preferred_stock_book_value", 0)):
-        raise ResearchGap("Minority or preferred interests need a reviewed valuation bridge.")
+    for key in ("noncontrolling_interest", "preferred_stock_book_value"):
+        if metrics.get(key, 0) < 0:
+            raise ResearchGap(f"Negative {key.replace('_', ' ')} requires a reviewed valuation bridge.")
+        if metrics.get(key, 0):
+            note = f"Book-value proxy: deduct filed {key.replace('_', ' ')} from common equity value."
+            notes = period.setdefault("operating_bridge_notes", [])
+            if note not in notes:
+                notes.append(note)
     wc_assets = _read(metrics, "current_assets") - cash - investments
     wc_liabilities = _read(metrics, "current_liabilities") - current_debt
     return metrics, cash, investments, debt, equity, wc_assets, wc_liabilities
@@ -260,9 +281,12 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     opening, cash, investments, debt, equity, wc_assets, wc_liab = _balance(latest)
     bridge_period = interim[-1] if interim else latest
     bridge_metrics, bridge_cash, bridge_investments, bridge_debt, _, _, _ = _balance(bridge_period)
-    if packet["capital_bridge"]["events"]:
-        raise ResearchGap("Post-balance financing events need a verified cutoff bridge.")
     shares = _read(bridge_metrics, "ending_shares")
+    from .operating_evidence import apply_capital_events
+    bridge_base = {"cash": bridge_cash, "debt": bridge_debt, "shares": shares}
+    bridge_cash, bridge_debt, shares, movements = apply_capital_events(
+        packet, date.fromisoformat(bridge_period["period_end"]), as_of, bridge_cash, bridge_debt, shares,
+        date.fromisoformat(bridge_period.get("share_count_date", bridge_period["period_end"])))
     close = quote["close"]
     growth, roic = .025, .15
     ratios = []
@@ -296,7 +320,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     nci = bridge_metrics.get("noncontrolling_interest", 0)
     affiliate_book_value = bridge_period.get("nonoperating_equity_investments", 0) / 1e6
     bridge_investments += affiliate_book_value
-    bridge = EquityBridge(as_of, bridge_cash, bridge_investments, bridge_debt, 0, nci, 0, shares)
+    preferred = bridge_metrics.get("preferred_stock_book_value", 0)
+    bridge = EquityBridge(as_of, bridge_cash, bridge_investments, bridge_debt, preferred, nci, 0, shares)
     end = date.fromisoformat(latest["period_end"])
     dates = _forecast_dates(history)
     if growth + .01 >= min(wacc - .01, roic):
@@ -315,7 +340,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         for key, rate in rates.items():
             amounts[key] *= 1 + growth + (rate - growth) * .5 ** index
         if index == 1:
-            target, anchor_sources, anchor_note = _revenue_anchor(packet, dates[0].year, sum(amounts.values()), opening["revenue"])
+            anchor_packet = {**packet, "earnings_interim": {}} if packet.get("acquisition_revenue_basis") else packet
+            target, anchor_sources, anchor_note = _revenue_anchor(anchor_packet, dates[0].year, sum(amounts.values()), opening["revenue"])
             if target is not None:
                 if target <= 0 or (interim and target < _read(bridge_metrics, "revenue")):
                     raise ResearchGap("The annual forecast is inconsistent with reported revenue.")
@@ -350,6 +376,18 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "wc_liabilities": wc_liab/opening["revenue"], "opening_wc_assets": wc_assets, "opening_wc_liabilities": wc_liab,
         "metrics": {**opening, "equity_attributable_to_parent": equity}, "cash": cash, "investments": investments,
         "debt": debt, "shares": shares, "bridge_cash": bridge_cash, "bridge_investments": bridge_investments,
+        "bridge_preferred": preferred, "capital_movements": movements, "bridge_base": bridge_base,
+        "balance_evidence": [
+            {"period_end": row["period_end"], "metric": key, "value": amount,
+             "source": row.get("sources", {}).get(key, row.get("bridge_filing_provenance", row["filing"]))}
+            for row in ((latest, bridge_period) if bridge_period["period_end"] != latest["period_end"] else (latest,))
+            for key, amount in row["metrics"].items()
+            if amount is not None and key in (
+                "cash_and_equivalents", "short_term_investments", "available_for_sale_debt_securities_current",
+                "current_debt", "long_term_debt", "commercial_paper", "short_term_borrowings",
+                "finance_lease_current", "finance_lease_noncurrent", "noncontrolling_interest",
+                "preferred_stock_book_value", "ending_shares")
+        ],
         "bridge_debt": bridge_debt, "bridge_nci": nci, "bridge_affiliate_book_value": affiliate_book_value,
         "other_assets": opening["total_assets"]-cash-investments-wc_assets-_read(opening,"net_ppe"),
         "other_liabilities": opening["total_liabilities"]-debt-wc_liab,
@@ -361,7 +399,10 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
                     f"Closing price on {quote_day}": quote["url"], f"Treasury yield on {treasury_day}": treasury["url"],
                     **{f"Balance-sheet bridge XBRL {row['period_end']}": row["operating_bridge_source"]
                        for row in (latest, bridge_period) if "operating_bridge_source" in row},
-                    **({"Comparable interim revenue lines": recent["source"]} if recent else {}), **anchor_sources},
+                    **({"Comparable interim revenue lines": recent["source"]} if recent else {}), **anchor_sources,
+                    **({"Full-year acquisition pro forma sales": packet["acquisition_revenue_basis"]["source"]}
+                       if packet.get("acquisition_revenue_basis") else {}),
+                    **{f"Completed financing {index}": row["url"] for index, row in enumerate(movements, 1)}},
         "thesis": selection["thesis"], "risks": selection["risks"],
         "notes": (
             selection["reason"],
@@ -375,6 +416,13 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             "Where no standalone liabilities total is tagged, the model derives it from filed liabilities and equity less equity.",
             "Reverse DCF solves for a constant operating margin at the observed price, holding the rest of the base model fixed. An absolute DCF gap of at least 50% requires analyst review.",
             *dict.fromkeys(note for row in (latest, bridge_period) for note in row.get("operating_bridge_notes", ())),
+            *(("Full-year combined pro forma revenue replaces the historical revenue growth base. "
+               "The acquirer's historical median operating margin and investment ratios are analyst proxies "
+               "for the combined business. Synergies and acquiree-specific margins require review.",)
+              if packet.get("acquisition_revenue_basis") else ()),
+            *(("Completed post-balance financing movements adjust cash, carrying debt and common shares. "
+               "Issuance and repayment principal are proxies for carrying-value changes. All movements are listed in Equity bridge.",)
+              if movements else ()),
         ),
     }
 

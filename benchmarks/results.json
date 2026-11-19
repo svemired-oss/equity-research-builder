@@ -6,20 +6,21 @@
     "stage": "verified_pair",
     "reason": "",
     "value_price_ratio": 0.8045,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "MSFT",
     "sector": "tech",
     "status": "FAIL",
-    "stage": "model_export_verification",
-    "reason": "ResearchGap: Required financial fact is missing: finance lease current.",
+    "stage": "collection",
+    "reason": "The research provider did not return a verified forecast selection.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "other"
   },
   {
     "ticker": "ADBE",
@@ -28,9 +29,9 @@
     "stage": "verified_pair",
     "reason": "",
     "value_price_ratio": 1.0801,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "CRM",
@@ -39,31 +40,34 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "ORCL",
     "sector": "tech",
     "status": "FAIL",
-    "stage": "collection",
-    "reason": "'dimensions'",
+    "stage": "model_export_verification",
+    "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "SBUX",
     "sector": "consumer",
     "status": "FAIL",
     "stage": "model_export_verification",
-    "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
-    "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "reason": "ResearchGap: The standard DCF is outside 25% to 400% of the verified close. The base scenario gives $22.53 per share versus a $109.11 close. The model uses a 9.7% EBIT margin and implies a 35.6% margin at the verified close with other assumptions fixed. Review reinvestment, profit margins, and the equity bridge before issuing a valuation.",
+    "value_price_ratio": 0.2065,
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "valuation_guard"
   },
   {
     "ticker": "MCD",
@@ -72,9 +76,10 @@
     "stage": "collection",
     "reason": "McDonald's interim balance sheet combines operating and finance leases. The latest separate finance lease liability is needed to finish the live valuation bridge.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "PG",
@@ -83,9 +88,10 @@
     "stage": "model_export_verification",
     "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "KO",
@@ -94,20 +100,21 @@
     "stage": "verified_pair",
     "reason": "",
     "value_price_ratio": 0.2986,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "PEP",
     "sector": "consumer",
     "status": "FAIL",
     "stage": "model_export_verification",
-    "reason": "ResearchGap: Minority or preferred interests need a reviewed valuation bridge.",
+    "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "GD",
@@ -116,42 +123,44 @@
     "stage": "collection",
     "reason": "Conflicting facts were found in the filed balance-sheet bridge.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "conflicting_filing_facts"
   },
   {
     "ticker": "FAST",
     "sector": "industrials",
-    "status": "FAIL",
-    "stage": "model_export_verification",
-    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
-    "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.2851,
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "CAT",
     "sector": "industrials",
     "status": "FAIL",
     "stage": "model_export_verification",
-    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
+    "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "HON",
     "sector": "industrials",
-    "status": "FAIL",
-    "stage": "model_export_verification",
-    "reason": "ResearchGap: Minority or preferred interests need a reviewed valuation bridge.",
-    "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "status": "PASS",
+    "stage": "verified_pair",
+    "reason": "",
+    "value_price_ratio": 0.6287,
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "LMT",
@@ -160,31 +169,33 @@
     "stage": "verified_pair",
     "reason": "",
     "value_price_ratio": 0.589,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "DHR",
     "sector": "healthcare",
     "status": "FAIL",
     "stage": "collection",
-    "reason": "The latest interim filing reports $9.88B in acquisition-related cash outlays. A comparable post-acquisition revenue and margin base and an acquisition financing bridge are required before issuing the valuation.",
+    "reason": "Material acquisition has missing disclosed full-year combined pro forma revenue (or acquiree revenue and revenue already included) for 2024-12-31.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "acquisition_or_merger_basis"
   },
   {
     "ticker": "ABT",
     "sector": "healthcare",
     "status": "FAIL",
     "stage": "collection",
-    "reason": "The latest interim filing reports $20.08B in acquisition-related cash outlays. A comparable post-acquisition revenue and margin base and an acquisition financing bridge are required before issuing the valuation.",
+    "reason": "Material acquisition has missing disclosed full-year combined pro forma revenue (or acquiree revenue and revenue already included) for 2024-12-31.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "acquisition_or_merger_basis"
   },
   {
     "ticker": "JNJ",
@@ -193,9 +204,10 @@
     "stage": "model_export_verification",
     "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "PFE",
@@ -204,20 +216,22 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "MRK",
     "sector": "healthcare",
     "status": "FAIL",
     "stage": "collection",
-    "reason": "The latest interim filing reports $8.78B in acquisition-related cash outlays. A comparable post-acquisition revenue and margin base and an acquisition financing bridge are required before issuing the valuation.",
+    "reason": "Material acquisition has missing disclosed full-year combined pro forma revenue (or acquiree revenue and revenue already included) for 2024-12-31.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "acquisition_or_merger_basis"
   },
   {
     "ticker": "XOM",
@@ -226,9 +240,10 @@
     "stage": "collection",
     "reason": "Valuation requires normalized annual financials from the issuer's reporting framework.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "financial_history"
   },
   {
     "ticker": "CVX",
@@ -237,9 +252,10 @@
     "stage": "collection",
     "reason": "Conflicting facts were found in the filed balance-sheet bridge.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "conflicting_filing_facts"
   },
   {
     "ticker": "COP",
@@ -248,9 +264,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "EOG",
@@ -259,9 +276,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "SLB",
@@ -270,20 +288,22 @@
     "stage": "model_export_verification",
     "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "NEM",
     "sector": "materials",
     "status": "FAIL",
-    "stage": "model_export_verification",
-    "reason": "ResearchGap: Required financial fact is missing: finance lease current.",
+    "stage": "collection",
+    "reason": "The research provider did not return a verified forecast selection.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "other"
   },
   {
     "ticker": "FCX",
@@ -292,20 +312,22 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "NUE",
     "sector": "materials",
     "status": "FAIL",
     "stage": "model_export_verification",
-    "reason": "ResearchGap: Minority or preferred interests need a reviewed valuation bridge.",
+    "reason": "ResearchGap: Required financial fact is missing: operating income.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "DOW",
@@ -314,20 +336,22 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "APD",
     "sector": "materials",
     "status": "FAIL",
     "stage": "model_export_verification",
-    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
+    "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "NEE",
@@ -336,9 +360,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "DUK",
@@ -347,9 +372,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "SO",
@@ -358,9 +384,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "AEP",
@@ -369,9 +396,10 @@
     "stage": "model_export_verification",
     "reason": "ResearchGap: The filed balance sheet did not reconcile.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "statement_reconciliation"
   },
   {
     "ticker": "EXC",
@@ -380,9 +408,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "GOOGL",
@@ -391,9 +420,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "META",
@@ -402,9 +432,10 @@
     "stage": "model_export_verification",
     "reason": "ResearchGap: Required financial fact is missing: current portion long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "NFLX",
@@ -413,9 +444,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "VZ",
@@ -424,9 +456,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "CMCSA",
@@ -435,9 +468,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "FDX",
@@ -446,20 +480,22 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "UPS",
     "sector": "transport",
     "status": "FAIL",
     "stage": "model_export_verification",
-    "reason": "ResearchGap: The filing needs a verified short-term investment balance.",
+    "reason": "ResearchGap: Required financial fact is missing: long term debt.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "UNP",
@@ -468,9 +504,10 @@
     "stage": "collection",
     "reason": "Union Pacific's filing reports a pending Norfolk Southern acquisition. A current model requires stand-alone and merger cases and the financing terms.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "acquisition_or_merger_basis"
   },
   {
     "ticker": "CSX",
@@ -479,9 +516,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "DAL",
@@ -490,9 +528,10 @@
     "stage": "collection",
     "reason": "Filed product or segment revenue did not reconcile across two comparable years.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "revenue_reconciliation"
   },
   {
     "ticker": "WMT",
@@ -501,9 +540,9 @@
     "stage": "verified_pair",
     "reason": "",
     "value_price_ratio": 0.2269,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "COST",
@@ -511,10 +550,10 @@
     "status": "PASS",
     "stage": "verified_pair",
     "reason": "",
-    "value_price_ratio": 0.2565,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "value_price_ratio": 0.2558,
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "HD",
@@ -523,9 +562,9 @@
     "stage": "verified_pair",
     "reason": "",
     "value_price_ratio": 0.5458,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784"
   },
   {
     "ticker": "TGT",
@@ -534,9 +573,10 @@
     "stage": "model_export_verification",
     "reason": "ResearchGap: Required financial fact is missing: cash and equivalents.",
     "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "missing_balance_fact"
   },
   {
     "ticker": "AMZN",
@@ -544,9 +584,10 @@
     "status": "FAIL",
     "stage": "model_export_verification",
     "reason": "ResearchGap: The standard DCF is outside 25% to 400% of the verified close. The base scenario gives $56.38 per share versus a $267.74 close. The model uses a 10.8% EBIT margin and implies a 36.2% margin at the verified close with other assumptions fixed. Review reinvestment, profit margins, and the equity bridge before issuing a valuation.",
-    "value_price_ratio": null,
-    "provenance": "Owner-supplied repaired collection and full offline replay output on 2026-11-19. Ratios rounded to four decimals.",
-    "collector_commit": "e26dec2adafc7fffc4a2f1e582009945d72d09f5",
-    "replay_commit": "72603e4805ab1ffe8e5218689b98a3386556b03c"
+    "value_price_ratio": 0.2106,
+    "provenance": "Transcribed from owner-supplied Phase 1 collection and full offline replay report on 2026-11-19. Ratios rounded to four decimals; raw caches and generated pairs were not supplied or independently inspected for this transcription.",
+    "collector_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "replay_commit": "4598b5022e2e9d5d8dd0091fabdae002b6a6a784",
+    "failure_type": "valuation_guard"
   }
 ]

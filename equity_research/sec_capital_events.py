@@ -51,6 +51,26 @@ _COMMON_ISSUED = re.compile(
 _QUALIFIED = re.compile(r"\b(?:up\s+to|subject\s+to\s+closing|if\s+completed|could|would|secondary\s+offering|selling\s+stockholders?)\b", re.I)
 _DENIAL = re.compile(r"^(?:403 Forbidden|404 Not Found|Access Denied|Your Request Originates)\b", re.I)
 _SCALE = {"million": 10**6, "billion": 10**9}
+_MONEY = rf"\$\s*(?P<amount>{_COUNT}(?:\.\d+)?)\s*(?P<scale>million|billion)?"
+_PROCEEDS = re.compile(r"\bnet\s+proceeds[^.!?]{0,100}?" + _MONEY, re.I)
+_REPAID = re.compile(
+    rf"(?:^|(?<=[.!?])\s+)On\s+(?P<closed>{_DATE}),\s+[^.!?]{{1,100}}?\brepaid\s+"
+    + _MONEY + r"\s+(?:(?:of|in)\s+)?(?:outstanding\s+|aggregate\s+)?principal\b", re.I)
+_REPURCHASED = re.compile(
+    rf"(?:^|(?<=[.!?])\s+)On\s+(?P<closed>{_DATE}),\s+[^.!?]{{1,100}}?\brepurchased\s+"
+    rf"(?P<shares>{_COUNT}(?:\.\d+)?)\s*(?P<share_scale>million|billion)?\s+shares\b"
+    r"[^.!?]{0,120}?\bfor\s+(?:an?\s+aggregate\s+(?:purchase\s+)?price\s+of\s+)?"
+    + _MONEY, re.I)
+
+
+def _money(match):
+    value = Decimal(match["amount"].replace(",", "")) * _SCALE.get((match["scale"] or "").lower(), 1)
+    return int(value) if value == value.to_integral_value() else None
+
+
+def _net_proceeds(block):
+    values = {_money(match) for match in _PROCEEDS.finditer(block)}
+    return next(iter(values)) if len(values) == 1 else None
 
 
 def _closing_date(match) -> date:
@@ -109,22 +129,42 @@ def _read_events(html):
         for start in _NOTE_ISSUANCE.finditer(block):
             try:
                 if debt := _debt_issuance(block, start):
+                    if (proceeds := _net_proceeds(block)) is not None:
+                        debt["net_proceeds"] = proceeds
                     yield debt
             except ValueError:
                 continue
         if (common := _common_issuance(block)) is not None:
             share_match, closing_match, evidence = common
             try:
-                yield {"kind": "common_stock_issuance", "closed_on": _closing_date(closing_match).isoformat(),
-                       "shares_issued": int(share_match["shares"].replace(",", "")), "evidence": evidence}
+                event = {"kind": "common_stock_issuance", "closed_on": _closing_date(closing_match).isoformat(),
+                         "shares_issued": int(share_match["shares"].replace(",", "")), "evidence": evidence, "currency": "USD"}
+                if (proceeds := _net_proceeds(block)) is not None:
+                    event["net_proceeds"] = proceeds
+                yield event
             except ValueError:
                 continue
+        for repaid in _REPAID.finditer(block):
+            amount = _money(repaid)
+            if amount is not None:
+                yield {"kind": "debt_repayment", "closed_on": _closing_date(repaid).isoformat(),
+                       "principal": amount, "cash_paid": amount, "currency": "USD",
+                       "evidence": repaid[0], "basis": "Disclosed principal repayment, excluding unquantified interest or fees"}
+        for repurchased in _REPURCHASED.finditer(block):
+            shares = Decimal(repurchased["shares"].replace(",", "")) * _SCALE.get(
+                (repurchased["share_scale"] or "").lower(), 1)
+            amount = _money(repurchased)
+            if amount is not None and shares == shares.to_integral_value():
+                yield {"kind": "share_repurchase", "closed_on": _closing_date(repurchased).isoformat(),
+                       "shares_repurchased": int(shares), "cash_paid": amount, "currency": "USD",
+                       "evidence": repurchased[0]}
 
 
 def _event_key(event):
     tranches = tuple(sorted((row["maturity_year"], row["coupon_percent"], row["principal"])
                             for row in event.get("tranches", [])))
-    return event["kind"], event["closed_on"], event.get("shares_issued"), tranches
+    return (event["kind"], event["closed_on"], event.get("shares_issued"), tranches,
+            event.get("principal"), event.get("cash_paid"), event.get("shares_repurchased"))
 
 
 def collect_capital_events(client, current_reports, *, balance_date: str | None, as_of: date) -> dict:

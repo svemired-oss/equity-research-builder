@@ -52,6 +52,27 @@ def _walmart_cash(balances, metrics):
     return matched.pop() if len(matched) == 1 else None
 
 
+def _latest_period_instance(packet, period, client, cache):
+    """Use the latest eligible filing that actually contains the USD balance date."""
+    end = date.fromisoformat(period["period_end"])
+    cutoff = packet["as_of"]
+    candidates = {period["filing"]["accession"]: period["filing"]}
+    for group in ("annual", "interim"):
+        for filing in packet.get("filings", {}).get(group, []):
+            if filing.get("filed_on", "") <= cutoff and filing.get("period_end", "") >= period["period_end"]:
+                candidates[filing["accession"]] = filing
+    ordered = sorted(candidates.values(), key=lambda row: (row["filed_on"], row["form"].endswith("/A"), row["accession"]), reverse=True)
+    for filing in ordered:
+        accession = filing["accession"]
+        if accession not in cache:
+            cache[accession] = load_filing_instance(client, packet["issuer"]["cik"], accession)
+        instance = cache[accession]
+        if any(fact.end == end and fact.start is None and fact.unit == "USD" and not fact.dimensions
+               for fact in instance.facts):
+            return instance, filing
+    raise ResearchGap("No eligible filing contains consolidated USD facts for the balance date.")
+
+
 def enrich_operating_bridge(packet, client):
     """Recover scoped facts the consolidated Company Facts mapping cannot identify."""
     issuer = packet["issuer"]
@@ -72,6 +93,7 @@ def enrich_operating_bridge(packet, client):
                 values["depreciation_amortization"] = reported
                 sources["depreciation_amortization"] = sources["depreciation_amortization_accretion"]
     lease_note = None
+    instance_cache = {}
     for period in [annual, *interim[-1:]]:
         metrics = period["metrics"]
         recover_debt = metrics.get("long_term_debt") is None and metrics.get("long_term_debt_and_finance_leases") is None
@@ -81,11 +103,19 @@ def enrich_operating_bridge(packet, client):
         if not (known_basis or recover_debt or recover_cash or recover_lease or recover_ppe
                 or metrics.get("cash_and_equivalents") is None):
             continue
-        instance = load_filing_instance(client, issuer["cik"], period["filing"]["accession"])
+        instance, selected_filing = _latest_period_instance(packet, period, client, instance_cache)
+        from .operating_evidence import recover_alternative_cash
+        recover_alternative_cash(period, instance)
         end = date.fromisoformat(period["period_end"])
         facts = [fact for fact in instance.facts if fact.start is None and not fact.dimensions]
         balances = [fact for fact in facts if fact.end == end and fact.unit == "USD"]
-        notes = []
+        if any(fact.value > 0 and "Operating" in fact.concept and
+               ("Finance" in fact.concept or "Capital" in fact.concept) and "Lease" in fact.concept
+               and "Liabilit" in fact.concept for fact in balances):
+            period["combined_unallocated_leases"] = True
+        notes = list(period.get("operating_bridge_notes", []))
+        if selected_filing["accession"] != period["filing"]["accession"]:
+            notes.append(f"Balance-date supplements use the latest matching USD disclosure filed {selected_filing['filed_on']}, accession {selected_filing['accession']}.")
         if recover_cash and (ticker, issuer["cik"]) == ("TT", "0001466258") and metrics.get("cash_and_equivalents") is None:
             # The September 10-Q uses a broader cash XBRL concept on its face.
             # The reconciled current-asset subtotal confirms the amount there.
@@ -315,6 +345,13 @@ def enrich_operating_bridge(packet, client):
                 cover_date = max(fact.end for fact in share_facts)
                 metrics["ending_shares"] = _single([fact for fact in share_facts if fact.end == cover_date],
                                                    {"dei:EntityCommonStockSharesOutstanding"})
+                period["share_count_date"] = cover_date.isoformat()
+                period.setdefault("sources", {})["ending_shares"] = {
+                    **selected_filing, "url": instance.url, "tag": "dei:EntityCommonStockSharesOutstanding",
+                    "unit": "shares", "period_end": cover_date.isoformat(),
+                }
                 notes.append(f"The valuation uses the filing cover's {cover_date} common share count.")
         period["operating_bridge_source"] = instance.url
         period["operating_bridge_notes"] = notes
+        period["bridge_filing_provenance"] = {**selected_filing, "url": instance.url,
+                                              "balance_date": period["period_end"], "unit": "USD"}
