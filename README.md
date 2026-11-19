@@ -1,8 +1,8 @@
 # Equity Research Builder
 
-The `phase-1-coverage` branch adds evidence-conditioned balance assumptions, cash and financing reconciliation, book-value claim flags and acquisition revenue bases. See [Phase 1 rules and benchmark commands](docs/phase-1.md). Its new benchmark result is pending.
+The `phase-1-coverage` branch adds evidence-conditioned balance assumptions, cash and financing reconciliation, book-value claim flags and acquisition revenue bases. See [Phase 1 rules and benchmark commands](docs/phase-1.md). The owner-supplied [Phase 1 collection and offline replay](benchmarks/results.md) recorded **9/50 verified pairs (18%)**, up from 7/50. FAST and HON are the new passes; all seven earlier passes remain. CI ran 57 tests successfully, including actual LibreOffice recalculation. This measures mechanical export completion, not analyst approval of the valuations.
 
-Phase 0 adds an offline financial regression suite and a fixed 50-ticker benchmark on `phase-0-baseline`. See [test and benchmark instructions](docs/phase-0.md). The [hosted baseline and cached replay](benchmarks/results.md) supplied by the owner report 7 verified pairs out of 50 (14%). All 50 have recorded collection attempts and no missing caches. The XOM harness defect was repaired before the final replay.
+Phase 0 adds an offline financial regression suite and a fixed 50-ticker benchmark on `phase-0-baseline`. See [test and benchmark instructions](docs/phase-0.md). The [Phase 0 hosted baseline and cached replay](https://github.com/svemired-oss/equity-research-builder/blob/phase-0-baseline/benchmarks/results.md) supplied by the owner report 7 verified pairs out of 50 (14%). All 50 have recorded collection attempts and no missing caches. The XOM harness defect was repaired before the final replay.
 
 Run a private ticker-to-download demo in GitHub Codespaces. Hosted acceptance on November 19, 2026 produced verified Excel and PDF downloads for Nintendo (`XTKS:7974`) and NVIDIA (`NVDA`). The public recruiter portfolio displays dated General Dynamics, FedEx and Newmont valuations. [Public portfolio](https://svemired-oss.github.io/equity-research-builder/)
 
@@ -28,7 +28,8 @@ For native Linux installation and command-line verification, use the [portable s
 | --- | --- |
 | Nintendo, `XTKS:7974` | Live editable yen DCF, sensitivity table and a cited one-page PDF. Guided changes the post-guidance margin. The result is a balance-date scenario marked **Review**. |
 | NVIDIA, `NVDA`, with U.S. providers enabled | Automated generation produced 13 workbook sheets, 280 formulas and a four-page PDF. The November 19 test matched at $121.44 per share and the PDF fingerprint matched the downloaded workbook. The five forecast balance checks tied. Live inputs and AI text can change on subsequent runs. |
-| GD, FAST, SBUX and DHR with U.S. providers enabled | Each reached the financial engine. Each stopped on a specific filing or forecast gap. See the issuer-level backlog. |
+| FAST with U.S. providers enabled | Passed the Phase 1 formula-workbook and paired-PDF benchmark. This is mechanical verification; economic assumptions still require review. |
+| GD, SBUX and DHR with U.S. providers enabled | Phase 1 stopped on conflicting filed balance facts, the valuation guard, and missing acquisition pro forma revenue, respectively. See the issuer-level backlog. |
 | General U.S. research without provider credentials | SEC discovery and annual filing history. A filing check produces no downloads. |
 | GD, FDX and NEM on GitHub Pages | Dated portfolio illustrations with scenario comparisons. Public downloads are disabled. |
 

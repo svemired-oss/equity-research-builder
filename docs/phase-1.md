@@ -33,4 +33,25 @@ Collect a fresh Phase 1 benchmark in a separate checkout in the configured Codes
 
 The second command blocks network access and replays the collected inputs. The runner writes a failure-type summary and every ticker's actual outcome to `benchmarks/results.md`, with detailed records in `benchmarks/results.json`. Keep the original Phase 0 checkout and caches for comparison.
 
-The Phase 1 collection and final pass rate are pending until the credentialed run completes. The inherited results file still identifies the Phase 0 baseline.
+## Recorded acceptance
+
+The owner ran fresh collection followed by the network-blocked replay in the configured Codespace on November 19, 2026 using commit `4598b5022e2e9d5d8dd0091fabdae002b6a6a784`. The pasted report records **9/50 verified pairs (18%)**, versus Phase 0 **7/50 (14%)**, with zero missing or invalid caches. FAST and HON are the two new passes; all seven earlier passes remain. [Full report](../benchmarks/results.md)
+
+The committed Markdown and JSON are a transcription of that supplied report, with four-decimal ratios. Raw cache hashes, generated files and timing records were not supplied and are not fabricated. The private evidence caches remain in the owner Codespace; the runner uses temporary directories for generated pairs. The full 50-pair run was not independently repeated locally.
+
+CI on the implementation commit passed all **57 tests**, including actual LibreOffice export recalculation. [Verified CI run](https://github.com/svemired-oss/equity-research-builder/actions/runs/44578508232)
+
+| Remaining failure type | Count |
+| --- | --- |
+| Revenue reconciliation | 17 |
+| Missing balance or financial fact | 12 |
+| Acquisition or merger basis | 4 |
+| Conflicting filing facts | 2 |
+| Valuation guard | 2 |
+| Provider forecast selection (runner category `other`) | 2 |
+| Annual financial history | 1 |
+| Statement reconciliation | 1 |
+
+ORCL now gets past its dimensions exception but lacks current debt evidence. SBUX now gets past missing cash but fails the unchanged valuation guard. GD and CVX still have unresolved filed bridge conflicts. DHR, ABT and MRK now name the missing full-year acquisition revenue basis. MSFT and NEM failed provider forecast selection in this collection; this does not establish whether their subsequent model checks would pass.
+
+No verification threshold was relaxed to obtain a passing ticker. The 18% rate measures mechanical completion of the generic operating path, not financial quality or GD V4 modeling depth. The fixed cohort and the remaining evidence failures are preserved for subsequent phases.
