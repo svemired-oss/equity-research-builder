@@ -67,8 +67,12 @@ class AlpacaQuoteClient:
         })
 
     def adjusted_daily_bars(self, symbol, start, end):
+        # The SIP feed refuses queries reaching into the last 15 minutes, so a same-day
+        # cutoff stops the window 16 minutes before now. The day's completed bar is included.
+        stop = min(datetime.combine(end, datetime.max.time().replace(microsecond=0), timezone.utc),
+                   datetime.now(timezone.utc).replace(microsecond=0) - timedelta(minutes=16))
         payload = self._get(_BARS_URL, {"symbols": symbol, "start": str(start),
-                                        "end": f"{end}T23:59:59Z", "timeframe": "1Day",
+                                        "end": stop.strftime("%Y-%m-%dT%H:%M:%SZ"), "timeframe": "1Day",
                                         "feed": "sip", "adjustment": "split", "currency": "USD",
                                         "limit": 1000, "asof": str(end)})
         rows = (payload.get("bars") or {}).get(symbol)

@@ -550,8 +550,8 @@ class _ResearchService:
             facts = {key: row["value"] for key,row in sheet["facts"].items()}
             if overrides:
                 from dataclasses import replace
-                base = replace(model["scenarios"]["Base"], value_per_share=facts["dcf"])
-                verify_valuation_range({**model, "scenarios":{"Base":base},
+                base = replace(model["fcfe"]["Base"], value_per_share=facts["dcf"])
+                verify_valuation_range({**model, "fcfe":{"Base":base},
                                         "margin":facts["margin"], "implied_margin":facts["implied_margin"]})
             cases = [{"case": name, "spot_value_usd": facts[key]} for name,key in
                      (("bear","bear_value"),("base","dcf"),("bull","bull_value"))]
@@ -661,7 +661,7 @@ class _ResearchService:
         from .operating_comps import prepare_comparables
         from .operating_filing_bridge import enrich_operating_bridge
         from .operating_research import ResearchGap, revenue_candidates, verify_comparable_operating_basis
-        from .research_agent import PEER_RULES, select_forecast
+        from .research_agent import select_forecast
         from .sec_client import SECClient
         from .sec_intake import collect_ticker_evidence
         from .treasury_rates import collect_treasury_yield
@@ -755,7 +755,7 @@ class _ResearchService:
 
         def collect_peers(choices):
             for symbol in dict.fromkeys(row["ticker"] for row in choices):
-                if symbol == subject or symbol not in quotes:
+                if symbol == subject or symbol not in quotes or symbol in peers:
                     continue
                 try:
                     peer = collect_ticker_evidence(client, symbol, as_of=as_of, years=3, release_limit=1)
@@ -766,89 +766,57 @@ class _ResearchService:
                     # Foreign 20-F and 40-F filers have no U.S. GAAP annual periods to compare.
                     _LOG.info("Peer %s has no annual U.S. GAAP 10-K periods", symbol)
                     continue
-                peers[symbol] = peer
-
-        collect_peers(proposed)
-        try:
-            comps = prepare_comparables(packet, proposed, peers, quotes, quote["trading_date"])
-        except ResearchGap as exc:
-            comps = f"Peer valuation unavailable. {exc}"
-        if isinstance(comps, dict) and comps["value"] is None:
-            try:
-                seen = {row["ticker"] for row in proposed} | {subject}
-                retry = select_forecast(packet, candidates, rejected_peers=sorted(seen), **provider)
-                added = [row for row in retry["peer_candidates"] if row["ticker"] not in seen]
-                existing = {row["ticker"] for row in comps["rows"]}
-                added = added[:5 - len(existing)]
-                if added:
-                    extra_market = collect_market_quotes(price_client, [row["ticker"] for row in added], as_of=as_of)
-                    quotes.update(extra_market["quotes"])
-                    collect_peers(added)
-                    tried = [row for row in proposed if row["ticker"] in existing] + added
-                    updated = prepare_comparables(packet, tried, peers, quotes, quote["trading_date"])
-                    updated["excluded"] = list(dict.fromkeys([*comps["excluded"], *updated["excluded"]]))
-                    comps = updated
-            except ResearchGap:
-                _LOG.info("Alternate peer selection was unavailable for %s", subject)
-        from .drivers import choose
-        from .market_valuation import collect_market_inputs
-        from .valuation_comps import collect_forward_eps, prepare as prepare_valuation_comps, same_business
-        kind = choose(packet, selection)["type"]
-        if kind != "segment_growth":
-            for peer in peers.values():
                 try:
-                    collect(peer, client)
-                except ValueError:
-                    continue
-        sic = str(packet["issuer"].get("sic") or "")
-        industry_peers = [ticker for ticker, peer in peers.items() if len(sic) == 4
-                          and str(peer["issuer"].get("sic") or "")[:3] == sic[:3]
-                          and same_business(packet, peer, kind)]
-        try:
-            packet["valuation_market"] = collect_market_inputs(packet, price_client, quote, industry_peers, treasury["rate"])
-        except (ValueError, OSError, KeyError) as exc:
-            raise ResearchGap(f"Market WACC evidence unavailable. {exc}") from exc
-        prepared = set()
-
-        def prepare_peer_valuation():
-            for symbol, peer in peers.items():
-                if symbol in prepared:
-                    continue
-                prepared.add(symbol)
-                if kind != "segment_growth" and "driver_passages" not in peer:
-                    try:
-                        collect(peer, client)
-                    except ValueError:
-                        pass
-                collect_forward_eps(peer, client)
-                try:
+                    # Adds cover-page share counts and the funded-debt bridge used by the size band and betas.
                     enrich_operating_bridge(peer, client)
                 except (ValueError, IndexError, KeyError):
-                    continue
-            return prepare_valuation_comps(packet, [{"ticker": ticker} for ticker in peers], peers, quotes, kind)
+                    _LOG.info("Peer %s balance bridge could not be enriched", symbol)
+                peers[symbol] = peer
 
-        try:
-            collect_forward_eps(packet, client)
-            packet["valuation_comps"] = prepare_peer_valuation()
-        except ResearchGap as exc:
-            packet["valuation_comps"] = {"value": None, "rows": [], "summary": {}, "reason": str(exc)}
-        if packet["valuation_comps"].get("value") is None and "subject" in packet["valuation_comps"]:
-            # Acceptance reads these stricter comps. Ask once for peers that meet their rules.
+        from .peer_selection import PEER_RULES, needs_more, screen_peers
+        collect_peers(proposed)
+        tried = list(proposed)
+        selection_record = screen_peers(packet, tried, peers, quotes)
+        if needs_more(selection_record):
+            # Ask once for peers that meet the rules. Code still screens every proposal.
             try:
-                seen = sorted({row["ticker"] for row in proposed} | set(peers) | {subject})
-                retry = select_forecast(packet, candidates, rejected_peers=seen,
-                                        peer_rules=PEER_RULES if kind == "segment_growth" else None, **provider)
+                seen = sorted({row["ticker"] for row in tried} | {subject})
+                retry = select_forecast(packet, candidates, rejected_peers=seen, peer_rules=PEER_RULES, **provider)
                 added = [row for row in retry["peer_candidates"] if row["ticker"] not in seen][:5]
                 if added:
                     quotes.update(collect_market_quotes(price_client, [row["ticker"] for row in added],
                                                         as_of=as_of)["quotes"])
                     collect_peers(added)
-                    updated = prepare_peer_valuation()
-                    updated["excluded"] = list(dict.fromkeys(
-                        map(tuple, [*packet["valuation_comps"]["excluded"], *updated["excluded"]])))
-                    packet["valuation_comps"] = updated
+                    tried += added
+                    selection_record = screen_peers(packet, tried, peers, quotes)
             except ResearchGap:
-                _LOG.info("Alternate valuation peers were unavailable for %s", subject)
+                _LOG.info("Alternate peer selection was unavailable for %s", subject)
+        final = [row["ticker"] for row in selection_record["peers"]]
+        # The final peer list is part of the cached evidence, so an offline replay uses the same peers.
+        packet["peer_selection"] = selection_record
+        final_rows = [{"ticker": t, "reason": next(r["reason"] for r in tried if r["ticker"] == t)} for t in final]
+        try:
+            comps = prepare_comparables(packet, final_rows, peers, quotes, quote["trading_date"])
+        except ResearchGap as exc:
+            comps = f"Peer valuation unavailable. {exc}"
+        from .market_valuation import collect_market_inputs
+        from .valuation_comps import collect_forward_eps, prepare as prepare_valuation_comps
+        from .drivers import choose
+        kind = choose(packet, selection)["type"]
+        try:
+            packet["valuation_market"] = collect_market_inputs(
+                packet, price_client, quote, final, treasury["rate"],
+                peer_packets={t: peers[t] for t in final}, peer_quotes=quotes)
+        except (ValueError, OSError, KeyError) as exc:
+            raise ResearchGap(f"Market cost-of-equity evidence unavailable. {exc}") from exc
+        for symbol in final:
+            collect_forward_eps(peers[symbol], client)
+        try:
+            collect_forward_eps(packet, client)
+            packet["valuation_comps"] = prepare_valuation_comps(
+                packet, [{"ticker": t} for t in final], {t: peers[t] for t in final}, quotes, kind)
+        except ResearchGap as exc:
+            packet["valuation_comps"] = {"value": None, "rows": [], "summary": {}, "reason": str(exc)}
         from .report_evidence import collect as collect_report_evidence
         collect_report_evidence(packet, client)
         return packet, treasury, quote, selection, candidates, comps

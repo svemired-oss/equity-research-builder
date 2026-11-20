@@ -21,13 +21,13 @@ ASSUMPTIONS = {
     20: ("Capex and working capital", 0, 0, "Annual debt issued in USD millions. The limit is opening annual revenue."),
     21: ("Capex and working capital", 0, 0, "Annual principal repayment in USD millions. The projected debt balance cannot turn negative."),
     22: ("Margins", 0, 0, "Annual repurchases in USD millions. Projected outstanding shares must remain positive."),
-    25: ("WACC", 0, 1, "Share of present fair value assigned to the DCF."),
     26: ("WACC", 0, 1, "Minimum total return for a Buy."),
     27: ("WACC", -1, 0, "Maximum total return for a Sell, below the Buy threshold."),
-    28: ("WACC", 0, 1, "Relative DCF and comps disagreement above which the rating is Review."),
     29: ("Terminal", 0, 1, "Relative terminal valuation difference above which the cross-check is flagged."),
     30: ("Capex and working capital", .25, 3, "Multiplier on filed operating current assets per dollar of sales."),
     31: ("Capex and working capital", .25, 3, "Multiplier on filed operating current liabilities per dollar of sales."),
+    33: ("Margins", 0, 0, "Annual other nonoperating and equity-method income in USD millions, within opening annual revenue."),
+    35: ("Drivers", 0, .05, "Bull and bear revenue growth change in every forecast year, as a decimal."),
 }
 FORMATS = {"0.00%": "decimal", "0%": "decimal"}
 
@@ -51,7 +51,8 @@ def fields(plan, model):
     identifiers={3:"margin",4:"tax",5:"da",6:"capex",9:"growth",10:"roic",13:"convergence",
                  15:"revenue_anchor",16:"payout",17:"margin_shift",18:"wc_days",20:"debt_issued",
                  21:"debt_repaid",22:"buybacks",25:"dcf_weight",26:"buy_threshold",27:"sell_threshold",
-                 28:"disagreement_threshold",29:"terminal_gap_threshold",30:"wc_assets",31:"wc_liabilities"}
+                 29:"terminal_gap_threshold",30:"wc_assets",31:"wc_liabilities",33:"other_income",
+                 35:"growth_step"}
     for row,(group,low,high,explanation) in ASSUMPTIONS.items():
         address = f"B{row}"
         cells = plan["cells"]["Assumptions"]
@@ -62,7 +63,9 @@ def fields(plan, model):
             low, high = max(.001,model.get("filed_ytd_revenue",0)), default*3
         if row in (20,21,22):
             high = model["revenue"][0] if row!=21 else max(model["debt"],model["revenue"][0])
-        unit = "days" if row == 18 else "USD millions" if row in (15,20,21,22) else "decimal"
+        if row == 33:
+            low, high = -model["metrics"]["revenue"], model["metrics"]["revenue"]
+        unit = "days" if row == 18 else "USD millions" if row in (15,20,21,22,33) else "decimal"
         add(identifiers[row],"Assumptions",address,cells[f"A{row}"][0],group,low,high,explanation,unit=unit)
 
     for row,target,label,low,high,explanation,value in (
@@ -132,13 +135,11 @@ def apply(plan, model, overrides):
         raise ResearchGap("D&A as a share of revenue cannot exceed first-year capex as a share of revenue.")
     if "buy_threshold" in catalog and effective("sell_threshold")>=effective("buy_threshold"):
         raise ResearchGap("The Sell threshold must be below the Buy threshold.")
-    if "payout" in matched and "valuation_summary" in model and model["payout_ratio"] is None:
-        plan["cells"]["Cover"]["B15"][0]="=(Schedules!B23*Assumptions!B12+Schedules!C23*(1-Assumptions!B12))/DCF!B12"
     plan["cells"]["Guided changes"]=trail
     # Freeze the unaffected checks and recompute all valuation expectations on the revised case.
     original_dcf = plan["expected"]["DCF"]
     plan["expected"]={tab:values for tab,values in plan["expected"].items() if tab in ("Checks","Comps")}
-    plan["expected"]["DCF"] = {address:original_dcf[address] for address in ("B6","B8","B12") if address in original_dcf}
+    plan["expected"]["DCF"] = {address:original_dcf[address] for address in ("B6","B8","B12","B105") if address in original_dcf}
     for case in plan["scenarioExpected"]:
         plan["scenarioExpected"][case]={"Checks":plan["scenarioExpected"][case]["Checks"]}
     scenarios = {}
@@ -173,21 +174,28 @@ def verify_recalculation(book,case,model,changes):
     risk,erp,beta,debt_cost=(get("WACC",f"B{i}") for i in (3,4,5,6))
     cost=calculate_cost_of_capital(CostOfCapitalInputs(model["as_of"],risk,erp,beta,equity,debt_cost,dcf(8),tax,0,0))
     equal("WACC","B9",cost.wacc)
+    ke=cost.cost_of_equity
+    equal("DCF","B101",ke)
     growth,roic=a(9),a(10)
-    if growth+.01>=min(cost.wacc-.01,roic):
-        raise ResearchGap("Terminal growth must leave at least one percentage point of room on both sides of the WACC sensitivity grid.")
+    if growth+.01>=min(cost.wacc-.01,ke-.01,roic):
+        raise ResearchGap("Terminal growth must leave at least one percentage point of room on both sides of the "
+                          "cost of equity and WACC sensitivity grids.")
     base_margin=a(3)
-    shift={"Base":0,"Bear":-a(17),"Bull":a(17)}[case]
+    sign={"Base":0,"Bear":-1,"Bull":1}[case]
+    shift=sign*a(17)
+    growth_shift=sign*a(35)
     da,capex,convergence=a(5),a(6),a(13)
     periods=model["dates"]
     stub=model["stub"]
     wc=a(7)*a(30)-a(8)*a(31)
     previous_wc=model["metrics"]["revenue"]*(a(7)-a(8))
+    opening_wc=previous_wc
     terminal_capex=da+base_margin*(1-tax)*growth/roic-growth*wc
 
     # Rebuild revenue from each actual history and the edited driver block.
     driver=model["driver"]
-    latest=model["sales"].copy()
+    filed=model["sales"]
+    latest=filed.copy()
     recent=model.get("comparable_revenue_interim")
     prior=recent["prior"] if recent else model["old_sales"]
     current=recent["current"] if recent else latest
@@ -208,12 +216,8 @@ def verify_recalculation(book,case,model,changes):
         other_rate=(other/driver["other"][0])**.5-1 if other else 0
     anchor=a(15)
     scale=1
-    flows=[]
-    revenue_path=[]
-    debt=model["debt"]
-    shares=dcf(12)
-    payout=[]
-    for i,(column,period) in enumerate(zip("BCDEF",periods,strict=True)):
+    base_segments=[]
+    for i in range(5):
         if has_physical:
             for j in range(used):
                 level=actuals[j]*(1+targets[j]+(factor_rates[j]-targets[j])*convergence**(i+1))
@@ -226,28 +230,45 @@ def verify_recalculation(book,case,model,changes):
             raw=prod(actuals[:used])+other
             if i==0 and type(anchor) in (float,int):
                 scale=anchor/raw
-            sales=raw*scale
+            mix=sum(filed.values())
+            base_segments.append({k:raw*scale*v/mix for k,v in filed.items()})
         else:
             latest={k:v*(1+growth+(rates[k]-growth)*convergence**(i+1)) for k,v in latest.items()}
             if i==0 and type(anchor) in (float,int):
                 factor=anchor/sum(latest.values())
                 latest={k:v*factor for k,v in latest.items()}
-            sales=sum(latest.values())
+            base_segments.append(dict(latest))
+    from ..fcfe_valuation import FCFEInputs, case_revenues, value_fcfe
+    revenue_path=case_revenues(base_segments,filed,growth_shift) if growth_shift else [sum(x.values()) for x in base_segments]
+    flows=[]
+    debt=model["debt"]
+    shares=dcf(12)
+    payout=[]
+    other_income=a(33)
+    capex_path=[]
+    interest=[]
+    net_borrowing=[]
+    for i,(column,period) in enumerate(zip("BCDEF",periods,strict=True)):
+        sales=revenue_path[i]
         if sales<=0:
             raise ResearchGap("Guided drivers must produce positive forecast sales.")
         equal("Income Statement",column+"4",sales)
-        revenue_path.append(sales)
         if i==0 and sales<model.get("filed_ytd_revenue",0):
             raise ResearchGap("First-year Guided revenue is below filed year-to-date sales.")
         ebit=sales*(base_margin+shift)
-        investment=sales*(capex+(terminal_capex-capex)*i/4)
+        ratio=capex+(terminal_capex-capex)*i/4
+        capex_path.append(ratio)
+        investment=sales*ratio
         fcff=ebit*(1-tax)+sales*da-investment-(sales*wc-previous_wc)
         flow=fcff*(stub if i==0 else 1)
         equal("Cash Flow Statement",column+"12",flow)
         flows.append(DatedFCFF(period,flow))
         start=get("Schedules","B40") if i==0 else 0
-        payout.append(max(0,(ebit-(debt+start)*debt_cost)*(1-tax))*a(16))
+        year_interest=(debt+start)*debt_cost
+        payout.append(max(0,(ebit-year_interest+other_income)*(1-tax))*a(16))
         equal("Schedules",column+"23",payout[-1])
+        net_borrowing.append(a(20)-a(21))
+        interest.append(year_interest)
         debt+=a(20)-a(21)+start
         shares-=a(22)/a(23)
         if debt< -1e-8 or shares<=0:
@@ -260,26 +281,27 @@ def verify_recalculation(book,case,model,changes):
                         immaterial_minority_deficit=bool(model.get("immaterial_nci")) and dcf(9)<0)
     result=discount_fcff(flows,model["as_of"],cost.wacc,terminal,bridge)
     equal("DCF","B15",result.value_per_share)
-    equal("Cover","B7",result.value_per_share)
+    inputs=FCFEInputs(model["metrics"]["revenue"],opening_wc,wc,tax,da,tuple(capex_path),tuple(interest),other_income,
+                      debt,debt_cost,tuple(net_borrowing),stub,tuple(p.discount_years for p in result.periods),
+                      growth,roic,bridge.adjustment_millions+dcf(8)-dcf(105),bridge.diluted_shares_millions)
+    fcfe=value_fcfe(inputs,revenue_path,base_margin+shift,ke)
+    equal("DCF","B123",fcfe.value_per_share)
+    equal("Cover","B7",fcfe.value_per_share)
     if case=="Base":
         from dataclasses import replace
         from ..valuation_summary import implied_growth
-        years=[period.discount_years for period in result.periods]
-        discount=[(1+cost.wacc)**-year for year in years]
-        terminal_slope=revenue_path[-1]*(1+growth)*(1-growth/roic)/(cost.wacc-growth)*discount[-1]
+        discount=[(1+ke)**-period.discount_years for period in result.periods]
+        terminal_slope=revenue_path[-1]*(1+growth)*(1-growth/roic)/(ke-growth)*discount[-1]
         annual_slope=sum(sales*factor*(stub if i==0 else 1) for i,(sales,factor) in enumerate(
             zip(revenue_path,discount,strict=True)))
-        sensitivity=(1-tax)*(annual_slope+terminal_slope)/bridge.diluted_shares_millions
-        equal("DCF","B36",base_margin+(close-result.value_per_share)/sensitivity)
+        sensitivity=(1-tax)*(annual_slope+terminal_slope)/inputs.shares
+        equal("DCF","B36",base_margin+(close-fcfe.value_per_share)/sensitivity)
         for i in range(5):
             for j,col in enumerate("BCDEF"):
-                revised=replace(terminal,growth_rate=growth+(j-2)*.005)
-                fair=discount_fcff(flows,model["as_of"],cost.wacc+(i-2)*.005,revised,bridge)
+                fair=value_fcfe(inputs,revenue_path,base_margin,ke+(i-2)*.005,growth+(j-2)*.005)
                 equal("Sensitivity",f"{col}{28+i}",fair.value_per_share)
         if "valuation_summary" in model:
-            revised={**model,"scenarios":{"Base":result},"cost":cost.inputs,"wacc":cost.wacc,"growth":growth,
-                     "roic":roic,"margin":base_margin,"da":da,"capex":capex,"wc_assets":a(7)*a(30),
-                     "wc_liabilities":a(8)*a(31),"opening_wc":model["metrics"]["revenue"]*(a(7)-a(8))}
+            revised={**model,"fcfe_inputs":inputs,"cost_of_equity":ke,"margin":base_margin}
             implied=implied_growth(revised)
             equal("DCF","B38",implied if implied is not None else "Unavailable")
             multiple=model["valuation_comps"]["summary"].get("EV / EBITDA") if model["valuation_comps"] else None
@@ -290,22 +312,16 @@ def verify_recalculation(book,case,model,changes):
                 equal("DCF","B89",gap)
                 equal("DCF","B90","Review" if gap>a(29) else "Within threshold")
                 exit_fair=(result.enterprise_value_millions-result.terminal_present_value_millions+
-                           exit_value*discount[-1]+bridge.adjustment_millions)/bridge.diluted_shares_millions
+                           exit_value*(1+cost.wacc)**-result.periods[-1].discount_years
+                           +bridge.adjustment_millions)/bridge.diluted_shares_millions
                 equal("DCF","B91",exit_fair)
     if "valuation_summary" in model:
-        peer=get("Comps","B14")
-        if type(peer) in (float,int):
-            blended=result.value_per_share*a(25)+peer*(1-a(25))
-            equal("Cover","B14",blended)
-            if model["payout_ratio"] is not None or "payout" in changes:
-                dividend=(payout[0]*stub+payout[1]*(1-stub))/bridge.diluted_shares_millions
-                target=blended*(1+cost.cost_of_equity)-dividend
-                total=(target+dividend)/close-1
-                equal("Cover","B15",dividend)
-                equal("Cover","B16",target)
-                equal("Cover","B17",total)
-                rating=("Review" if peer<=0 or abs(result.value_per_share/peer-1)>a(28)
-                        else "Buy" if total>=a(26) else "Sell" if total<=a(27) else "Hold")
-                equal("Cover","B9",rating)
-    return result.value_per_share
-
+        equal("Cover","B14",result.value_per_share)
+        dividend=(payout[0]*stub+payout[1]*(1-stub))/bridge.diluted_shares_millions
+        target=fcfe.value_per_share*(1+ke)-dividend
+        total=(target+dividend)/close-1
+        equal("Cover","B15",dividend)
+        equal("Cover","B16",target)
+        equal("Cover","B17",total)
+        equal("Cover","B9","Buy" if total>=a(26) else "Sell" if total<=a(27) else "Hold")
+    return fcfe.value_per_share

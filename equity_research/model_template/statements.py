@@ -173,6 +173,10 @@ def build_statements(book, model, revenue_total):
     for i, (period, col) in enumerate(zip(history, historical, strict=True)):
         _historical(book, model, period, col, historical[i-1] if i else None)
     base = "L"
+    from .equity import case_block_start
+    case_total = case_block_start(revenue_total) + 1 + len(model["lines"])
+    book.put(INCOME, "A18", "Forecast other pretax income is the filed three-year median of other nonoperating and "
+             "equity-method income. Historical values are all other pretax items, including interest income.")
     book.put("Assumptions", "A18", "Forecast days convention")
     book.input("Assumptions", "B18", 365, basis="Analyst assumption | 365-day working-capital convention")
     for row,label in ((30,"Operating current asset intensity"),(31,"Operating current liability intensity")):
@@ -210,9 +214,10 @@ def build_statements(book, model, revenue_total):
         for tab in (INCOME, BALANCE, CASH, "Schedules", "Checks"):
             book.put(tab, f"{col}3", str(model["dates"][i]) + " forecast", "header")
         book.formulas(INCOME, col, {
-            4: f"'Revenue Build'!{col}{revenue_total}",
+            4: f"'Revenue Build'!{col}{case_total}",
             5: f"{col}4*SUM(Assumptions!$B$3,Assumptions!$B$11)",
-            6: f"{sc}19", 7: f"{col}5-{col}6", 8: f"{sc}30",
+            6: f"{sc}19", 7: f"{col}5-{col}6+{col}14", 8: f"{sc}30",
+            14: "Assumptions!$B$33",
             9: f"{col}7-{col}8",
             11: f'IF(ISNUMBER(Assumptions!$B$19),{col}4*Assumptions!$B$19,"Unavailable")',
             12: f'IF(ISNUMBER({col}11),{col}4-{col}11,"Unavailable")',
@@ -274,7 +279,7 @@ def build_statements(book, model, revenue_total):
         book.formulas("Checks", col, {
             4: f"{bs}15-{bs}33", 5: f"{cf}25-{cf}24-{cf}10", 6: f"{bs}10-{sc}4-{sc}5+{sc}6",
             7: f"{bs}21+{bs}23-{sc}15-{sc}16+{sc}17", 8: f"{bs}32-{sc}25",
-            9: f"{inc}4-'Revenue Build'!{col}{revenue_total}", 10: f"DCF!{col}21-{cf}12",
+            9: f"{inc}4-'Revenue Build'!{col}{case_total}", 10: f"DCF!{col}21-{cf}12",
         }, kind="check")
         book.expected["Checks"].update({f"{col}{r}": 0 for r in range(4, 11)})
 

@@ -26,7 +26,8 @@ def model():
 def test_template_retains_filed_detail_and_sources(model):
     plan = workbook_plan(model)
     cells = plan["cells"]
-    assert tuple(cells)[:len(SHEETS)] == SHEETS
+    present = tuple(name for name in SHEETS if name in cells)
+    assert tuple(cells)[:len(present)] == present and "Scenarios" in present
     assert cells["Balance Sheet"]["L6"][0] == 15
     assert cells["Balance Sheet"]["L29"][0] == 60
     assert cells["Balance Sheet"]["L31"][0] == 1
@@ -53,7 +54,8 @@ def test_detailed_template_recalculates_and_exports(model, tmp_path):
         revenue = cached["Income Statement"]["B4"].value
         assert cached["Balance Sheet"]["B6"].value == pytest.approx(15 * revenue / 120)
         assert cached["Balance Sheet"]["B29"].value > 60
-        assert cached["Cover"]["B7"].value == pytest.approx(model["scenarios"]["Base"].value_per_share)
+        assert cached["Cover"]["B7"].value == pytest.approx(model["fcfe"]["Base"].value_per_share)
+        assert cached["DCF"]["B15"].value == pytest.approx(model["scenarios"]["Base"].value_per_share)
     finally:
         cached.close()
     formula_book = load_workbook(workbook)

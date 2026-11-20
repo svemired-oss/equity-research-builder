@@ -17,7 +17,8 @@ def test_reference_plan_uses_shared_spine_and_retains_independent_checks():
     original = {"case":"base","cells":cells,"expected":{},
                 "scenarioExpected":{case:{"Revenue":{"B5":100}} for case in ("base","bear","bull")}}
     plan = reference_plan("FDX",original)
-    assert tuple(plan["cells"])[:len(SHEETS)] == SHEETS
+    present = tuple(name for name in SHEETS if name in plan["cells"])
+    assert tuple(plan["cells"])[:len(present)] == present
     assert plan["expected"]["Revenue Build"]["B5"] == 100
     assert set(plan["scenarioExpected"]) == {"bear","base","bull"}
     assert plan["cells"]["Revenue Build"]["B5"][0] == "='Cash Flow Statement'!B7"

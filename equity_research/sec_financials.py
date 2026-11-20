@@ -28,6 +28,8 @@ _DURATION_METRICS = {
     # Components of the labeled operating-income proxy for issuers that present no operating subtotal.
     "interest_income": ("InvestmentIncomeInterest", "InvestmentIncomeInterestAndDividend"),
     "other_nonoperating_income": ("OtherNonoperatingIncomeExpense",),
+    # Carried forward at the historical median with other nonoperating income in the FCFE forecast.
+    "equity_method_income": ("IncomeLossFromEquityMethodInvestments",),
     "depreciation_amortization": ("DepreciationDepletionAndAmortization", "DepreciationAndAmortization"),
     "depreciation_amortization_accretion": ("DepreciationAmortizationAndAccretionNet",),
     "depreciation": ("Depreciation", "DepreciationDepletionAndAmortizationPropertyPlantAndEquipment"),

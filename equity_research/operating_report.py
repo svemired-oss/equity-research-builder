@@ -32,7 +32,13 @@ def fact_sheet(workbook):
                 ("method","Report Evidence","B5"),("method_basis","Report Evidence","B6"),
                 ("rating","Cover","B9"),("close","Cover","B6"),("dcf","Cover","B7"),("upside","Cover","B8"),
                 ("target","Cover","B16"),("total_return","Cover","B17"),("dividend","Cover","B15"),
-                ("blend","Cover","B14"),("comps","Comps","B14"),("wacc","WACC","B9"),
+                ("fcff","Cover","B14"),("fcff_gap","Cover","B18"),("comps","Comps","B14"),("wacc","WACC","B9"),
+                ("ke","Cost of Equity","B33"),("rf","Cost of Equity","B3"),("erp","Cost of Equity","B4"),
+                ("beta","Cost of Equity","B31"),("beta_basis","Cost of Equity","B32"),
+                ("regression_beta","Cost of Equity","B11"),("regression_weeks","Cost of Equity","B8"),
+                ("comparable_beta","Cost of Equity","B29"),("forward_beta","Cost of Equity","B14"),
+                ("bear_growth","Report Evidence","D8"),("bull_growth","Report Evidence","D9"),
+                ("peer_tier","Report Evidence","B12"),
                 ("growth","DCF","B4"),("margin","Assumptions","B3"),("implied_margin","DCF","B36"),
                 ("implied_growth","DCF","B38"),("terminal_gap","DCF","B89"),("terminal_flag","DCF","B90"),
                 ("exit_dcf","DCF","B91"),("bear_shift","Report Evidence","B8"),("bull_shift","Report Evidence","B9"),
@@ -105,7 +111,7 @@ def thesis_options(sheet):
         f"The model forecasts revenue using {f('method').lower()}.",
         f"The first forecast year models ${f('sales_B',',.0f')} million of revenue at a base EBIT margin of {f('margin','.1%')}.",
         f"The base DCF values the shares at {f('dcf','$')} against a reference close of {f('close','$')}.",
-        f"The DCF discounts operating cash flows at {f('wacc','.2%')}.",
+        f"The DCF discounts free cash flow to equity at a {f('ke','.2%')} cost of equity.",
     ]
 
 
@@ -184,16 +190,23 @@ def report_lines(sheet, digest, order):
     section("Forecast")
     for col in "BCDEF":
         add(f"{f(f'year_{col}')} | Revenue ${f(f'sales_{col}',',.1f')} million")
-    add(f"Base EBIT margin {f('margin','.2%')}. Terminal growth assumption {f('growth','.2%')}.")
+    add(f"Base EBIT margin {f('margin','.2%')}. Terminal growth {f('growth','.2%')} is a labeled analyst assumption.")
     section("Valuation")
-    add(f"DCF fair value {f('dcf','$')} at {f('wacc','.2%')} WACC. Exit-multiple DCF {f('exit_dcf','$')}.")
+    add(f"DCF fair value {f('dcf','$')} from free cash flow to equity discounted at a {f('ke','.2%')} cost of equity. "
+        f"The 12-month target rolls this value forward at the cost of equity less expected dividends of {f('dividend','$')}.")
+    add(f"Cost of equity {f('ke','.2%')} = risk-free rate {f('rf','.2%')} + beta {f('beta','.2f')} × equity risk "
+        f"premium {f('erp','.2%')}. Beta basis {f('beta_basis')}.")
+    add(f"Historical regression beta {f('regression_beta','.2f')} from {f('regression_weeks',',.0f')} weekly returns. "
+        f"Comparable beta {f('comparable_beta','.2f')}. Forward beta {f('forward_beta')}.")
+    add(f"FCFF at WACC cross-check {f('fcff','$')} at {f('wacc','.2%')} WACC, {f('fcff_gap','.1%')} from the FCFE value. "
+        f"Exit-multiple FCFF {f('exit_dcf','$')}.")
     add(f"Terminal value divergence {f('terminal_gap','.1%')}. Cross-check {f('terminal_flag')}.")
     if isinstance(value("debt_basis"),str) and type(value("debt_cost")) in (float,int):
         add(f"Pretax cost of debt {f('debt_cost','.2%')}. {f('debt_basis')}")
     if type(value("comps")) in (float,int):
-        add(f"Peer-implied value {f('comps','$')}. Blended current fair value {f('blend','$')}.")
+        add(f"Peer-implied value {f('comps','$')} from {f('peer_tier')} peers. Peer multiples are a cross-check and are not part of the target.")
     else:
-        add("Peer valuation unavailable.")
+        add("Peer multiples cross-check unavailable: insufficient peers, 3 required.")
     for key,label in (("ebitda","EV / EBITDA"),("sales","EV / Sales"),("pe","P/E")):
         if type(value(f"multiple_{key}_C")) in (float,int):
             add(f"{label} | Lower quartile {f(f'multiple_{key}_B','.2f')}x | "
@@ -217,7 +230,8 @@ def report_lines(sheet, digest, order):
     extracts("catalyst","No dated catalyst was supported by the retained filings and earnings releases.")
     section("Bull and bear cases")
     for case in ("bull","bear"):
-        add(f"{case.title()} | EBIT margin change {f(case+'_shift','pp')} | DCF fair value {f(case+'_value','$')}")
+        add(f"{case.title()} | Revenue growth change {f(case+'_growth','pp')} | EBIT margin change {f(case+'_shift','pp')} | "
+            f"FCFE value {f(case+'_value','$')}")
     section("Risks")
     extracts("risk","No verified risk excerpt was retained from the annual filing.")
     section("Sources")

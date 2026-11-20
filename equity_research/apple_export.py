@@ -208,7 +208,7 @@ def workbook_plan(model):
         terminal_margin = "'Income statement'!F4*(1+B4)*(1-B4/B5)/(B3-B4)/(1+B3)^F20"
         sheet("DCF", [(f"=Assumptions!B3+Assumptions!B11+(Cover!B6-B15)*B12/((1-Assumptions!B4)*({pv_margin}+{terminal_margin}))",
                        "total", PCT)], "B", 36)
-        expected["DCF"]["B36"] = model["implied_margin"]
+        expected["DCF"]["B36"] = model.get("legacy_implied_margin", model["implied_margin"])
     comps = model.get("comparables")
     if comps is not None:
         sheet("Comps", [f"{comps['basis']} diluted P/E", f"USD closes from {comps['quote_date']}"])
@@ -262,7 +262,7 @@ def workbook_plan(model):
     return {"cells": cells, "case": "Base", "expected": expected,
             "scenarioControls": {key: key for key in MARGIN_SHIFT},
             "scenarioExpected": {name: {"DCF": {"B15": item.value_per_share}}
-                                 for name, item in model["scenarios"].items() if name != "Base"},
+                                 for name, item in model.get("legacy_scenarios", model["scenarios"]).items() if name != "Base"},
             "recalculationProbe": {"input": {"sheet": "Assumptions", "address": "B3", "delta": .01},
                                    "changed": [{"sheet": "DCF", "address": "B15"}],
                                    "unchanged": [{"sheet": "Actuals", "address": "F4"}]}}
@@ -368,7 +368,7 @@ def _write_pdf(model, workbook, pdf):
     paragraph(model.get("thesis", "The model prices Apple as a hardware and services business. iPhone is the largest source of sales, while Services grows from a smaller base. A three-point margin change tests how mix, demand and cost pressure could affect valuation."))
     table = Table([["Case", "Fair value", "EBIT margin shift"]] + [
         [name, f"${result.value_per_share:.2f}", f"{MARGIN_SHIFT[name] / .03 * model.get('margin_step', .03):+.1%}"]
-        for name, result in model["scenarios"].items()
+        for name, result in model.get("legacy_scenarios", model["scenarios"]).items()
     ], colWidths=[130, 130, 130])
     table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#17365D")),
                                ("TEXTCOLOR", (0,0), (-1,0), colors.white),

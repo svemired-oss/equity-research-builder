@@ -1,38 +1,31 @@
-"""Independent valuation diagnostics and 12-month recommendation."""
-from statistics import median
+"""Independent valuation diagnostics and the 12-month recommendation.
 
-BLEND = .5
+The FCFE value at the cost of equity sets the target. FCFF at WACC, the exit
+multiple and peer multiples are reported as cross-checks only.
+"""
+
 BUY = .15
 SELL = -.15
-DISAGREEMENT = .40
 TERMINAL_GAP = .30
 GROWTH_MIN, GROWTH_MAX = -.50, 1.
 
 
 def implied_growth(model):
-    base = model["scenarios"]["Base"]
-    cost = model["cost"]
-    tax = cost.marginal_tax_rate
-    wc = model["wc_assets"]-model["wc_liabilities"]
-    g, roic, margin, da = (model[k] for k in ("growth","roic","margin","da"))
-    end_capex = da+margin*(1-tax)*g/roic-g*wc
+    """Constant five-year revenue CAGR at which the base FCFE value equals the close."""
+    from .fcfe_valuation import value_fcfe
+    from .operating_research import ResearchGap
+    inputs = model["fcfe_inputs"]
+    start = inputs.opening_revenue
+
     def value(rate):
-        previous = model["metrics"]["revenue"]
-        previous_wc = model.get("opening_wc", previous*wc)
-        pv = 0
-        for i, period in enumerate(base.periods):
-            revenue = previous*(1+rate)
-            capex = model["capex"]+(end_capex-model["capex"])*i/4
-            flow = revenue*(margin*(1-tax)+da-capex)-(revenue*wc-previous_wc)
-            pv += flow*(model["stub"] if i == 0 else 1)/(1+model["wacc"])**period.discount_years
-            previous = revenue
-            previous_wc = revenue*wc
-        terminal = previous*margin*(1-tax)*(1+g)*(1-g/roic)/(model["wacc"]-g)
-        pv += terminal/(1+model["wacc"])**base.periods[-1].discount_years
-        return (pv+base.bridge.adjustment_millions)/base.bridge.diluted_shares_millions
+        revenues = [start * (1 + rate) ** (i + 1) for i in range(5)]
+        return value_fcfe(inputs, revenues, model["margin"], model["cost_of_equity"]).value_per_share
     low, high = GROWTH_MIN, GROWTH_MAX
     close = model["close"]
-    if not value(low) <= close <= value(high):
+    try:
+        if not value(low) <= close <= value(high):
+            return None
+    except ResearchGap:
         return None
     for _ in range(36):
         mid = (low+high)/2
@@ -43,33 +36,35 @@ def implied_growth(model):
     return (low+high)/2
 
 
+def dividends_per_share(model, result):
+    """Next-12-month dividends from the first two forecast years' net income at the filed payout ratio."""
+    payout = model["payout_ratio"] or 0.
+    stub = model["stub"]
+    return sum(max(0., income) * payout * fraction for income, fraction in
+               zip(result.net_income[:2], (stub, 1 - stub), strict=True)) / model["shares"]
+
+
+def rate(total):
+    return "Buy" if total >= BUY else "Sell" if total <= SELL else "Hold"
+
+
 def summarize(model, comps):
-    from .operating_valuation import calculate_cost_of_capital
-    cost = calculate_cost_of_capital(model["cost"])
-    base = model["scenarios"]["Base"]
-    peer = comps["value"] if comps else None
-    discount = 1/(1+model["wacc"])**base.periods[-1].discount_years
+    base = model["fcfe"]["Base"]
+    fcff = model["scenarios"]["Base"]
+    peer = comps.get("value") if comps else None
+    discount = 1/(1+model["wacc"])**fcff.periods[-1].discount_years
     ebitda = model["revenue"][-1]*(model["margin"]+model["da"])
-    multiple = comps["summary"].get("EV / EBITDA") if comps else None
+    multiple = comps["summary"].get("EV / EBITDA") if comps and peer is not None else None
     exit_value = ebitda*multiple["quartiles"][1] if multiple else None
-    divergence = abs(exit_value/base.terminal_value_millions-1) if exit_value is not None else None
-    blend = BLEND*base.value_per_share+(1-BLEND)*peer if peer is not None else None
-    payout = model["payout_ratio"]
-    # Forecast interest accrues on the 10-Q debt from year 1 when financing moved materially.
-    debt = model["debt"] + (model.get("financing_start") or {}).get("debt_change", 0)
-    dividends = None if payout is None else sum(
-        max(0, (sales*model["margin"]-debt*model["cost"].pretax_cost_of_debt)
-            *(1-model["cost"].marginal_tax_rate))*payout*fraction/model["shares"]
-        for sales,fraction in zip(model["revenue"][:2],(model["stub"],1-model["stub"]),strict=True))
-    target = blend*(1+cost.cost_of_equity)-dividends if blend is not None and dividends is not None else None
-    total = (target+dividends)/model["close"]-1 if target is not None else None
-    gap = abs(base.value_per_share/peer-1) if peer and peer > 0 else None
-    rating = ("Review" if target is None or gap is None or gap > DISAGREEMENT else
-              "Buy" if total >= BUY else "Sell" if total <= SELL else "Hold")
-    return {"peer": peer, "blended": blend, "target": target, "dividends": dividends, "return": total,
-            "rating": rating, "gap": gap, "exit_value": exit_value, "terminal_gap": divergence,
-            "exit_per_share": ((base.enterprise_value_millions-base.terminal_present_value_millions+
-                                exit_value*discount+base.bridge.adjustment_millions)/model["shares"]
+    divergence = abs(exit_value/fcff.terminal_value_millions-1) if exit_value is not None else None
+    dividends = dividends_per_share(model, base)
+    target = base.value_per_share*(1+model["cost_of_equity"])-dividends
+    total = (target+dividends)/model["close"]-1
+    return {"peer": peer, "fcff": fcff.value_per_share, "target": target, "dividends": dividends, "return": total,
+            "rating": rate(total), "fcff_gap": abs(base.value_per_share/fcff.value_per_share-1),
+            "peer_gap": abs(base.value_per_share/peer-1) if peer and peer > 0 else None,
+            "exit_value": exit_value, "terminal_gap": divergence,
+            "exit_per_share": ((fcff.enterprise_value_millions-fcff.terminal_present_value_millions+
+                                exit_value*discount+fcff.bridge.adjustment_millions)/model["shares"]
                                if exit_value is not None else None),
             "implied_cagr": implied_growth(model)}
-

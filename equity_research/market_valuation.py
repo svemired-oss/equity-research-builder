@@ -87,7 +87,10 @@ def dated_erp(html, cutoff):
     raise ValueError("No dated Damodaran adjusted-payout ERP within 45 days of the cutoff.")
 
 
-def weekly_beta(stock, index, start, end):
+MIN_WEEKS = 90
+
+
+def weekly_beta(stock, index, start, end, minimum=MIN_WEEKS):
     """Use the same last observed index session in each week and split-adjusted stock prices."""
     weeks = {}
     for day in sorted(index):
@@ -102,8 +105,8 @@ def weekly_beta(stock, index, start, end):
             values = (stock[day], stock[previous], index[day], index[previous])
             if all(isinstance(v, (int, float)) and isfinite(v) and v > 0 for v in values):
                 pairs.append((index[day]/index[previous]-1, stock[day]/stock[previous]-1))
-    if len(pairs) < 90:
-        raise ValueError("At least 90 matched weekly returns are required for two-year beta.")
+    if len(pairs) < max(minimum, 3):
+        raise ValueError(f"At least {max(minimum, 3)} matched weekly returns are required for two-year beta.")
     market, equity = zip(*pairs, strict=True)
     var = variance(market)
     if var <= 0:
@@ -111,16 +114,6 @@ def weekly_beta(stock, index, start, end):
     raw = covariance(market, equity)/var
     return {"raw": raw, "value": (2*raw+1)/3, "weeks": len(pairs), "start": str(start), "date": str(end),
             "url": _BARS_SOURCE, "index_url": INDEX, "basis": "Two-year weekly regression, Blume adjusted"}
-
-
-def select_beta(subject, peers):
-    if subject:
-        return subject
-    if len(peers) >= 2:
-        return {"value": median(p["value"] for p in peers.values()), "peers": peers, "url": _BARS_SOURCE,
-                "index_url": INDEX, "basis": "Median Blume beta of eligible same-industry peers",
-                "date": next(iter(peers.values()))["date"]}
-    raise ValueError("Subject beta unavailable and fewer than two eligible industry beta observations.")
 
 
 def debt_cost(packet, risk_free, observed_spread=None):
@@ -229,12 +222,56 @@ def _series(series, start, end):
     return result
 
 
-def collect_market_inputs(packet, client, quote, peers, risk_free):
+def _peer_leverage(packet, quote):
+    """Funded debt / market equity and the median filed effective tax rate for comparable beta."""
+    from copy import deepcopy
+    from .operating_research import _balance
+    periods = packet.get("interim_actuals", {}).get("periods") or packet["actuals"]["periods"]
+    balance = deepcopy(periods[-1])
+    try:
+        metrics, _, _, debt, *_ = _balance(balance)
+        basis = "Funded debt from the reconciled balance-sheet bridge"
+    except ValueError:
+        # Leverage for unlevering a peer beta only. Use a filed total, labeled; zero only if no debt fact is filed.
+        metrics = {k: v / 1e6 for k, v in balance["metrics"].items() if type(v) in (int, float)}
+        debt, basis = None, None
+        for keys, label in _FILED_DEBT:
+            values = [metrics.get(key) for key in keys]
+            if all(type(v) in (int, float) and v >= 0 for v in values):
+                debt, basis = sum(values), f"Filed {label}; the full balance-sheet bridge did not reconcile"
+                break
+        debt_keys = ("current_debt", "long_term_debt", "long_term_debt_including_current", "total_debt",
+                     "long_term_debt_and_lease_obligations", "long_term_debt_and_finance_leases",
+                     "current_portion_long_term_debt", "commercial_paper", "short_term_borrowings")
+        if debt is None and not any(key in metrics for key in debt_keys):
+            debt, basis = 0., "No funded debt fact is filed on the balance sheet; debt treated as zero"
+        if debt is None:
+            raise ValueError("Peer funded debt could not be read from a filed total.")
+    shares = metrics.get("ending_shares")
+    if type(shares) not in (int, float) or shares <= 0:
+        raise ValueError("Peer common shares are unavailable.")
+    rates = []
+    for period in packet["actuals"]["periods"][-3:]:
+        m = period["metrics"]
+        taxes, pretax = m.get("income_taxes"), m.get("income_before_taxes")
+        if type(taxes) in (int, float) and type(pretax) in (int, float) and pretax > 0:
+            rates.append(taxes / pretax)
+    if not rates or not 0 <= median(rates) < .5:
+        raise ValueError("A filed effective tax rate between 0% and 50% is unavailable.")
+    equity = shares * quote["close"]
+    return {"debt": debt, "debt_basis": basis, "market_cap": equity, "debt_to_equity": debt / equity, "tax_rate": median(rates),
+            "tax_years": len(rates), "balance_date": balance["period_end"],
+            "balance_url": balance["filing"]["url"], "tax_url": packet["actuals"]["periods"][-1]["filing"]["url"],
+            "quote_url": quote["url"], "close": quote["close"], "shares": shares}
+
+
+def collect_market_inputs(packet, client, quote, peers, risk_free, peer_packets=None, peer_quotes=None):
+    """Subject regression beta (any length; the model applies the 90-week rule) and peer beta evidence."""
     end = date.fromisoformat(quote["trading_date"])
     cutoff = date.fromisoformat(packet["as_of"])
     start = end-timedelta(days=735)
     index, index_url, index_basis = _index_series(client, start, end)
-    betas = {}
+    betas, failures = {}, {}
     ranges = None
     for ticker in (quote["ticker"], *peers):
         symbol = quote["provider_symbol"] if ticker == quote["ticker"] else re.sub(r"-([A-Z])$", r".\1", ticker)
@@ -251,15 +288,30 @@ def collect_market_inputs(packet, client, quote, peers, risk_free):
                         type(r.get(k)) in (int,float) and isfinite(r[k]) and r[k]>0 for r in year for k in ("h","l")):
                     ranges = {"low": min(r["l"] for r in year), "high": max(r["h"] for r in year),
                               "date": str(end), "url": _BARS_SOURCE}
-            betas[ticker] = weekly_beta({day: r["c"] for day,r in prices.items()}, index, start, end)
-            if ticker == quote["ticker"]:
-                break
-        except (MarketQuoteError, ValueError, KeyError, TypeError):
+            subject = ticker == quote["ticker"]
+            betas[ticker] = weekly_beta({day: r["c"] for day,r in prices.items()}, index, start, end,
+                                        minimum=0 if subject else MIN_WEEKS)
+        except (MarketQuoteError, ValueError, KeyError, TypeError) as exc:
+            failures[ticker] = str(exc) or type(exc).__name__
             continue
     for item in betas.values():
         item["index_url"], item["index_basis"] = index_url, index_basis
-    beta = select_beta(betas.pop(quote["ticker"], None), betas)
-    beta["index_url"], beta["index_basis"] = index_url, index_basis
+    regression = betas.pop(quote["ticker"], None)
+    if regression is None:
+        regression = {"value": None, "weeks": 0, "unavailable": failures.get(quote["ticker"], "No price history."),
+                      "basis": "Two-year weekly regression unavailable", "url": _BARS_SOURCE,
+                      "date": str(end), "index_url": index_url, "index_basis": index_basis}
+    comparable = {}
+    for ticker in peers:
+        if ticker not in betas:
+            comparable[ticker] = {"excluded": f"Beta unavailable. {failures.get(ticker, '')}".strip()}
+            continue
+        try:
+            leverage = _peer_leverage(peer_packets[ticker], peer_quotes[ticker])
+        except (ValueError, KeyError, TypeError, IndexError) as exc:
+            comparable[ticker] = {"excluded": f"Leverage or tax evidence unavailable. {exc}".strip()}
+            continue
+        comparable[ticker] = {**betas[ticker], **leverage}
     try:
         html = _download(ERP)
     except OSError:
@@ -277,5 +329,5 @@ def collect_market_inputs(packet, client, quote, peers, risk_free):
             debt = debt_cost(packet, risk_free, {"value": spreads[day]/100, "date": str(day), "url": SPREAD})
         else:
             debt = proxy_debt_cost(risk_free, cutoff)
-    return {"beta": beta, "erp": erp, "debt": debt, "range": ranges}
-
+    return {"beta": regression, "regression_beta": regression, "peer_betas": comparable,
+            "erp": erp, "debt": debt, "range": ranges}

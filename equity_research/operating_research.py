@@ -372,10 +372,21 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     if not .03 < margin < .8 or not 0 < tax < .5:
         raise ResearchGap("Profitability or taxes require normalization outside the standard model.")
     market = packet.get("valuation_market")
+    from .fcfe_valuation import (GROWTH_STEP, case_revenues, comparable_beta, other_income_carry,
+                                 regression_evidence, select_beta)
+    beta_evidence = None
+    beta = 1.
+    if market:
+        regression = regression_evidence(market)
+        comparable = comparable_beta(market.get("peer_betas", {}), bridge_debt, close * shares, tax)
+        beta, beta_source = select_beta(regression, comparable)
+        beta_evidence = {"regression": regression, "comparable": comparable, "source": beta_source,
+                         "forward": "Unavailable: no data source"}
     cost = CostOfCapitalInputs(as_of, treasury["rate"], market["erp"]["value"] if market else .045,
-                               market["beta"]["value"] if market else 1., close * shares,
+                               beta, close * shares,
                                market["debt"]["value"] if market else treasury["rate"] + .02, bridge_debt, tax, 0, 0)
-    wacc = calculate_cost_of_capital(cost).wacc
+    capital = calculate_cost_of_capital(cost)
+    wacc, cost_of_equity = capital.wacc, capital.cost_of_equity
     nci = bridge_metrics.get("noncontrolling_interest", 0)
     affiliate_book_value = bridge_period.get("nonoperating_equity_investments", 0) / 1e6
     bridge_investments += affiliate_book_value
@@ -384,8 +395,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
                           immaterial_minority_deficit=bool(bridge_period.get("immaterial_nci")) and nci < 0)
     end = date.fromisoformat(latest["period_end"])
     dates = _forecast_dates(history)
-    if growth + .01 >= min(wacc - .01, roic):
-        raise ResearchGap("Terminal growth leaves insufficient room for the WACC and ROIC sensitivity range.")
+    if growth + .01 >= min(wacc - .01, cost_of_equity - .01, roic):
+        raise ResearchGap("Terminal growth leaves insufficient room for the cost of equity, WACC and ROIC sensitivity range.")
     stub = (dates[0] - as_of).days / (dates[0] - end).days
     if not 0 < stub <= 1:
         raise ResearchGap("The first forecast year has ended. A new filing or explicit interim forecast is required.")
@@ -402,6 +413,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     if selection["group"] == "verified_operating_driver" and not path:
         raise ResearchGap("No verified operating driver or reconciled segment basis is available.")
     revenues = []
+    segment_path = []
     anchor_scale = 1
     target, anchor_sources, anchor_note = None, {}, ""
     for index in range(1, 6):
@@ -420,24 +432,46 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
                 anchor_scale = scale
                 amounts = {key: value * scale for key, value in amounts.items()}
         revenues.append(sum(amounts.values()))
+        if path:
+            # The workbook splits driver revenue across filed lines in proportion to the latest mix.
+            mix = sum(data["latest"].values())
+            segment_path.append({key: revenues[-1] * value / mix for key, value in data["latest"].items()})
+        else:
+            segment_path.append(dict(amounts))
     if stub < 30/366 and target is None:
         raise ResearchGap("A short first-period forecast requires matched interim actuals or filed full-year guidance.")
     wc_ratio = (wc_assets - wc_liab) / opening["revenue"]
     normalized_capex = da + margin * (1 - tax) * growth / roic - growth * wc_ratio
     capex_path = [capex + (normalized_capex - capex) * i / 4 for i in range(5)]
     margin_step = min(.03, margin * .25)
+    cases = {"Bear": (-margin_step, -GROWTH_STEP), "Base": (0, 0), "Bull": (margin_step, GROWTH_STEP)}
+    case_revenue = {name: (revenues if not step else case_revenues(segment_path, data["latest"], step))
+                    for name, (_, step) in cases.items()}
     scenarios = {}
-    for name, shift in (("Bear", -margin_step), ("Base", 0), ("Bull", margin_step)):
+    for name, (shift, _) in cases.items():
         flows = []
         previous = opening["revenue"]
+        for index, (period, revenue) in enumerate(zip(dates, case_revenue[name], strict=True)):
+            fcff = revenue * ((margin + shift) * (1-tax) + da - capex_path[index]) - (revenue-previous) * wc_ratio
+            flows.append(DatedFCFF(period, fcff * (stub if index == 0 else 1)))
+            previous = revenue
+        terminal = TerminalAssumptions(case_revenue[name][-1] * (margin + shift) * (1-tax), growth, roic)
+        scenarios[name] = discount_fcff(flows, as_of, wacc, terminal, bridge)
+    # The legacy Phase 1 exporter models margin-only cases on unshifted revenue.
+    legacy_scenarios = {"Base": scenarios["Base"]}
+    for name, (shift, _) in cases.items():
+        if name == "Base":
+            continue
+        flows, previous = [], opening["revenue"]
         for index, (period, revenue) in enumerate(zip(dates, revenues, strict=True)):
             fcff = revenue * ((margin + shift) * (1-tax) + da - capex_path[index]) - (revenue-previous) * wc_ratio
             flows.append(DatedFCFF(period, fcff * (stub if index == 0 else 1)))
             previous = revenue
-        terminal = TerminalAssumptions(revenues[-1] * (margin + shift) * (1-tax), growth, roic)
-        scenarios[name] = discount_fcff(flows, as_of, wacc, terminal, bridge)
-    margin_value_per_point = (scenarios["Bull"].value_per_share - scenarios["Base"].value_per_share) / margin_step
-    implied_margin = margin + (close - scenarios["Base"].value_per_share) / margin_value_per_point
+        legacy_scenarios[name] = discount_fcff(
+            flows, as_of, wacc, TerminalAssumptions(revenues[-1] * (margin + shift) * (1-tax), growth, roic), bridge)
+    legacy_implied_margin = margin + (close - scenarios["Base"].value_per_share) / (
+        (legacy_scenarios["Bull"].value_per_share - scenarios["Base"].value_per_share) / margin_step)
+    other_income = other_income_carry(history)
     source = latest["filing"]["url"]
     labels = {key: re.sub(r"(?<=[a-z])(?=[A-Z])", " ", key.removesuffix("Member").removesuffix("Segment")) for key in data["latest"]}
     model = {
@@ -467,7 +501,11 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "other_assets": opening["total_assets"]-cash-investments-wc_assets-_read(opening,"net_ppe"),
         "other_liabilities": opening["total_liabilities"]-debt-wc_liab,
         "cost": cost, "wacc": wacc, "growth": growth, "roic": roic, "stub": stub, "scenarios": scenarios, "revenue": revenues,
-        "margin_step": margin_step, "implied_margin": implied_margin,
+        "legacy_scenarios": legacy_scenarios, "legacy_implied_margin": legacy_implied_margin, "cost_of_equity": cost_of_equity, "beta": beta_evidence,
+        "capex_path": tuple(capex_path), "wc_ratio": wc_ratio, "cases": cases,
+        "case_revenue": case_revenue, "segment_path": segment_path, "growth_step": GROWTH_STEP,
+        "other_income": other_income, "peer_selection": packet.get("peer_selection"),
+        "margin_step": margin_step,
         "revenue_anchor": target, "guided_defaults": defaults, "overrides": list(overrides),
         "filed_ytd_revenue": _read(bridge_metrics, "revenue") if interim else 0,
         "payout_ratio": min(1., max(0., median(payouts))) if len(payouts) == 3 else None,
@@ -487,12 +525,20 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             *((recent["note"],) if recent else ()),
             ("Operating-driver growth fades halfway annually toward labeled analyst industry proxies. Revenue line allocations use latest filed mix."
              if path else "Revenue growth fades halfway each year toward terminal growth."),
-            "Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario shifts are capped at 25% of base margin or three percentage points, whichever is smaller.",
+            "Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario margin shifts are capped at 25% of base margin or three percentage points, whichever is smaller. Bull and bear cases also add or subtract 0.5 percentage points to every revenue line's annual growth rate in every forecast year.",
             "D&A uses the annual median ratio. Initial capex uses the greater of the annual median, available interim ratio and D&A ratio. It converges linearly to capex consistent with terminal reinvestment, adjusting for working capital.",
-            ("WACC uses dated implied ERP, Blume-adjusted beta and the debt-cost basis recorded on the WACC tab."
+            ("The primary DCF discounts FCFE (net income plus D&A, less capex and working-capital investment, plus net "
+             "borrowing from the debt schedule) at the CAPM cost of equity on the Cost of Equity tab. The two-year weekly "
+             "regression beta is used unless it has fewer than 90 weekly returns; the comparable beta is then used. "
+             "FCFF at WACC is shown on the DCF tab as a cross-check only."
              if market else "Legacy WACC uses a 4.5% ERP, beta of 1.0 and a debt spread of 2 points."),
+            "Other nonoperating income and equity-method income are carried forward at their three-year filed median. "
+            "Interest income is excluded because cash is valued in the equity bridge. Equity-method investments are "
+            "excluded from the FCFE bridge because their income is in FCFE.",
+            "The 12-month price target rolls the FCFE value forward one year at the cost of equity and deducts expected "
+            "dividends. Peer multiples are a cross-check and never enter the target.",
             "The first DCF period prorates full-year cash flow by remaining days. The equity bridge uses the latest filed balances, short-term investments, carrying debt, and ending common shares.",
-            "The standard model holds noncurrent residual balances and funded debt flat. When three years of dividend payments are available, projected payouts use the median historical payout ratio. Buybacks and acquisitions are outside the forecast.",
+            "The standard model holds noncurrent residual balances and funded debt flat after the year-1 move to the latest 10-Q debt, so forecast net borrowing is zero. Terminal FCFE grows debt at the terminal rate. When three years of dividend payments are available, projected payouts use the median historical payout ratio. Buybacks and acquisitions are outside the forecast.",
             "Where no standalone liabilities total is tagged, the model derives it from filed liabilities and equity less equity.",
             "Reverse DCF solves for a constant operating margin at the observed price, holding the rest of the base model fixed. An absolute DCF gap of at least 50% requires analyst review.",
             *dict.fromkeys(note for row in (latest, bridge_period) for note in row.get("operating_bridge_notes", ())),
@@ -509,9 +555,20 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
               if movements else ()),
         ),
     }
+    attach_fcfe(model)
     if market:
         from .valuation_summary import summarize
         comps = packet.get("valuation_comps")
+        from .peer_selection import MIN_PEERS
+        if comps and "subject" in comps:
+            # Comps are a cross-check shown only when three peers qualify for a multiple.
+            count = len(comps.get("rows", ()))
+            summary = {k: v for k, v in comps["summary"].items() if v["count"] >= MIN_PEERS} if count >= MIN_PEERS else {}
+            medians = [v["values"][1] for v in summary.values()]
+            comps = {**comps, "summary": summary, "value": median(medians) if medians else None,
+                     "reason": None if medians else (f"Insufficient peers: {count} qualified, {MIN_PEERS} required."
+                                                     if count < MIN_PEERS else
+                                                     f"Insufficient peers: no multiple has {MIN_PEERS} valid peer values.")}
         model["valuation_market"] = market
         model["valuation_comps"] = comps
         model["valuation_summary"] = summarize(model, comps)
@@ -523,31 +580,45 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     return model
 
 
+def attach_fcfe(model):
+    """FCFE at the cost of equity for each case, from the model's statement inputs and debt schedule."""
+    from .fcfe_valuation import FCFEInputs, value_fcfe
+    cost = model["cost"]
+    tax, ke, growth, roic, stub = (cost.marginal_tax_rate, model["cost_of_equity"], model["growth"], model["roic"],
+                                   model["stub"])
+    debt = model["debt"] + (model.get("financing_start") or {}).get("debt_change", 0)
+    base = model["scenarios"]["Base"]
+    inputs = FCFEInputs(
+        model["metrics"]["revenue"], model["opening_wc_assets"] - model["opening_wc_liabilities"], model["wc_ratio"],
+        tax, model["da"], model["capex_path"], (debt * cost.pretax_cost_of_debt,) * 5, model["other_income"], debt,
+        cost.pretax_cost_of_debt, (0.,) * 5, stub, tuple(p.discount_years for p in base.periods), growth, roic,
+        base.bridge.adjustment_millions + model["bridge_debt"] - model["bridge_affiliate_book_value"], model["shares"])
+    model["fcfe_inputs"] = inputs
+    model["fcfe"] = {name: value_fcfe(inputs, model["case_revenue"][name], model["margin"] + shift, ke)
+                     for name, (shift, _) in model["cases"].items()}
+    revenues = model["revenue"]
+    discount = [(1 + ke) ** -t for t in inputs.discount_years]
+    per_point = (1 - tax) * (
+        sum(r * f * (stub if i == 0 else 1) for i, (r, f) in enumerate(zip(revenues, discount, strict=True)))
+        + revenues[-1] * (1 + growth) * (1 - growth / roic) / (ke - growth) * discount[-1]) / inputs.shares
+    model["implied_margin"] = model["margin"] + (model["close"] - model["fcfe"]["Base"].value_per_share) / per_point
+    return model
+
+
+PASS_LOW, PASS_HIGH = .5, 2.
+
+
 def verify_valuation_range(model):
-    """Require analyst review when the standard forecast yields an extreme result."""
-    base_value = model["scenarios"]["Base"].value_per_share
+    """Stop when the base FCFE value is outside 0.5x to 2x the verified close."""
+    base_value = (model.get("fcfe") or model["scenarios"])["Base"].value_per_share
     close = model["close"]
     ratio = base_value / close
-    if not .25 <= ratio <= 4:
+    if not PASS_LOW <= ratio <= PASS_HIGH:
         implied_margin = model.get("implied_margin")
         detail = (f" The model uses a {model['margin']:.1%} EBIT margin and implies a {implied_margin:.1%} "
                   "margin at the verified close with other assumptions fixed."
                   if implied_margin is not None and model.get("margin") is not None else "")
-        diagnostic = (
-            f"The standard DCF is outside 25% to 400% of the verified close. The base scenario gives "
-            f"${base_value:.2f} per share versus a ${close:.2f} close.{detail} Review reinvestment, "
-            "profit margins, and the equity bridge before issuing a valuation."
-        )
-        review = (
-            model.get("ticker") == "WMT" and 0 < ratio < .25
-            and .035 <= model.get("margin", 0) <= .048
-            and model.get("implied_margin", 0) >= model["margin"] * 2
-            and model.get("bridge_debt", 0) > 0 and model.get("bridge_nci", 0) > 0
-        )
-        if review:
-            return ("Analyst review required. " + diagnostic +
-                    " Walmart's modeled margin is anchored to reported operating results. "
-                    "The scenario is a valuation review, and the large gap warrants checking the "
-                    "operating leverage and capital-spending outlook before relying on it.")
-        raise ResearchGap(diagnostic)
+        raise ResearchGap(
+            f"Valuation outside 0.5–2×, analyst review needed. The base FCFE value is ${base_value:.2f} per share "
+            f"versus a ${close:.2f} close ({ratio:.2f}×).{detail}")
     return None

@@ -7,15 +7,10 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .operating_research import ResearchGap
-from .valuation_comps import SIZE_HIGH, SIZE_LOW
-
-# Mirrors the eligibility checks in valuation_comps.prepare for segment-growth subjects.
-PEER_RULES = (f"Each peer must share the subject's SEC SIC major group (the first two digits of issuer.sic), "
-              f"have market capitalization between {SIZE_LOW:g}x and {SIZE_HIGH:g}x the subject's, report positive "
-              "trailing GAAP earnings, and file U.S. GAAP 10-K and 10-Q reports.")
+from .peer_selection import PEER_RULES
 
 
-def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_rules=None):
+def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_rules=PEER_RULES):
     """Choose among reconciled evidence groups. Model output cannot inject financial figures."""
     fields = ("group", "reason", "thesis", "risks")
     peer_fields = ("ticker", "reason")
