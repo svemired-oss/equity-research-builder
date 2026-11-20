@@ -256,7 +256,8 @@ def verify_recalculation(book,case,model,changes):
         equal("Schedules",column+"26",shares)
         previous_wc=sales*wc
     terminal=TerminalAssumptions(ebit*(1-tax),growth,roic)
-    bridge=EquityBridge(model["as_of"],dcf(6),dcf(7),dcf(8),dcf(10),dcf(9),0,dcf(12))
+    bridge=EquityBridge(model["as_of"],dcf(6),dcf(7),dcf(8),dcf(10),dcf(9),0,dcf(12),
+                        immaterial_minority_deficit=bool(model.get("immaterial_nci")) and dcf(9)<0)
     result=discount_fcff(flows,model["as_of"],cost.wacc,terminal,bridge)
     equal("DCF","B15",result.value_per_share)
     equal("Cover","B7",result.value_per_share)

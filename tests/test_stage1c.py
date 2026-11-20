@@ -287,8 +287,89 @@ def test_fdx_freight_separation_stops_and_small_disposals_do_not(monkeypatch):
     # The bridge applies the check before any balance recovery.
     packet = _packet("HON", period("2025-12-31", {"total_assets": 73681}, form="10-K", accession="0000773840-26-000010"),
                      [period("2026-09-30", {}, accession="0000773840-26-000143")])
+    ten_k = instance(fact("AssetsOfDisposalGroupIncludingDiscontinuedOperationCurrent", "2025-12-31", 0),
+                     fact("DisposalGroupIncludingDiscontinuedOperationAssetsNoncurrent", "2025-12-31", 0))
     with pytest.raises(ResearchGap, match="Pro forma basis required"):
-        _run_bridge(monkeypatch, packet, {"0000773840-26-000143": _separation_instance("2025-12-31", 8232, 11612)})
+        _run_bridge(monkeypatch, packet, {"0000773840-26-000143": _separation_instance("2025-12-31", 8232, 11612),
+                                          "0000773840-26-000010": ten_k})
+
+
+def test_ko_disposal_group_already_in_the_10k_does_not_stop():
+    # Coca-Cola: the 10-Q's 2025-12-31 column shows USD 5,342 million held for disposal, and the
+    # 10-K already reports the same USD 5,342 million, so the history is on the 10-Q's basis.
+    annual = period("2025-12-31", {"total_assets": 106000}, form="10-K")
+    interim = period("2026-10-02", {})
+    ten_q = instance(fact("AssetsOfDisposalGroupIncludingDiscontinuedOperation", "2025-12-31", 5342),
+                     fact("AssetsOfDisposalGroupIncludingDiscontinuedOperation", "2026-10-02", 5400))
+    ten_k = instance(fact("AssetsOfDisposalGroupIncludingDiscontinuedOperation", "2025-12-31", 5342))
+    separation_basis_gap(annual, interim, ten_q, "COCA COLA CO", ten_k)
+    # Without the 10-K presentation the same 10-Q would stop.
+    with pytest.raises(ResearchGap, match="still held for disposal at 2026-10-02"):
+        separation_basis_gap(annual, interim, ten_q, "COCA COLA CO", instance())
+
+
+# --- META, UPS: cover-page shares by class ---------------------------------------------------
+
+CLASS = "us-gaap:StatementClassOfStockAxis"
+
+
+@pytest.mark.parametrize("ticker,a,b,cover", [("META", 2214472367, 341768886, "2026-10-16"),
+                                              ("UPS", 99812037, 751657335, "2026-10-15")])
+def test_meta_and_ups_shares_come_from_the_cover_page_classes(monkeypatch, ticker, a, b, cover):
+    end = "2026-09-30"
+    annual = period("2025-12-31", {"cash_and_equivalents": 5000, "short_term_investments": 0, "current_debt": 10,
+                                   "long_term_debt": 100, "net_ppe": 1, "ending_shares": None,
+                                   "finance_lease_current": 0, "finance_lease_noncurrent": 0},
+                    form="10-K", start="2025-01-01", accession="0000000001-26-000010")
+    interim = period(end, {"cash_and_equivalents": 5000, "short_term_investments": 0, "current_debt": 10,
+                           "long_term_debt": 100, "net_ppe": 1, "ending_shares": None,
+                           "finance_lease_current": 0, "finance_lease_noncurrent": 0}, accession="0000000001-26-000020")
+    ten_q = instance(fact("Assets", end, 1),
+                     fact("dei:EntityCommonStockSharesOutstanding", cover, a, ((CLASS, "us-gaap:CommonClassAMember"),), unit="shares"),
+                     fact("dei:EntityCommonStockSharesOutstanding", cover, b, ((CLASS, "us-gaap:CommonClassBMember"),), unit="shares"))
+    packet = _run_bridge(monkeypatch, _packet(ticker, annual, [interim]),
+                         {"0000000001-26-000010": instance(fact("Assets", "2025-12-31", 1)), "0000000001-26-000020": ten_q})
+    p = packet["interim_actuals"]["periods"][0]
+    assert p["metrics"]["ending_shares"] == a + b and p["share_count_date"] == cover
+    source = p["sources"]["ending_shares"]
+    assert source["tag"] == "dei:EntityCommonStockSharesOutstanding" and source["period_end"] == cover
+    assert any("counted one for one" in n and f"{(a + b) / 1e6:,.1f} million" in n for n in p["operating_bridge_notes"])
+
+
+def test_cover_class_shares_need_one_value_per_class():
+    from equity_research.operating_evidence import cover_class_shares
+    p = period("2026-09-30", {"ending_shares": None})
+    facts = [fact("dei:EntityCommonStockSharesOutstanding", "2026-10-16", 1, ((CLASS, "us-gaap:CommonClassAMember"),), unit="shares"),
+             fact("dei:EntityCommonStockSharesOutstanding", "2026-10-16", 2, ((CLASS, "us-gaap:CommonClassAMember"),), unit="shares")]
+    assert cover_class_shares(p, facts, p["filing"], "u") == [] and p["metrics"]["ending_shares"] is None
+
+
+# --- CAT, CMCSA: immaterial negative NCI -------------------------------------------------------
+
+@pytest.mark.parametrize("ticker,nci,equity,stops", [("CAT", -1, 21482, False), ("CMCSA", -33, 92497, False),
+                                                     ("LARGE", -200, 21482, True)])
+def test_negative_nci_under_half_a_percent_of_equity_is_deducted_at_book(ticker, nci, equity, stops):
+    p = _balanced("2026-09-30", {"long_term_debt": 100, "current_debt": 10, "noncontrolling_interest": nci,
+                                 "total_equity": equity, "total_assets": equity + 600},
+                  {"long_term_debt": "LongTermDebtNoncurrent"})
+    if stops:
+        with pytest.raises(ResearchGap, match="Negative noncontrolling interest"):
+            _balance(p)
+        return
+    metrics = _balance(p)[0]
+    assert metrics["noncontrolling_interest"] == nci and p["immaterial_nci"] is True
+    assert any(n.startswith("Immaterial NCI at book") for n in p["operating_bridge_notes"])
+
+
+def test_equity_bridge_accepts_only_a_flagged_minority_deficit():
+    from equity_research.fcff_valuation import DatedFCFF, EquityBridge, TerminalAssumptions, discount_fcff
+    day = date(2026, 11, 19)
+    flows, terminal = [DatedFCFF(date(2027, 11, 19), 100)], TerminalAssumptions(100, .02, .1)
+    with pytest.raises(ValueError, match="Minority interests must be nonnegative"):
+        discount_fcff(flows, day, .08, terminal, EquityBridge(day, 50, 0, 100, 0, -33, 0, 10))
+    flagged = discount_fcff(flows, day, .08, terminal, EquityBridge(day, 50, 0, 100, 0, -33, 0, 10, True))
+    plain = discount_fcff(flows, day, .08, terminal, EquityBridge(day, 50, 0, 100, 0, 0, 0, 10))
+    assert flagged.equity_value_millions == pytest.approx(plain.equity_value_millions + 33)   # Deducted at book.
 
 
 # --- PEP, JNJ, VZ: guidance quotes match in the workbook and the PDF -----------------------
@@ -319,3 +400,23 @@ def test_cleaned_quote_round_trips_through_the_workbook_and_pdf(tmp_path):
     extracted = _normalize(" ".join(page.extract_text() for page in PdfReader(path).pages))
     assert extracted == _normalize(text)
     assert all(ord(char) >= 32 for char in extracted)
+
+
+# --- CRM: one retry when peer candidates fail validation ------------------------------------
+
+def test_crm_invalid_peer_candidates_are_retried_once(monkeypatch):
+    from test_stage1b import _provider, _selection
+    bad = _selection(peer_candidates=[{"ticker": "Oracle Corp", "reason": "Enterprise software."}])
+    research_agent, packet, sent = _provider(monkeypatch, [bad, _selection()])
+    selection = research_agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")
+    assert selection["peer_candidates"] == [{"ticker": "LOW", "reason": "Home improvement."}] and len(sent) == 2
+    assert "failed peer validation" in sent[1]["instructions"]
+
+
+def test_crm_invalid_peer_candidates_twice_still_stop(monkeypatch):
+    from test_stage1b import _provider, _selection
+    bad = _selection(peer_candidates=[{"ticker": "ORCL", "reason": "x" * 241}])
+    research_agent, packet, sent = _provider(monkeypatch, [bad, bad])
+    with pytest.raises((ResearchGap, ValueError), match="Invalid peer candidates"):
+        research_agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")
+    assert len(sent) == 2

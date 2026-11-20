@@ -191,6 +191,9 @@ def _reconciled_revenue(prior, latest, facts):
     return candidates
 
 
+IMMATERIAL_NCI = .005
+
+
 def _read(metrics, key):
     value = metrics.get(key)
     if value is None:
@@ -231,8 +234,18 @@ def _balance(period):
         metrics["total_liabilities"] = liabilities
     if equity is None or not isclose(assets - liabilities, equity, rel_tol=0, abs_tol=1):
         raise ResearchGap("The filed balance sheet did not reconcile.")
+    total_equity = metrics.get("total_equity", equity)
+    nci = metrics.get("noncontrolling_interest", 0)
+    if nci < 0 and total_equity and abs(nci) < IMMATERIAL_NCI * abs(total_equity):
+        period["immaterial_nci"] = True
+        note = (f"Immaterial NCI at book: the filed {period['period_end']} noncontrolling interest of USD {nci:,.1f} million "
+                f"is {abs(nci) / abs(total_equity):.3%} of total equity of USD {total_equity:,.0f} million, under the 0.5% "
+                "threshold, so it is deducted at book value.")
+        notes = period.setdefault("operating_bridge_notes", [])
+        if note not in notes:
+            notes.append(note)
     for key in ("noncontrolling_interest", "preferred_stock_book_value"):
-        if metrics.get(key, 0) < 0:
+        if metrics.get(key, 0) < 0 and not (key == "noncontrolling_interest" and period.get("immaterial_nci")):
             raise ResearchGap(f"Negative {key.replace('_', ' ')} requires a reviewed valuation bridge.")
         if metrics.get(key, 0):
             note = f"Book-value proxy: deduct filed {key.replace('_', ' ')} from common equity value."
@@ -367,7 +380,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     affiliate_book_value = bridge_period.get("nonoperating_equity_investments", 0) / 1e6
     bridge_investments += affiliate_book_value
     preferred = bridge_metrics.get("preferred_stock_book_value", 0)
-    bridge = EquityBridge(as_of, bridge_cash, bridge_investments, bridge_debt, preferred, nci, 0, shares)
+    bridge = EquityBridge(as_of, bridge_cash, bridge_investments, bridge_debt, preferred, nci, 0, shares,
+                          immaterial_minority_deficit=bool(bridge_period.get("immaterial_nci")) and nci < 0)
     end = date.fromisoformat(latest["period_end"])
     dates = _forecast_dates(history)
     if growth + .01 >= min(wacc - .01, roic):
@@ -437,6 +451,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "debt": debt, "shares": shares, "bridge_cash": bridge_cash, "bridge_investments": bridge_investments,
         "bridge_preferred": preferred, "capital_movements": movements, "bridge_base": bridge_base,
         "financing_start": financing_start,
+        "immaterial_nci": bool(bridge_period.get("immaterial_nci")),
         "balance_evidence": [
             {"period_end": row["period_end"], "metric": key, "value": amount,
              "source": row.get("sources", {}).get(key, row.get("bridge_filing_provenance", row["filing"]))}

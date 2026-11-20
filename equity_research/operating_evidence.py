@@ -471,7 +471,7 @@ _DISPOSAL_ASSETS = ("AssetsOfDisposalGroupIncludingDiscontinuedOperation",
 SEPARATION_MATERIALITY = .05
 
 
-def separation_basis_gap(annual, interim, instance, issuer_name=None):
+def separation_basis_gap(annual, interim, instance, issuer_name=None, annual_instance=None):
     """Stop when the latest 10-Q separates operations that the 10-K history includes.
 
     The 10-Q's prior year-end column reports discontinued-operation assets. When they
@@ -487,19 +487,23 @@ def separation_basis_gap(annual, interim, instance, issuer_name=None):
     if type(total_assets) not in (int, float) or total_assets <= 0:
         return
 
-    def value(concept, day):
-        values = {fact.value for fact in instance.facts if fact.concept == f"us-gaap:{concept}" and fact.start is None
+    def value(source, concept, day):
+        values = {fact.value for fact in source.facts if fact.concept == f"us-gaap:{concept}" and fact.start is None
                   and fact.unit == "USD" and fact.end == day and not fact.dimensions}
         return max(values) if values else None
 
-    def disposal(day):
-        total = value(_DISPOSAL_ASSETS[0], day)
+    def disposal(day, source=instance):
+        total = value(source, _DISPOSAL_ASSETS[0], day)
         if total is not None:
             return total
-        parts = [value(concept, day) for concept in _DISPOSAL_ASSETS[1:]]
+        parts = [value(source, concept, day) for concept in _DISPOSAL_ASSETS[1:]]
         return None if all(part is None for part in parts) else sum(part or 0 for part in parts)
 
-    prior = disposal(year_end)
+    restated = disposal(year_end)
+    # A disposal group the 10-K already presents is part of the filed history's
+    # basis. Only the amount the 10-Q newly classifies at that year-end counts.
+    reported = (disposal(year_end, annual_instance) if annual_instance is not None else None) or 0
+    prior = None if restated is None else restated - reported
     if prior is None or prior < SEPARATION_MATERIALITY * total_assets:
         return
     remaining = disposal(interim_end) or 0
@@ -514,3 +518,35 @@ def separation_basis_gap(annual, interim, instance, issuer_name=None):
         f"operations held USD {prior / 1e6:,.0f} million of assets at {annual['period_end']} "
         f"({prior / total_assets:.0%} of total assets) and {status}. The 10-K history and opening balance sheet "
         "include those operations, so a valuation needs pro forma continuing-operations history.")
+
+
+def cover_class_shares(period, facts, filing, url):
+    """Use the latest cover-page share count summed across the filed common share classes.
+
+    Issuers with several common classes (Meta, UPS, Comcast) tag the cover count only
+    by class. Each class must have one value at the latest cover date. Classes are
+    counted one for one, which is labeled as an analyst assumption. Returns notes.
+    """
+    cover_date = max(fact.end for fact in facts)
+    by_class = {}
+    for fact in facts:
+        if fact.end == cover_date:
+            by_class.setdefault(fact.dimensions[0][1], set()).add(fact.value)
+    if len(by_class) < 2 or any(len(values) != 1 for values in by_class.values()):
+        return []
+    counts = {member: next(iter(values)) for member, values in by_class.items()}
+    if any(value < 0 for value in counts.values()) or sum(counts.values()) <= 0:
+        return []
+    total = sum(counts.values())
+    period["metrics"]["ending_shares"] = total
+    period["share_count_date"] = cover_date.isoformat()
+    names = ", ".join(f"{member.rsplit('}', 1)[-1].split(':')[-1].replace('Member', '')} {value / 1e6:,.1f}M"
+                      for member, value in sorted(counts.items()))
+    note = (f"Cover-page share count: dei:EntityCommonStockSharesOutstanding at {cover_date} from the "
+            f"{filing['form']} filed {filing['filed_on']} ({names}), {total / 1e6:,.1f} million in total. "
+            "Analyst assumption: the common share classes are counted one for one.")
+    period.setdefault("sources", {})["ending_shares"] = {
+        **filing, "url": url, "tag": "dei:EntityCommonStockSharesOutstanding", "unit": "shares",
+        "period_end": cover_date.isoformat(), "members": counts, "value": total, "basis": note}
+    period.get("metric_issues", {}).pop("ending_shares", None)
+    return [note]

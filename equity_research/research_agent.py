@@ -118,6 +118,13 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_r
                 or not peer["reason"].isprintable() or peer["reason"].lstrip().startswith("=")
                 for peer in peers
             ):
+                if text_attempt == 0:
+                    # One retry when the peer list fails validation, with the rules restated.
+                    payload["instructions"] += (" A previous answer failed peer validation. Return at most 5 peer "
+                                                "candidates, each with exactly the fields ticker and reason; the ticker "
+                                                "is the U.S. listing symbol in capitals (for example ABC or BRK.B) and "
+                                                "the reason is one plain-text line of at most 240 characters.")
+                    continue
                 raise ValueError("Invalid peer candidates.")
             return selection
     except HTTPError as exc:

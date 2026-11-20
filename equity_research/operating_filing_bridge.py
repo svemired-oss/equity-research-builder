@@ -105,7 +105,7 @@ def enrich_operating_bridge(packet, client):
 
     if interim and interim[-1]["period_end"] > annual["period_end"]:
         from .operating_evidence import separation_basis_gap
-        separation_basis_gap(annual, interim[-1], own_instance(interim[-1]), issuer.get("name"))
+        separation_basis_gap(annual, interim[-1], own_instance(interim[-1]), issuer.get("name"), own_instance(annual))
     for period in [annual, *interim[-1:]]:
         metrics = period["metrics"]
         recover_debt = metrics.get("long_term_debt") is None and metrics.get("long_term_debt_and_finance_leases") is None
@@ -115,7 +115,7 @@ def enrich_operating_bridge(packet, client):
         recover_current_debt = all(metrics.get(key) is None for key in (
             "current_debt", "current_portion_long_term_debt", "current_portion_long_term_debt_and_finance_leases"))
         if not (known_basis or recover_debt or recover_cash or recover_lease or recover_ppe or recover_current_debt
-                or metrics.get("cash_and_equivalents") is None):
+                or metrics.get("cash_and_equivalents") is None or metrics.get("ending_shares") is None):
             continue
         instance, selected_filing = _latest_period_instance(packet, period, client, instance_cache)
         from .operating_evidence import recover_alternative_cash
@@ -389,7 +389,13 @@ def enrich_operating_bridge(packet, client):
         if metrics.get("ending_shares") is None:
             share_facts = [fact for fact in facts if fact.concept == "dei:EntityCommonStockSharesOutstanding"
                            and fact.unit == "shares" and end <= fact.end <= as_of]
-            if share_facts:
+            classes = [fact for fact in instance.facts if fact.concept == "dei:EntityCommonStockSharesOutstanding"
+                       and fact.unit == "shares" and end <= fact.end <= as_of and len(fact.dimensions) == 1
+                       and fact.dimensions[0][0] == "us-gaap:StatementClassOfStockAxis"]
+            if not share_facts and classes:
+                from .operating_evidence import cover_class_shares
+                notes.extend(cover_class_shares(period, classes, selected_filing, instance.url))
+            elif share_facts:
                 cover_date = max(fact.end for fact in share_facts)
                 metrics["ending_shares"] = _single([fact for fact in share_facts if fact.end == cover_date],
                                                    {"dei:EntityCommonStockSharesOutstanding"})

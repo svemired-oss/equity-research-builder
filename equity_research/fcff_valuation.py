@@ -33,6 +33,9 @@ class EquityBridge:
     minority_interests_millions: float
     other_noncommon_claims_millions: float
     diluted_shares_millions: float
+    # A filed negative noncontrolling interest below 0.5% of total equity is
+    # deducted at book value ("immaterial NCI at book"); larger deficits stop.
+    immaterial_minority_deficit: bool = False
 
     @property
     def adjustment_millions(self) -> float:
@@ -115,7 +118,7 @@ def _check_model(
         ("Other noncommon claims", bridge.other_noncommon_claims_millions),
     ):
         _finite(amount, label)
-        if amount < 0:
+        if amount < 0 and not (label == "Minority interests" and bridge.immaterial_minority_deficit):
             raise ValueError(f"{label} must be nonnegative.")
     _finite(bridge.diluted_shares_millions, "Diluted shares")
     if bridge.diluted_shares_millions <= 0:
