@@ -94,12 +94,21 @@ def load_filing_instance(client: TextClient, cik: str, accession: str) -> Filing
     index_url = filing_index_url(cik, accession)
     index = _FilingIndex(client.get_text(index_url))
     candidates = set()
+    directory = urlsplit(index_url).path.rsplit("/", 2)[-2]
     for href in index.links:
         try:
             link = urljoin(index_url, href)
-            filename = urlsplit(link).path.rsplit("/", 1)[-1]
-            if filename.lower().endswith(".xml") and link == filing_document_url(cik, accession, filename):
-                candidates.add(link)
+            parts = urlsplit(link)
+            filename = parts.path.rsplit("/", 1)[-1]
+            if not filename.lower().endswith(".xml") or parts.netloc != "www.sec.gov":
+                continue
+            # Combined multi-registrant filings (for example utility holding
+            # companies) link the instance under a co-registrant's CIK. EDGAR
+            # serves the same accession under every registrant, so accept any
+            # registrant directory for this accession and read the requested
+            # issuer's canonical copy.
+            if re.fullmatch(rf"/Archives/edgar/data/[0-9]{{1,10}}/{directory}/{re.escape(filename)}", parts.path):
+                candidates.add(filing_document_url(cik, accession, filename))
         except ValueError:
             continue
     if len(candidates) != 1:

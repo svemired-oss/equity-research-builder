@@ -8,7 +8,8 @@ from math import isfinite
 # Candidate tags are ordered by coverage. A broader total takes precedence over
 # a narrower disclosure in the same filing. The chosen tag remains visible.
 _DURATION_METRICS = {
-    "revenue": ("Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerExcludingAssessedTax"),
+    "revenue": ("Revenues", "SalesRevenueNet", "RevenueFromContractWithCustomerExcludingAssessedTax",
+                "RegulatedAndUnregulatedOperatingRevenue"),
     "cost_of_revenue": ("CostOfRevenue", "CostOfGoodsAndServicesSold", "CostOfGoodsSold"),
     "gross_profit": ("GrossProfit",),
     "operating_income": ("OperatingIncomeLoss",),

@@ -104,6 +104,7 @@ def revenue_candidates(packet):
     # The same filing may tag both net sales and total revenue for every
     # segment. First match the consolidated accounting line used by the model.
     preferred = {}
+    concept = None
     if len(bases) == 1:
         taxonomy, tag = next(iter(bases))
         if taxonomy and tag:
@@ -117,6 +118,9 @@ def revenue_candidates(packet):
                for passage in packet.get("driver_passages", {}).values() for kind in PLUGINS):
             return {"verified_operating_driver": {"prior": {"Consolidated": prior["metrics"]["revenue"]/1e6},
                                                  "latest": {"Consolidated": latest["metrics"]["revenue"]/1e6}}}
+        from .revenue_fallbacks import fallback_revenue_candidates
+        candidates = fallback_revenue_candidates(prior, latest, facts, concept)
+    if not candidates:
         raise ResearchGap("Filed product or segment revenue did not reconcile across two comparable years.")
     return candidates
 
@@ -343,6 +347,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     rates = {key: rate_current[key] / rate_prior[key] - 1 for key in amounts}
     from .drivers import FALLBACK, choose, forecast
     driver = choose(packet, selection)
+    if driver["type"] == FALLBACK and data.get("basis"):
+        driver = {**driver, "reason": f"{driver['reason'].rstrip()} {data['basis']}".strip()}
     path = forecast(driver, growth) if driver["type"] != FALLBACK else []
     if selection["group"] == "verified_operating_driver" and not path:
         raise ResearchGap("No verified operating driver or reconciled segment basis is available.")

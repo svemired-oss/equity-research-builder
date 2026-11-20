@@ -78,6 +78,12 @@ def test_revenue_candidates_match_saved_totals_and_reject_overlap():
     packet["operating_facts"]["observations"].append({
         **packet["operating_facts"]["observations"][-1], "dimensions": [{"member": "Overlapping"}],
     })
+    # The exact rule rejects the overlap. The fallback ignores a member filed in
+    # one year only and keeps the lines that reconcile in both years, with a basis note.
+    candidates = revenue_candidates(packet)
+    assert set(candidates["segment_revenue"]["latest"]) == {"Products", "Services"}
+    assert "reconciles to consolidated revenue in both years" in candidates["segment_revenue"]["basis"]
+    packet["actuals"]["periods"][-1]["metrics"]["revenue"] = None
     with pytest.raises(ResearchGap, match="did not reconcile"):
         revenue_candidates(packet)
 

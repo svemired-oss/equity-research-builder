@@ -14,6 +14,7 @@ _REVENUE = {
     "us-gaap:RevenueFromContractWithCustomerIncludingAssessedTax",
     "us-gaap:Revenues",
     "us-gaap:SalesRevenueNet",
+    "us-gaap:RegulatedAndUnregulatedOperatingRevenue",
 }
 _OPERATING_INCOME = "us-gaap:OperatingIncomeLoss"
 _BACKLOG = "us-gaap:RevenueRemainingPerformanceObligation"

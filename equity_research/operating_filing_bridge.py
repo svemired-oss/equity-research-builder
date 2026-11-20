@@ -100,7 +100,9 @@ def enrich_operating_bridge(packet, client):
         recover_cash = metrics.get("short_term_investments") is None and metrics.get("available_for_sale_debt_securities_current") is None
         recover_lease = any(metrics.get(key) is None for key in ("finance_lease_current", "finance_lease_noncurrent"))
         recover_ppe = metrics.get("net_ppe") is None
-        if not (known_basis or recover_debt or recover_cash or recover_lease or recover_ppe
+        recover_current_debt = period is not annual and all(metrics.get(key) is None for key in (
+            "current_debt", "current_portion_long_term_debt", "current_portion_long_term_debt_and_finance_leases"))
+        if not (known_basis or recover_debt or recover_cash or recover_lease or recover_ppe or recover_current_debt
                 or metrics.get("cash_and_equivalents") is None):
             continue
         instance, selected_filing = _latest_period_instance(packet, period, client, instance_cache)
@@ -316,6 +318,9 @@ def enrich_operating_bridge(packet, client):
             if period is not annual and any(metrics.get(key) is None for key in ("finance_lease_current", "finance_lease_noncurrent")):
                 raise ResearchGap("McDonald's interim balance sheet combines operating and finance leases. "
                                   "The latest separate finance lease liability is needed to finish the live valuation bridge.")
+        if period is not annual:
+            from .operating_evidence import recover_comparative_debt
+            notes.extend(recover_comparative_debt(period, annual, instance))
         if recover_lease and not period.get("reported_debt_basis") and ticker != "PM":
             if lease_note is None:
                 lease_note = any(re.search(r"\b(?:we do not have significant financing leases|"

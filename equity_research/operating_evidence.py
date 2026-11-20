@@ -45,6 +45,82 @@ def assume_absent_balances(period):
         }
 
 
+_COMPARATIVE_DEBT = {
+    "current_debt": ("DebtCurrent", "ShortTermBorrowings", "NotesPayableCurrent", "LongTermDebtCurrent",
+                     "DebtCurrentAndFinanceLeaseLiabilityCurrent"),
+    "long_term_debt": ("LongTermDebtNoncurrent", "LongTermDebt", "LongTermNotesAndLoans", "LongTermNotesPayable",
+                       "LongTermDebtAndCapitalLeaseObligations"),
+}
+
+
+def _annual_debt(annual, key):
+    metrics = annual["metrics"]
+    if metrics.get(key) is not None:
+        return metrics[key]
+    if key == "current_debt" and metrics.get("current_portion_long_term_debt") is not None:
+        return metrics["current_portion_long_term_debt"] + (metrics.get("short_term_borrowings") or 0)
+    return None
+
+
+def recover_comparative_debt(period, annual, instance):
+    """Fill interim debt from the filing's own year-end comparative column.
+
+    A 10-Q presents the prior fiscal year-end beside the interim balance. A concept
+    whose year-end value in that filing matches the audited annual debt total is the
+    issuer's face-of-balance-sheet debt line on the same basis. Its interim value is
+    then used. Ambiguous or conflicting matches leave the gap in place. Returns notes.
+    """
+    notes = []
+    metrics = period["metrics"]
+    issues = period.get("metric_issues", {})
+    interim_end = date.fromisoformat(period["period_end"])
+    year_end = date.fromisoformat(annual["period_end"])
+    if year_end >= interim_end:
+        return notes
+    facts = {}
+    for fact in instance.facts:
+        if fact.start is None and not fact.dimensions and fact.unit == "USD" and fact.end in (year_end, interim_end):
+            facts.setdefault((fact.concept, fact.end), set()).add(fact.value)
+    for key, concepts in _COMPARATIVE_DEBT.items():
+        if metrics.get(key) is not None:
+            continue
+        if key == "current_debt" and any(metrics.get(name) is not None for name in (
+                "current_portion_long_term_debt", "current_portion_long_term_debt_and_finance_leases")):
+            continue
+        if issues.get(key) and not issues[key].startswith("not_reported"):
+            continue
+        target = _annual_debt(annual, key)
+        if type(target) not in (int, float) or not isfinite(target) or target < 0:
+            continue
+        tolerance = max(1_000_000, .001 * target)
+        matches = {}
+        for concept in concepts:
+            prior, current = (facts.get((f"us-gaap:{concept}", day)) for day in (year_end, interim_end))
+            if not prior or not current or len(prior) != 1 or len(current) != 1:
+                continue
+            if isclose(next(iter(prior)), target, rel_tol=0, abs_tol=tolerance):
+                matches[concept] = (next(iter(prior)), next(iter(current)))
+        if len({value for _, value in matches.values()}) != 1:
+            continue
+        concept, (prior_value, value) = next(iter(matches.items()))
+        if value < 0:
+            continue
+        metrics[key] = value
+        label = key.replace("_", " ")
+        note = (f"Filing crosswalk: interim {label} uses us-gaap:{concept}. The same filing reports "
+                f"USD {prior_value / 1e6:,.0f} million for {annual['period_end']}, which matches the annual "
+                f"{label} of USD {target / 1e6:,.0f} million.")
+        notes.append(note)
+        period.setdefault("sources", {})[key] = {
+            **period["filing"], "url": instance.url, "taxonomy": "us-gaap", "tag": concept, "unit": "USD",
+            "period_end": period["period_end"], "derivation": "year_end_comparative_crosswalk",
+            "comparative": {"period_end": annual["period_end"], "value": prior_value, "annual_value": target},
+            "basis": note,
+        }
+        issues.pop(key, None)
+    return notes
+
+
 def apply_capital_events(packet, balance_date, as_of, cash, debt, shares, shares_date=None):
     """Roll disclosed completed movements into cash, debt and share count in millions."""
     bridge = packet.get("capital_bridge", {})
