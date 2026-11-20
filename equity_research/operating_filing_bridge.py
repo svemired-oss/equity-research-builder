@@ -96,23 +96,37 @@ def enrich_operating_bridge(packet, client):
                 sources["depreciation_amortization"] = sources["depreciation_amortization_accretion"]
     lease_note = None
     instance_cache = {}
+
+    def own_instance(period):
+        accession = period["filing"]["accession"]
+        if accession not in instance_cache:
+            instance_cache[accession] = load_filing_instance(client, issuer["cik"], accession)
+        return instance_cache[accession]
+
+    if interim and interim[-1]["period_end"] > annual["period_end"]:
+        from .operating_evidence import separation_basis_gap
+        separation_basis_gap(annual, interim[-1], own_instance(interim[-1]), issuer.get("name"))
     for period in [annual, *interim[-1:]]:
         metrics = period["metrics"]
         recover_debt = metrics.get("long_term_debt") is None and metrics.get("long_term_debt_and_finance_leases") is None
         recover_cash = metrics.get("short_term_investments") is None and metrics.get("available_for_sale_debt_securities_current") is None
         recover_lease = any(metrics.get(key) is None for key in ("finance_lease_current", "finance_lease_noncurrent"))
         recover_ppe = metrics.get("net_ppe") is None
-        recover_current_debt = period is not annual and all(metrics.get(key) is None for key in (
+        recover_current_debt = all(metrics.get(key) is None for key in (
             "current_debt", "current_portion_long_term_debt", "current_portion_long_term_debt_and_finance_leases"))
         if not (known_basis or recover_debt or recover_cash or recover_lease or recover_ppe or recover_current_debt
                 or metrics.get("cash_and_equivalents") is None):
             continue
         instance, selected_filing = _latest_period_instance(packet, period, client, instance_cache)
         from .operating_evidence import recover_alternative_cash
+        if period is annual and metrics.get("cash_and_equivalents") is None:
+            # The full-year cash-flow change is in the 10-K, not in a later 10-Q.
+            recover_alternative_cash(period, own_instance(period))
         recover_alternative_cash(period, instance)
         end = date.fromisoformat(period["period_end"])
         facts = [fact for fact in instance.facts if fact.start is None and not fact.dimensions]
         balances = [fact for fact in facts if fact.end == end and fact.unit == "USD"]
+        balances_all = [fact for fact in instance.facts if fact.start is None and fact.end == end and fact.unit == "USD"]
         if any(fact.value > 0 and "Operating" in fact.concept and
                ("Finance" in fact.concept or "Capital" in fact.concept) and "Lease" in fact.concept
                and "Liabilit" in fact.concept for fact in balances):
@@ -151,9 +165,29 @@ def enrich_operating_bridge(packet, client):
                 notes.append("Reported net property and equipment includes finance lease right-of-use assets.")
         if recover_debt:
             combined_debt = _single(balances, {"us-gaap:LongTermDebtAndCapitalLeaseObligations"})
+            if combined_debt is None:
+                combined_debt = metrics.get("long_term_debt_and_lease_obligations")
+            if combined_debt is None and metrics.get("current_portion_long_term_debt_and_finance_leases") is not None:
+                from .operating_evidence import related_party_debt
+                parts = related_party_debt(balances_all, "us-gaap:LongTermDebtAndCapitalLeaseObligations")
+                if parts:
+                    combined_debt = sum(parts.values())
+                    related, other = parts["us-gaap:RelatedPartyMember"], parts["us-gaap:NonrelatedPartyMember"]
+                    notes.append(f"Noncurrent debt of USD {combined_debt / 1e6:,.1f} million is the sum of the filed "
+                                 f"nonrelated-party (USD {other / 1e6:,.1f} million) and related-party "
+                                 f"(USD {related / 1e6:,.1f} million) lines of us-gaap:LongTermDebtAndCapitalLeaseObligations. "
+                                 "The filing tags no undivided total.")
             if combined_debt is not None and metrics.get("current_portion_long_term_debt_and_finance_leases") is not None:
                 metrics["long_term_debt_and_finance_leases"] = combined_debt
                 notes.append("Filed term debt includes finance leases on both the current and noncurrent lines.")
+            elif (combined_debt is not None and metrics.get("current_debt") is not None
+                    and _single(balances, {"us-gaap:LongTermDebt"}) is None):
+                metrics["long_term_debt"] = combined_debt
+                period["reported_debt_basis"] = True
+                notes.append(f"Noncurrent debt is the filed us-gaap:LongTermDebtAndCapitalLeaseObligations line of "
+                             f"USD {combined_debt / 1e6:,.0f} million and current debt is the filed us-gaap:DebtCurrent line. "
+                             "The bridge uses both face-of-balance-sheet debt lines as reported, including any finance "
+                             "leases they contain, and adds no separate lease liability.")
             else:
                 standard_debt = _single(balances, {"us-gaap:LongTermDebt"})
                 if standard_debt is not None:
@@ -326,6 +360,10 @@ def enrich_operating_bridge(packet, client):
         if period is not annual:
             from .operating_evidence import recover_comparative_debt
             notes.extend(recover_comparative_debt(period, annual, instance))
+        if all(metrics.get(key) is None for key in (
+                "current_debt", "current_portion_long_term_debt", "current_portion_long_term_debt_and_finance_leases")):
+            from .operating_evidence import recover_segment_debt
+            notes.extend(recover_segment_debt(period, own_instance(period), annual))
         if recover_lease and not period.get("reported_debt_basis") and ticker != "PM":
             if lease_note is None:
                 lease_note = any(re.search(r"\b(?:we do not have significant financing leases|"

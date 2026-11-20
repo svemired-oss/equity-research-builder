@@ -102,6 +102,7 @@ _INSTANT_METRICS = {
     "long_term_debt_including_current": ("LongTermDebt",),
     "long_term_debt_and_lease_obligations": ("LongTermDebtAndCapitalLeaseObligations",),
     "total_debt": ("DebtLongtermAndShorttermCombinedAmount",),
+    "notes_payable_total": ("NotesPayable",),
     "debt_instrument_face_amount": ("DebtInstrumentFaceAmount",),
     "notes_payable_current": ("NotesPayableCurrent",),
     "long_term_notes_and_loans": ("LongTermNotesAndLoans",),

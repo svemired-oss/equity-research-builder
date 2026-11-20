@@ -1,6 +1,7 @@
 """Collect dated, source-scoped passages for the operating report."""
 from datetime import date
 import re
+import unicodedata
 
 from .sec_guidance import _ReleaseText
 
@@ -8,6 +9,23 @@ HEADING = re.compile(r"^item\s+(1a|1b|1|2)\s*[.\u2014:\-]?\s*(business|risk fact
 EVENT = re.compile(r"\b(?:expects?|announced|outlook|guidance|completed|launched|scheduled)\b", re.I)
 BOILERPLATE = re.compile(r"\b(?:risk factors should be considered|following risks could harm|"
                          r"additional risks|forward-looking statements|safe harbor)\b", re.I)
+
+
+# List markers that filings use as bullets. The PDF font has no glyph for some of
+# them, so text extraction would return a different character than the workbook.
+LIST_MARKERS = "\u2022\u2023\u2043\u2219\u25aa\u25ab\u25cf\u25e6\u25a0\u25a1\u00b7\uf0b7\uf0a7\u27a2\u2713"
+
+
+def clean_passage(text):
+    """Return a quote that the workbook and the PDF render identically.
+
+    Control, format, private-use and unassigned characters become spaces, list
+    markers are removed and whitespace is collapsed. Words and numbers are unchanged.
+    """
+    text = unicodedata.normalize("NFKC", text)
+    text = "".join(" " if char in LIST_MARKERS or unicodedata.category(char).startswith("C") else char
+                   for char in text)
+    return re.sub(r"\s+", " ", text).strip(" -")
 
 
 def annual_passages(html):
@@ -62,5 +80,7 @@ def collect(packet, client):
                         and "\ufffd" not in s and not s.rstrip().endswith(":") and not BOILERPLATE.search(s)), None)
         if passage:
             records.append({"kind":"catalyst","filed_on":item["filed_on"],"url":item["url"],"text":passage})
-    packet["report_evidence"] = records
+    for record in records:
+        record["text"] = clean_passage(record["text"])
+    packet["report_evidence"] = [record for record in records if record["text"]]
 

@@ -16,9 +16,13 @@ def benchmark():
 def test_fixed_universe(benchmark):
     from collections import Counter
     rows = benchmark.load_universe(benchmark.ROOT / "benchmarks/tickers.csv")
-    assert len(rows) == 50
-    assert set(Counter(row["sector"] for row in rows).values()) == {5}
-    assert {"GD", "FAST", "SBUX", "DHR", "NVDA"} <= {row["ticker"] for row in rows}
+    assert len(rows) == 37
+    sectors = Counter(row["sector"] for row in rows)
+    assert sectors.pop("healthcare") == 2 and set(sectors.values()) == {5}
+    assert {"utilities", "energy"}.isdisjoint(sectors)
+    excluded = benchmark.load_universe(benchmark.ROOT / "benchmarks/excluded-tickers.csv")
+    assert len(excluded) == 13 and not {r["ticker"] for r in excluded} & {r["ticker"] for r in rows}
+    assert {"GD", "FAST", "SBUX", "NVDA"} <= {row["ticker"] for row in rows}
 
 
 def test_phase_four_sector_review_excludes_legacy_and_failed_rows(benchmark, tmp_path):

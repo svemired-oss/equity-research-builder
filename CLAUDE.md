@@ -4,7 +4,7 @@
 
 ## Goal
 
-Build formula workbooks and workbook-backed PDF reports for U.S. non-financial operating companies. Banks, REITs and foreign listings are out of scope. The product is done when all eight criteria in `docs/PLAN.md` pass on a fresh 50-ticker collection (`benchmarks/tickers.csv`) plus offline replay. Coverage is 25/50 verified pairs (50%), with 10+ real-driver passes. The baseline on 2026-11-19 was 6/50 (12%) with 0 real drivers.
+Build formula workbooks and workbook-backed PDF reports for U.S. non-financial operating companies. Banks, REITs and foreign listings are out of scope. v1 also excludes utilities, oil and gas producers and acquisition-heavy pharma, cut on 2026-11-20 after the Stage 1 gate failed twice (`benchmarks/excluded-tickers.csv`). The product is done when all eight criteria in `docs/PLAN.md` pass on a fresh collection of the 37-ticker in-scope cohort (`benchmarks/tickers.csv`) plus offline replay. Coverage is 50% of the in-scope cohort (19/37 verified pairs), with 10+ real-driver passes. The baseline on 2026-11-19 was 6/50 (12%) with 0 real drivers.
 
 A verified pair is a recalculated formula workbook and a workbook-backed PDF that pass `check_pair`.
 
@@ -37,19 +37,19 @@ Stages run in the order listed. Stage 3 comes after the v1 release.
 
 | Stage | Dates | Build | Gate |
 | --- | --- | --- | --- |
-| 1. Coverage fallbacks | Nov 20-24 | Total revenue as one labeled line when segments don't reconcile. Missing current-debt line = 0 when total debt is filed and the balance sheet ties. | 15+/50 pass |
+| 1. Coverage fallbacks | Nov 20-24 | Total revenue as one labeled line when segments don't reconcile. Missing current-debt line = 0 when total debt is filed and the balance sheet ties. | 15+/37 pass |
 | 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary plus FCFF check. CAPM with historical, forward and comparable betas. Multiples as a cross-check from 3+ peers. Carry other and equity-method income. Growth-based bull/bear. Pass only if value/price is 0.5-2x. | Sector medians 0.7-1.4 |
 | 4a. Report minimum | Dec 1-2 | Business and risk text from the 10-K for every pass | No empty business, industry or risk section |
 | 5. Release v1 | Dec 2-4 | Merge to main, deploy Render, publish 10 passing pairs | Signed-out download and password run both work |
 | 3. Real revenue drivers | Dec 7-23 | Stores (SBUX, TGT, MCD), volume × yield (FDX, UPS, DAL), units × price. AI-written cited reasons. | 10+ real-driver passes matching filings |
 | 4b. Report depth | Dec 28-Jan 6 | Dated catalysts from 8-Ks and releases. Bull/bear tied to driver changes. Industry section. | No empty section in any passing report |
-| v2 release | Jan 7-8 | As-reported line items. Rerun the 50 and refresh public pairs. | All 8 criteria pass |
+| v2 release | Jan 7-8 | As-reported line items. Rerun the 37 and refresh public pairs. | All 8 criteria pass |
 
 ## Rule: no stage is done until its gate passes on real data
 
 Use one branch per stage. A stage is done only when all three hold:
 
-- Its gate passes on a fresh collection of the full 50-ticker cohort with real SEC and provider data, followed by the network-blocked replay.
+- Its gate passes on a fresh collection of the full in-scope cohort with real SEC and provider data, followed by the network-blocked replay.
 - The results are committed to `benchmarks/`.
 - The independent audit agrees.
 
@@ -62,7 +62,7 @@ Use one branch per stage. A stage is done only when all three hold:
 - Record the commit, cutoff date and pass count. Commit the results Markdown and JSON. Keep the caches in `private/`, which is not committed.
 - Never fabricate or hand-edit benchmark numbers. If a run cannot happen (missing credentials, provider outage), mark the stage as unverified.
 - Never weaken a check to make a ticker pass. Label every proxy and analyst assumption, cite its filing source and show it in the workbook. No fallback may override a recorded fact conflict.
-- If a gate fails twice, cut scope rather than slip the date. Drop utilities, oil and gas producers and acquisition-heavy pharma from the 50, and keep only working driver types.
+- If a gate fails twice, cut scope rather than slip the date. The Stage 1 cut (2026-11-20) removed utilities, oil and gas producers and acquisition-heavy pharma (13 tickers). A further failure keeps only working driver types.
 
 ## Working notes
 

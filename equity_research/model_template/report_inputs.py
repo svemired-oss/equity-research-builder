@@ -1,4 +1,6 @@
 """Write reportable scenario results and source evidence into the workbook."""
+from ..report_evidence import clean_passage
+
 
 def add_report_inputs(book, model, revenue_total):
     tab = "Report Evidence"
@@ -38,7 +40,9 @@ def add_report_inputs(book, model, revenue_total):
     for row, evidence in enumerate(model.get("report_evidence",()),15):
         for col,key in zip("ABCD",("kind","filed_on","text","url"),strict=True):
             value = evidence[key]
-            if not isinstance(value,str) or value.lstrip().startswith(("=","@")):
+            if isinstance(value,str) and key == "text":
+                value = clean_passage(value)
+            if not isinstance(value,str) or not value or value.lstrip().startswith(("=","@")):
                 raise ValueError("Invalid workbook report evidence.")
             book.put(tab,f"{col}{row}",value,"note")
 
