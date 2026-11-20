@@ -23,7 +23,7 @@ _DURATION_METRICS = {
     "consolidated_net_income": ("ProfitLoss",),
     "net_income_attributable_to_noncontrolling_interest": ("NetIncomeLossAttributableToNoncontrollingInterest",),
     "net_income_from_continuing_operations": ("IncomeLossFromContinuingOperations",),
-    "interest_expense": ("InterestExpense", "InterestAndDebtExpense", "InterestExpenseDebt"),
+    "interest_expense": ("InterestExpense", "InterestAndDebtExpense", "InterestExpenseDebt", "InterestExpenseNonoperating"),
     "depreciation_amortization": ("DepreciationDepletionAndAmortization",),
     "depreciation_amortization_accretion": ("DepreciationAmortizationAndAccretionNet",),
     "depreciation": ("Depreciation", "DepreciationDepletionAndAmortizationPropertyPlantAndEquipment"),

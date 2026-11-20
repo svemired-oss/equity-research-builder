@@ -115,19 +115,28 @@ def debt_cost(packet, risk_free, observed_spread=None):
     from .operating_research import _balance
     from copy import deepcopy
     annual = packet["actuals"]["periods"][-2:]
-    if len(annual) == 2:
+    if annual:
         latest = annual[-1]
         interest = latest["metrics"].get("interest_expense")
-        try:
-            balances = [_balance(deepcopy(row))[3] for row in annual]
-        except ValueError:
+        balances = []
+        for row in annual:
+            try:
+                balances.append((row, _balance(deepcopy(row))[3]))
+            except ValueError:
+                continue
+        # Only the latest annual balance sheet may carry the enriched debt detail.
+        if balances and balances[-1][0] is not latest:
             balances = []
         if isinstance(interest, (int,float)) and balances:
-            average = sum(balances)/2
+            average = sum(debt for _, debt in balances)/len(balances)
+            note = ("Average of opening and closing funded debt" if len(balances) == 2 else
+                    "Closing funded debt; the opening balance did not reconcile, so the average is unavailable")
             if average > 0 and 0 < interest/1e6/average < .35:
                 return {"value": interest/1e6/average, "interest": interest/1e6, "average_debt": average,
                         "date": latest["period_end"], "url": latest["filing"]["url"],
-                        "prior_url": annual[0]["filing"]["url"], "basis": "Filed interest expense / average carrying debt"}
+                        "prior_url": balances[0][0]["filing"]["url"], "debt_note": note,
+                        "basis": ("Filed interest expense / average carrying debt" if len(balances) == 2 else
+                                  "Filed interest expense / closing carrying debt")}
     if observed_spread:
         return {**observed_spread, "value": risk_free+observed_spread["value"],
                 "spread": observed_spread["value"], "basis": "BBB market spread proxy, issuer rating unavailable"}

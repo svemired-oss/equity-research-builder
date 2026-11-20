@@ -80,8 +80,13 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
                 problems.append("unknown revenue group")
             if selection["driver_type"] not in PLUGINS or selection["driver_passage"] not in ["none", *passages]:
                 problems.append("unknown driver type or passage")
-            elif (selection["driver_type"] == FALLBACK) != (selection["driver_passage"] == "none"):
-                problems.append(f"driver {selection['driver_type']} paired with passage {selection['driver_passage']}")
+            elif selection["driver_type"] != FALLBACK and selection["driver_passage"] == "none":
+                # A physical driver needs a cited table. Without one, use the reconciled segment method.
+                selection["reason"] = (selection["reason"].rstrip() + f" No annual table supported {selection['driver_type']}; "
+                                       "segment growth is used.")[:450]
+                selection["driver_type"] = FALLBACK
+            elif selection["driver_type"] == FALLBACK and selection["driver_passage"] != "none":
+                selection["driver_passage"] = "none"
             for field in fields:
                 value = selection[field]
                 if (not isinstance(value, str) or not 1 <= len(value) <= 450 or not value.isprintable()

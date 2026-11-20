@@ -43,7 +43,7 @@ def _wacc(book, market):
         book.sources.pop((tab,"B5"), None)
     if "interest" in debt:
         book.input(tab,"B17",debt["interest"],debt["url"],debt["date"])
-        book.input(tab,"B18",debt["average_debt"],debt["prior_url"],f"Average of opening and closing funded debt; {debt['url']}")
+        book.input(tab,"B18",debt["average_debt"],debt["prior_url"],f"{debt.get('debt_note', 'Average of opening and closing funded debt')}; {debt['url']}")
         book.put(tab,"B6","=B17/B18",fmt=PCT)
         for address in ("A10","B10"):
             book.cells[tab].pop(address,None)

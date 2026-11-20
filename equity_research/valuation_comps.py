@@ -10,7 +10,7 @@ from .operating_comps import _earnings_basis
 from .operating_research import ResearchGap, _balance
 
 METRICS = {"EV / EBITDA": "ebitda", "EV / Sales": "sales", "P/E": "eps"}
-SIZE_LOW, SIZE_HIGH = .25, 4.
+SIZE_LOW, SIZE_HIGH = .1, 10.
 
 
 def collect_forward_eps(packet, client):
@@ -50,15 +50,16 @@ def same_business(subject, peer, kind):
         return kind in driver_types(peer)
     # A failed extraction alone establishes no business similarity.
     a, b = (str(p["issuer"].get("sic") or "") for p in (subject, peer))
-    return len(a) == len(b) == 4 and a.isdigit() and a[:3] == b[:3] and not driver_types(peer)
+    # Research-proposed peers must share the SEC SIC major group (first two digits).
+    return len(a) == len(b) == 4 and a.isdigit() and b.isdigit() and a[:2] == b[:2]
 
 
-def _profile(packet, quote, cutoff):
+def _profile(packet, quote, cutoff, *, equity_only_fallback=False):
     end, eps, filings = _earnings_basis(packet, cutoff, trailing=True, require_positive=False)
     latest = packet["actuals"]["periods"][-1]
     interims = packet.get("earnings_interim", {})
     periods = [latest]
-    if interims.get("current"):
+    if interims.get("current") and interims.get("prior"):
         periods += [interims["current"][-1], interims["prior"][-1]]
     def ltm(key):
         values = [p["metrics"].get(key) for p in periods]
@@ -68,7 +69,21 @@ def _profile(packet, quote, cutoff):
     sales, ebit, da = (ltm(k) for k in ("revenue", "operating_income", "depreciation_amortization"))
     balances = packet.get("interim_actuals", {}).get("periods", [])
     balance = deepcopy(balances[-1] if balances else latest)
-    metrics, cash, investments, debt, *_ = _balance(balance)
+    try:
+        metrics, cash, investments, debt, *_ = _balance(balance)
+    except ValueError:
+        # A peer P/E needs only earnings, shares and price. Enterprise-value multiples need the full bridge.
+        if not equity_only_fallback:
+            raise
+        shares = balance["metrics"].get("ending_shares")
+        shares = shares/1e6 if isinstance(shares, (int, float)) else None
+        if shares is None or shares <= 0 or quote["close"] <= 0:
+            raise ResearchGap("Comparable market capitalization needs filed common shares and a close.")
+        return {"end": str(end), "filings": list(dict.fromkeys((*filings, balance["filing"]["url"]))),
+                "close": quote["close"], "quote_url": quote["url"], "shares": shares,
+                "equity": shares*quote["close"], "ev": None, "adjustment": None,
+                "sales": None, "ebitda": None, "eps": eps, "forward_eps": packet.get("forward_eps"),
+                "partial": "Balance-sheet bridge unverified; P/E only"}
     shares = metrics.get("ending_shares")
     if shares is None or shares <= 0 or quote["close"] <= 0:
         raise ResearchGap("Comparable market capitalization needs filed common shares and a close.")
@@ -116,20 +131,24 @@ def prepare(subject, candidates, packets, quotes, kind):
             issuer = peer["issuer"]
             if issuer["ticker"] != name or issuer["cik"] in seen or not same_business(subject, peer, kind):
                 raise ResearchGap("Distinct issuer with the same driver type required.")
-            row = _profile(peer, quote, cutoff)
+            row = _profile(peer, quote, cutoff, equity_only_fallback=True)
             ratio = row["equity"]/basis["equity"]
             if not SIZE_LOW <= ratio <= SIZE_HIGH:
-                raise ResearchGap("Market capitalization outside 0.25x–4x subject band.")
+                raise ResearchGap("Market capitalization outside 0.1x–10x subject band.")
             if abs((date.fromisoformat(row["end"])-date.fromisoformat(basis["end"])).days) > 100:
                 raise ResearchGap("Trailing periods end more than 100 days apart.")
         except ResearchGap as exc:
             excluded.append([name,str(exc)])
             continue
+        except (ValueError, KeyError, IndexError, TypeError) as exc:
+            # One peer's incomplete filing evidence excludes that peer, not the subject's valuation.
+            excluded.append([name,f"Peer evidence incomplete: {type(exc).__name__}"])
+            continue
         seen.add(issuer["cik"])
         row.update(ticker=name, multiples={})
         for label,key in METRICS.items():
             numerator = row["close"] if label == "P/E" else row["ev"]
-            if row[key] is not None and row[key] > 0 and numerator > 0:
+            if row[key] is not None and row[key] > 0 and numerator is not None and numerator > 0:
                 row["multiples"][label] = numerator/row[key]
         rows.append(row)
         if len(rows) == 5:

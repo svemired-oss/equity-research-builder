@@ -162,3 +162,20 @@ def test_index_reports_specific_error_when_all_sources_fail(monkeypatch):
     end = date(2026, 11, 18)
     with pytest.raises(ValueError, match="Neither SPY bars nor the FRED"):
         mv._index_series(_SPYClient(fail=True), end - timedelta(days=735), end)
+
+
+def test_debt_cost_uses_closing_debt_when_only_latest_balance_reconciles(monkeypatch):
+    from equity_research import market_valuation as mv
+    from equity_research import operating_research as op
+
+    def balance(row):
+        if row["period_end"] == "2024-12-31":
+            raise ValueError("Required financial fact is missing: current portion long term debt.")
+        return (None, None, None, 45492.0)
+    monkeypatch.setattr(op, "_balance", balance)
+    packet = {"actuals": {"periods": [
+        {"period_end": "2024-12-31", "metrics": {"interest_expense": 1656e6}, "filing": {"url": "a"}},
+        {"period_end": "2025-12-31", "metrics": {"interest_expense": 1654e6}, "filing": {"url": "b"}}]}}
+    cost = mv.debt_cost(packet, .05)
+    assert abs(cost["value"] - 1654/45492) < 1e-12
+    assert cost["basis"] == "Filed interest expense / closing carrying debt" and cost["prior_url"] == "b"
