@@ -8,3 +8,15 @@ outputs/
 web/.openai/
 web/dist/catalog.json
 web/dist/downloads/
+# Local remnants of an interrupted WSL staging copy.
+/bin
+/boot/
+/dev/
+/etc/
+/home/
+/lib
+/lib64
+/lost+found/
+/media/
+/mnt/
+/sbin

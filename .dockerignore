@@ -1,0 +1,14 @@
+**
+!Dockerfile
+!requirements.txt
+!equity_research/
+!equity_research/*.py
+!equity_research/**/
+!equity_research/**/*.py
+!deploy/
+!deploy/render_start.py
+!web/
+!web/dist/
+!web/dist/index.html
+!web/dist/app.js
+!web/dist/styles.css

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Explore dated equity research, financial models, and valuation scenarios for GD, FDX, and NEM.">
+  <meta name="description" content="Equity research, company forecasts, and valuation scenarios.">
   <title>Equity Research Builder</title>
   <link rel="stylesheet" href="./styles.css">
   <script type="module" src="./app.js"></script>
@@ -12,23 +12,24 @@
   <header class="topbar">
     <div class="topbar-inner">
       <a class="brand" href="./" aria-label="Equity Research Builder home"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>Equity Research Builder</a>
-      <a class="toplink" href="#method">Methodology <span aria-hidden="true">↗</span></a>
+      <nav aria-label="Site navigation"><a class="toplink" href="#method">Methodology</a></nav>
     </div>
   </header>
   <main class="page">
     <div class="masthead">
-      <h1>Research workspace</h1>
-      <p>Explore company-specific forecasts, valuation scenarios, and the models behind them.</p>
+      <h1 id="workspace-title">Equity research workspace</h1>
+      <p id="workspace-intro">Enter a stock ticker to generate an editable Excel model and a matching research report.</p>
     </div>
 
     <div class="workspace">
       <aside class="panel setup" aria-labelledby="setup-title">
         <h2 id="setup-title">Build a research package</h2>
         <form id="run-form">
-          <label for="ticker">Stock ticker</label>
-          <div class="ticker-field"><input type="text" id="ticker" name="ticker" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter ticker" required></div>
-          <div class="ticker-options" id="tickers" aria-label="Available tickers"></div>
-          <p class="error" id="ticker-error" hidden></p>
+          <div class="ticker-control">
+            <label for="ticker">Stock ticker</label>
+            <div class="ticker-field"><input type="text" id="ticker" name="ticker" maxlength="13" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="e.g. XTKS:7974" required></div>
+            <p class="error" id="ticker-error" hidden></p>
+          </div>
 
           <fieldset class="mode-field">
             <legend>Research mode</legend>
@@ -41,19 +42,28 @@
           <div id="guided-controls" hidden>
             <label for="driver">Forecast input</label>
             <select id="driver" name="driver"></select>
+            <p class="mode-note" id="driver-basis" hidden></p>
             <div class="input-pair">
-              <div><label for="driver-value">New value</label><input id="driver-value" name="value" type="number" step="any"></div>
+              <div><label for="driver-value">New value</label><input id="driver-value" name="value" type="number" step="any" aria-describedby="driver-range"><p class="mode-note" id="driver-range" hidden></p></div>
               <div class="case-control"><label for="run-case">Case</label><select id="run-case" name="case"><option value="base">Base</option><option value="bear">Bear</option><option value="bull">Bull</option></select></div>
             </div>
             <label for="reason">Reason for change</label>
             <input type="text" id="reason" name="reason" placeholder="e.g. Higher expected gold prices" maxlength="240">
+            <div id="guided-batch" hidden>
+              <button type="button" class="secondary-action" id="add-guided-change">Add change</button>
+              <ul id="guided-change-list" aria-label="Queued Guided edits"></ul>
+            </div>
           </div>
-          <button id="run-button" class="run" type="submit" disabled>Open research <span aria-hidden="true">→</span></button>
-          <p class="run-status" id="run-status" aria-live="polite"></p>
+          <button id="run-button" class="run" type="submit" disabled><span id="run-label">Generate research</span><span aria-hidden="true">→</span></button>
+          <button id="resume-run" class="secondary-action run-resume" type="button" hidden>Check this run again</button>
+          <p class="run-status" id="run-status" role="status"></p>
         </form>
+        <section id="benchmark-review" hidden aria-label="Benchmark coverage">
+          <h3>Benchmark coverage</h3>
+        </section>
         <div class="coverage" id="coverage" hidden>
-          <h3>Coverage</h3>
-          <ul id="coverage-list"></ul>
+          <h3>Portfolio examples</h3>
+          <div class="ticker-options" id="tickers" aria-label="Dated portfolio examples"></div>
         </div>
       </aside>
 
@@ -65,6 +75,10 @@
             <p class="date" id="snapshot-date"></p>
           </div>
           <span id="rating" class="rating" hidden></span>
+        </div>
+        <div id="result-state" class="result-state" hidden>
+          <span class="state-symbol" aria-hidden="true"></span>
+          <div><h3 id="state-title"></h3><p id="state-detail"></p></div>
         </div>
         <div id="result-content" hidden>
           <dl class="metrics">
@@ -82,6 +96,8 @@
             <div class="section-heading"><h3 id="downloads-title">Research package</h3><span id="download-status">Verified snapshot</span></div>
             <div class="download-grid" id="downloads"></div>
           </section>
+          <p id="result-note" class="result-note" hidden></p>
+          <button id="edit-assumptions" class="secondary-action" type="button" hidden>Edit assumptions</button>
         </div>
       </section>
     </div>
@@ -89,12 +105,12 @@
     <section class="panel method" id="method" aria-labelledby="method-title">
       <h2 id="method-title">From filings to valuation</h2>
       <div class="method-grid">
-        <section><h3>Source the inputs</h3><p>Each snapshot records its cutoff and uses dated filings, earnings materials, and market data.</p></section>
-        <section><h3>Model the business</h3><p>Aircraft and backlog drive GD, shipment volume and yield drive FDX, and mine production and metal prices drive NEM.</p></section>
-        <section><h3>Verify the outputs</h3><p>The model reconciles financial statements and valuation calculations. Each report is checked against its paired workbook.</p></section>
+        <section><h3>Source the inputs</h3><p>Financial statements, earnings disclosures, and market prices are tied to a research cutoff.</p></section>
+        <section><h3>Model the business</h3><p>The available filings and operating drivers determine which forecasts the builder can produce.</p></section>
+        <section><h3>Verify the outputs</h3><p>The Checks sheet shows the reconciliations for the selected model. The report identifies its paired workbook.</p></section>
       </div>
     </section>
   </main>
-  <footer class="footer"><span>Equity Research Builder</span><span>Dated portfolio research</span></footer>
+  <footer class="footer"><span>Equity Research Builder</span><span id="site-context">Private research workspace</span></footer>
 </body>
 </html>

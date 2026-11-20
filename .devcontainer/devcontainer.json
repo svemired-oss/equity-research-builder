@@ -1,0 +1,9 @@
+{
+  "name": "Private equity research demo",
+  "build": { "dockerfile": "../Dockerfile", "context": ".." },
+  "overrideCommand": true,
+  "remoteUser": "builder",
+  "forwardPorts": [8053],
+  "portsAttributes": { "8053": { "label": "Private research builder", "onAutoForward": "notify" } },
+  "postStartCommand": "bash .devcontainer/start-demo.sh"
+}

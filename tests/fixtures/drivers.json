@@ -1,0 +1,113 @@
+{
+  "units_price": [
+    [
+      "units sold (millions)",
+      10,
+      11,
+      12
+    ],
+    [
+      "average selling price (USD per unit)",
+      10,
+      10,
+      10
+    ]
+  ],
+  "volume_yield": [
+    [
+      "annual package volume (millions)",
+      20,
+      22,
+      24
+    ],
+    [
+      "revenue per package (USD)",
+      5,
+      5,
+      5
+    ]
+  ],
+  "production_price": [
+    [
+      "production sold (million barrels)",
+      2,
+      2.2,
+      2.4
+    ],
+    [
+      "realized price (USD per barrel)",
+      50,
+      50,
+      50
+    ]
+  ],
+  "backlog_burn": [
+    [
+      "opening backlog (USD millions)",
+      200,
+      220,
+      240
+    ],
+    [
+      "backlog conversion rate (%)",
+      "50%",
+      "50%",
+      "50%"
+    ]
+  ],
+  "users_arpu": [
+    [
+      "average subscribers (millions)",
+      2,
+      2.2,
+      2.4
+    ],
+    [
+      "annual revenue per subscriber (USD)",
+      50,
+      50,
+      50
+    ]
+  ],
+  "stores_sales": [
+    [
+      "average company-operated stores",
+      100,
+      110,
+      120
+    ],
+    [
+      "sales per store (USD millions)",
+      1,
+      1,
+      1
+    ],
+    [
+      "comparable store sales growth (%)",
+      "-1%",
+      "1%",
+      "2%"
+    ]
+  ],
+  "segment_growth": [],
+  "capacity_utilization_price": [
+    [
+      "annual capacity (million units)",
+      20,
+      22,
+      24
+    ],
+    [
+      "capacity utilization (%)",
+      "50%",
+      "50%",
+      "50%"
+    ],
+    [
+      "realized price (USD per unit)",
+      10,
+      10,
+      10
+    ]
+  ]
+}

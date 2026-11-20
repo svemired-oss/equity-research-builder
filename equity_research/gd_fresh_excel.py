@@ -1,18 +1,11 @@
 """Build and audit the formula-driven workbook for GD's dated public-data model."""
 
-import json
 import re
-import subprocess
 from dataclasses import dataclass, field
 from datetime import date
-from hashlib import sha256
-from io import BytesIO
-from math import isclose, isfinite
+from math import isfinite
 from pathlib import Path
-from tempfile import TemporaryDirectory
-from zipfile import ZipFile
 
-from openpyxl import load_workbook
 from openpyxl.formula import Tokenizer
 
 from .gd_cash_forecast import GDQ4CashForecast, forecast_gd_q4_cash, load_gd_cash_outlook
@@ -27,7 +20,6 @@ from .gd_interim import GDInterimEvidence, load_gd_interim
 from .gd_operating_forecast import (
     CASES, GDOperatingForecast, forecast_gd_operations, load_gd_operating_assumptions, load_gd_segment_evidence,
 )
-from .gd_replay import read_baseline_bytes
 from .gd_research import GDResearch, run_gd_research
 from .gd_run_inputs import MarketInputs, load_market_inputs
 from .gd_statement_inputs import load_gd_statement_assumptions, load_gd_statement_evidence
@@ -293,18 +285,7 @@ def build_fresh_workbook_plan(
 
     if case not in CASES:
         raise ValueError(f"Unknown GD workbook operating case {case!r}.")
-    baseline = read_baseline_bytes(template)
-    template_workbook = load_workbook(BytesIO(baseline), read_only=True, keep_links=False)
-    try:
-        cover = template_workbook["Cover"]
-        palette = {
-            "navy": "#" + cover["D23"].fill.fgColor.rgb[-6:],
-            "pale": "#" + cover["E21"].fill.fgColor.rgb[-6:],
-            "editable": "#" + cover["I14"].fill.fgColor.rgb[-6:],
-            "font": cover["E5"].font.name,
-        }
-    finally:
-        template_workbook.close()
+    palette = {"navy":"#17365D","pale":"#DDEBF7","editable":"#FFF2CC","font":"Calibri"}
     data = data if data is not None else _data(as_of, inputs_dir)
     if data.interim.as_of != as_of:
         raise ValueError("Workbook data must use the requested cutoff.")
@@ -318,90 +299,22 @@ def build_fresh_workbook_plan(
     _compact_schedules(book)
     return {
         "case": case, "palette": palette, "cells": book.cells, "expected": book.expected,
-        "template_sha256": sha256(baseline).hexdigest(),
     }
 
 
-def _verify(path: Path, plan: dict, case: str) -> int:
-    expected = plan["expected"][case]
-    workbook = load_workbook(path, read_only=True, data_only=True, keep_links=False)
-    formulas = load_workbook(path, read_only=True, data_only=False, keep_links=False)
-    try:
-        if workbook.sheetnames != list(plan["cells"]) or workbook["Cover"][SELECTOR].value != case.title():
-            raise ValueError("Workbook sheet layout or selected operating case differs from the generated model.")
-        count = 0
-        for sheet in workbook.sheetnames:
-            pending = dict(expected.get(sheet, {}))
-            for row in workbook[sheet]:
-                for cell in row:
-                    if cell.data_type == "e":
-                        raise ValueError(f"Excel error in {sheet}!{cell.coordinate}: {cell.value}.")
-                    if not hasattr(cell, "coordinate") or cell.coordinate not in pending:
-                        continue
-                    address = cell.coordinate
-                    want = pending.pop(address)
-                    got = cell.value
-                    if isinstance(got, date) and isinstance(want, (int, float)):
-                        got = (date(got.year, got.month, got.day) - date(1899, 12, 30)).days
-                    if type(want) in (int, float):
-                        matches = type(got) in (int, float) and isclose(got, want, rel_tol=1e-10, abs_tol=1e-6)
-                    else:
-                        matches = got == want or (want is None and got == "")
-                    if not matches:
-                        raise ValueError(f"{sheet}!{address} saved {got!r}, expected {want!r} for the {case} case.")
-                    count += 1
-            if any(want is not None for want in pending.values()):
-                raise ValueError(f"Saved workbook is missing expected {sheet} cells.")
+def verify_fresh_gd_workbook(path: Path, template: Path | None, as_of: date, inputs_dir: Path, case: str = "base") -> int:
+    from .model_template.reference import load_reference
 
-        for sheet, records in plan["cells"].items():
-            required = {address for address, (value, _, _) in records.items()
-                        if isinstance(value, str) and value.startswith("=")}
-            for row in formulas[sheet]:
-                for cell in row:
-                    if cell.data_type == "f":
-                        required.discard(cell.coordinate)
-                        if isinstance(cell.value, str) and ("[" in cell.value or "TODAY(" in cell.value.upper()):
-                            raise ValueError(f"Unexpected external link or moving date at {sheet}!{cell.coordinate}.")
-            if required:
-                raise ValueError(f"Missing editable formulas on {sheet}: {', '.join(sorted(required)[:6])}.")
-    finally:
-        workbook.close()
-        formulas.close()
-    with ZipFile(path) as package:
-        if any(name.startswith(("xl/externalLinks/", "xl/webextensions/")) for name in package.namelist()):
-            raise ValueError("The workbook must recalculate without an external link or vendor add-in.")
-    return count
-
-
-def verify_fresh_gd_workbook(path: Path, template: Path, as_of: date, inputs_dir: Path, case: str = "base") -> int:
-    """Check a saved workbook against the selected dated Python forecast."""
-    return _verify(path, build_fresh_workbook_plan(template, as_of, inputs_dir, case), case)
+    return load_reference("GD",path,build_fresh_workbook_plan(template,as_of,inputs_dir,case)).cells_matched
 
 
 def export_fresh_gd_workbook(
-    template: Path, output: Path, as_of: date, inputs_dir: Path, node: Path, node_modules: Path,
-    *, case: str = "base", preview_dir: Path | None = None,
+    template: Path | None, output: Path, as_of: date, inputs_dir: Path,
+    node: Path | None = None, node_modules: Path | None = None, *,
+    case: str = "base", preview_dir: Path | None = None,
 ) -> int:
-    """Author in Artifact Tool, verify the saved formula caches, and publish the workbook."""
-    if output.suffix.lower() != ".xlsx" or output.exists():
-        raise ValueError("Use a new .xlsx filename for the fresh model.")
-    plan = build_fresh_workbook_plan(template, as_of, inputs_dir, case)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with TemporaryDirectory(dir=output.parent) as directory:
-        stage = Path(directory)
-        specification = stage / "model.json"
-        specification.write_text(json.dumps(plan, allow_nan=False), encoding="utf-8")
-        workbook = stage / "model.xlsx"
-        script = Path(__file__).with_name("gd_fresh_excel.mjs")
-        command = [str(node), str(script), str(specification), str(workbook), str(node_modules)]
-        if preview_dir is not None:
-            command.append(str(preview_dir))
-        try:
-            subprocess.run(command, check=True, capture_output=True, text=True, encoding="utf-8", errors="replace")
-        except subprocess.CalledProcessError as exc:
-            raise ValueError(f"Workbook authoring failed. {exc.stderr.strip() or exc.stdout.strip()}") from exc
-        count = _verify(workbook, plan, case)
-        if output.exists():
-            raise ValueError("The output filename was created during generation. Use a new filename.")
-        workbook.rename(output)
-    return count
+    from .model_template.reference import export_reference
+
+    if preview_dir is not None:
+        raise ValueError("The shared LibreOffice exporter produces an XLSX. Use LibreOffice to preview the workbook.")
+    return export_reference("GD",output,build_fresh_workbook_plan(template,as_of,inputs_dir,case))

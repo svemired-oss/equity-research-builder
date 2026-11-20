@@ -1,0 +1,17 @@
+{
+  "description": "Synthetic Nintendo-shaped parser text, not actual company figures.",
+  "cutoff": "2026-11-18",
+  "archive": "<rss><item><news_text>Earnings Release: Fiscal Year Ended March 31, 2026</news_text><date_released>2026.05.08</date_released><url>/ir/pdf/2026/260508e.pdf</url></item><item><news_text>Earnings Release: Six Months Ended September 30, 2026</news_text><date_released>2026.11.05</date_released><url>/ir/pdf/2026/261105e.pdf</url></item></rss>",
+  "annual_pages": [
+    "Nintendo Co., Ltd. March 31, 2026 million yen",
+    "Annual statement",
+    "Net sales  900  1,000\nOperating profit  180  200\nProfit before income taxes  200  220\nTotal income taxes  40  44",
+    "Purchase of property, plant and equipment\nPurchase of property, plant and equipment and intangible assets  (25)  (30)\nDepreciation  18  20"
+  ],
+  "interim_pages": [
+    "Nintendo Co., Ltd. September 30, 2026 million yen\nYear ending March 31, 2027  1,200  20%  240",
+    "Number of shares outstanding (including treasury shares) As of Sep. 30, 2026: 10,000,000\nNumber of treasury shares As of Sep. 30, 2026: 1,000,000",
+    "Total liabilities and net assets\nCash and deposits  1,000  1,100\nSecurities  100  110\nNotes and accounts receivable-trade  50  60\nInventories  70  80\nNotes and accounts payable-trade  30  40\nRetirement benefit liability  10  10\nNon-controlling interests  1  1\nTotal assets  2,000  2,200\nTotal liabilities  500  550\nTotal net assets  1,500  1,650",
+    "Net sales  400  500\nOperating profit  80  100\nProfit before income taxes  90  110"
+  ]
+}

@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: equity-research-private
+    runtime: docker
+    branch: phase-7-release
+    plan: starter
+    numInstances: 1
+    autoDeployTrigger: off
+    dockerCommand: /opt/venv/bin/python -m deploy.render_start
+    healthCheckPath: /healthz
+    disk:
+      name: equity-research-state
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: RECRUITER_PASSWORD
+        sync: false
+      - key: SEC_USER_AGENT
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: APCA_API_KEY_ID
+        sync: false
+      - key: APCA_API_SECRET_KEY
+        sync: false
+      - key: OPENAI_DAILY_CAP_USD
+        value: "0.50"
+      - key: RESEARCH_MODEL
+        value: gpt-5-mini-2025-08-07
+
