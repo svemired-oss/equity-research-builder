@@ -661,7 +661,7 @@ class _ResearchService:
         from .operating_comps import prepare_comparables
         from .operating_filing_bridge import enrich_operating_bridge
         from .operating_research import ResearchGap, revenue_candidates, verify_comparable_operating_basis
-        from .research_agent import select_forecast
+        from .research_agent import PEER_RULES, select_forecast
         from .sec_client import SECClient
         from .sec_intake import collect_ticker_evidence
         from .treasury_rates import collect_treasury_yield
@@ -758,9 +758,15 @@ class _ResearchService:
                 if symbol == subject or symbol not in quotes:
                     continue
                 try:
-                        peers[symbol] = collect_ticker_evidence(client, symbol, as_of=as_of, years=3, release_limit=1)
+                    peer = collect_ticker_evidence(client, symbol, as_of=as_of, years=3, release_limit=1)
                 except ValueError as exc:
                     _LOG.info("Peer %s was unavailable: %s", symbol, exc)
+                    continue
+                if not peer["actuals"]["periods"]:
+                    # Foreign 20-F and 40-F filers have no U.S. GAAP annual periods to compare.
+                    _LOG.info("Peer %s has no annual U.S. GAAP 10-K periods", symbol)
+                    continue
+                peers[symbol] = peer
 
         collect_peers(proposed)
         try:
@@ -802,18 +808,47 @@ class _ResearchService:
             packet["valuation_market"] = collect_market_inputs(packet, price_client, quote, industry_peers, treasury["rate"])
         except (ValueError, OSError, KeyError) as exc:
             raise ResearchGap(f"Market WACC evidence unavailable. {exc}") from exc
-        try:
-            collect_forward_eps(packet, client)
-            for peer in peers.values():
+        prepared = set()
+
+        def prepare_peer_valuation():
+            for symbol, peer in peers.items():
+                if symbol in prepared:
+                    continue
+                prepared.add(symbol)
+                if kind != "segment_growth" and "driver_passages" not in peer:
+                    try:
+                        collect(peer, client)
+                    except ValueError:
+                        pass
                 collect_forward_eps(peer, client)
                 try:
                     enrich_operating_bridge(peer, client)
-                except ValueError:
+                except (ValueError, IndexError, KeyError):
                     continue
-            packet["valuation_comps"] = prepare_valuation_comps(
-                packet, [{"ticker": ticker} for ticker in peers], peers, quotes, kind)
+            return prepare_valuation_comps(packet, [{"ticker": ticker} for ticker in peers], peers, quotes, kind)
+
+        try:
+            collect_forward_eps(packet, client)
+            packet["valuation_comps"] = prepare_peer_valuation()
         except ResearchGap as exc:
             packet["valuation_comps"] = {"value": None, "rows": [], "summary": {}, "reason": str(exc)}
+        if packet["valuation_comps"].get("value") is None and "subject" in packet["valuation_comps"]:
+            # Acceptance reads these stricter comps. Ask once for peers that meet their rules.
+            try:
+                seen = sorted({row["ticker"] for row in proposed} | set(peers) | {subject})
+                retry = select_forecast(packet, candidates, rejected_peers=seen,
+                                        peer_rules=PEER_RULES if kind == "segment_growth" else None, **provider)
+                added = [row for row in retry["peer_candidates"] if row["ticker"] not in seen][:5]
+                if added:
+                    quotes.update(collect_market_quotes(price_client, [row["ticker"] for row in added],
+                                                        as_of=as_of)["quotes"])
+                    collect_peers(added)
+                    updated = prepare_peer_valuation()
+                    updated["excluded"] = list(dict.fromkeys(
+                        map(tuple, [*packet["valuation_comps"]["excluded"], *updated["excluded"]])))
+                    packet["valuation_comps"] = updated
+            except ResearchGap:
+                _LOG.info("Alternate valuation peers were unavailable for %s", subject)
         from .report_evidence import collect as collect_report_evidence
         collect_report_evidence(packet, client)
         return packet, treasury, quote, selection, candidates, comps

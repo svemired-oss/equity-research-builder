@@ -62,6 +62,8 @@ class Tables(HTMLParser):
 
 def collect(packet, client):
     """Cache candidate passages from the most recent annual filing for deterministic replay."""
+    if not packet["actuals"]["periods"]:
+        raise ValueError("No annual U.S. GAAP 10-K period is available for driver passages.")
     annual = packet["actuals"]["periods"][-1]
     url = annual["filing"]["url"]
     tables = Tables(client.get_text(url)).tables

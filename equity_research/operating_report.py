@@ -37,6 +37,7 @@ def fact_sheet(workbook):
                 ("implied_growth","DCF","B38"),("terminal_gap","DCF","B89"),("terminal_flag","DCF","B90"),
                 ("exit_dcf","DCF","B91"),("bear_shift","Report Evidence","B8"),("bull_shift","Report Evidence","B9"),
                 ("bear_value","Report Evidence","C8"),("bull_value","Report Evidence","C9"),
+                ("debt_cost","WACC","B6"),("debt_basis","WACC","B40"),
             ):
                 add(key,tab,cell)
             count = book["Report Evidence"]["B4"].value
@@ -187,6 +188,8 @@ def report_lines(sheet, digest, order):
     section("Valuation")
     add(f"DCF fair value {f('dcf','$')} at {f('wacc','.2%')} WACC. Exit-multiple DCF {f('exit_dcf','$')}.")
     add(f"Terminal value divergence {f('terminal_gap','.1%')}. Cross-check {f('terminal_flag')}.")
+    if isinstance(value("debt_basis"),str) and type(value("debt_cost")) in (float,int):
+        add(f"Pretax cost of debt {f('debt_cost','.2%')}. {f('debt_basis')}")
     if type(value("comps")) in (float,int):
         add(f"Peer-implied value {f('comps','$')}. Blended current fair value {f('blend','$')}.")
     else:

@@ -82,6 +82,8 @@ def enrich_operating_bridge(packet, client):
                                             ("KO", "0000021344"), ("WMT", "0000104169"), ("WM", "0000823768"),
                                             ("INTU", "0000896878"), ("TT", "0001466258"), ("UNP", "0000100885")}
     as_of = date.fromisoformat(packet["as_of"])
+    if not packet["actuals"]["periods"]:
+        raise ValueError("No annual U.S. GAAP 10-K period is available for the balance-sheet bridge.")
     annual = packet["actuals"]["periods"][-1]
     interim = packet["interim_actuals"]["periods"]
     if (ticker, issuer["cik"]) == ("WMT", "0000104169"):
@@ -116,6 +118,9 @@ def enrich_operating_bridge(packet, client):
                and "Liabilit" in fact.concept for fact in balances):
             period["combined_unallocated_leases"] = True
         notes = list(period.get("operating_bridge_notes", []))
+        if period is not annual and selected_filing["accession"] == period["filing"]["accession"]:
+            from .operating_evidence import recover_instance_balances
+            notes.extend(recover_instance_balances(period, instance))
         if selected_filing["accession"] != period["filing"]["accession"]:
             notes.append(f"Balance-date supplements use the latest matching USD disclosure filed {selected_filing['filed_on']}, accession {selected_filing['accession']}.")
         if recover_cash and (ticker, issuer["cik"]) == ("TT", "0001466258") and metrics.get("cash_and_equivalents") is None:

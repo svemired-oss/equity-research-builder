@@ -5,6 +5,8 @@ from datetime import date, datetime, timedelta, timezone
 from math import isfinite
 import re
 from statistics import covariance, median, variance
+import sys
+from time import sleep
 from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -21,14 +23,24 @@ SPREAD = "https://fred.stlouisfed.org/series/BAMLC0A4CBBB"
 ERP_SNAPSHOTS = {date(2026, 11, 1): .0441}
 
 
-def _download(url, attempts=3, timeout=30):
+AGENT = "Equity Research Builder"
+# FRED's edge drops connections whose User-Agent does not start with a known HTTP
+# library name, so FRED requests identify as urllib plus this client.
+FRED_AGENT = f"Python-urllib/{sys.version_info.major}.{sys.version_info.minor} equity-research-builder"
+PROXY_SPREAD = .015
+PROXY_BASIS = ("Analyst proxy: BBB spread unavailable. Pretax cost of debt is the dated Treasury yield "
+               "plus a 1.5% borrowing spread.")
+
+
+def _download(url, attempts=3, timeout=30, agent=AGENT):
     for attempt in range(attempts):
         try:
-            with urlopen(Request(url, headers={"User-Agent": "Equity Research Builder"}), timeout=timeout) as response:
+            with urlopen(Request(url, headers={"User-Agent": agent}), timeout=timeout) as response:
                 return response.read(2_000_000).decode(errors="replace")
         except OSError:
             if attempt == attempts - 1:
                 raise
+            sleep(2 ** attempt)
 
 
 SPY_PROXY = "SPY ETF split-adjusted closes as S&P 500 proxy"
@@ -137,22 +149,72 @@ def debt_cost(packet, risk_free, observed_spread=None):
                         "prior_url": balances[0][0]["filing"]["url"], "debt_note": note,
                         "basis": ("Filed interest expense / average carrying debt" if len(balances) == 2 else
                                   "Filed interest expense / closing carrying debt")}
+        filed = _filed_debt_rate(annual, interest)
+        if filed:
+            return filed
     if observed_spread:
         return {**observed_spread, "value": risk_free+observed_spread["value"],
                 "spread": observed_spread["value"], "basis": "BBB market spread proxy, issuer rating unavailable"}
     raise ValueError("Neither filed interest and average debt nor dated rating-band spread is available.")
 
 
+# Filed debt totals in order of coverage, for when the full funded-debt bridge does not reconcile.
+_FILED_DEBT = (
+    (("current_debt", "long_term_debt"), "DebtCurrent + LongTermDebtNoncurrent"),
+    (("long_term_debt_including_current",), "LongTermDebt"),
+    (("long_term_debt_and_lease_obligations",), "LongTermDebtAndCapitalLeaseObligations"),
+)
+
+
+def _filed_debt_rate(annual, interest):
+    """Filed interest expense / average of one filed total-debt basis used in both years."""
+    latest = annual[-1]
+    if type(interest) not in (int, float) or not isfinite(interest) or interest <= 0:
+        return None
+
+    def total(period, keys):
+        values = [period["metrics"].get(key) for key in keys]
+        if any(type(v) not in (int, float) or not isfinite(v) or v < 0 for v in values):
+            return None
+        return sum(values) / 1e6
+
+    for keys, label in _FILED_DEBT:
+        closing = total(latest, keys)
+        if not closing:
+            continue
+        rows = [row for row in annual if total(row, keys) is not None]
+        if rows[-1] is not latest:
+            continue
+        average = sum(total(row, keys) for row in rows) / len(rows)
+        if average <= 0 or not 0 < interest/1e6/average < .35:
+            continue
+        both = len(rows) == 2
+        note = (f"Average of opening and closing filed {label}" if both else
+                f"Closing filed {label}; the opening balance is not filed on the same basis")
+        return {"value": interest/1e6/average, "interest": interest/1e6, "average_debt": average,
+                "date": latest["period_end"], "url": latest["filing"]["url"], "prior_url": rows[0]["filing"]["url"],
+                "debt_note": note, "debt_tag": label,
+                "basis": (f"Filed interest expense / {'average' if both else 'closing'} filed {label}. "
+                          "Used because the funded-debt bridge did not reconcile")}
+    return None
+
+
+def proxy_debt_cost(risk_free, cutoff):
+    """Last resort when no filed rate or dated spread exists. Labeled as an analyst proxy."""
+    return {"value": risk_free + PROXY_SPREAD, "spread": PROXY_SPREAD, "date": str(cutoff), "url": None,
+            "basis": PROXY_BASIS, "proxy": True}
+
+
 def _series(series, start, end):
     params = urlencode({"id": series, "cosd": start, "coed": end})
     try:
-        rows = csv.DictReader(_download(f"{FRED}?{params}").splitlines())
+        rows = csv.DictReader(_download(f"{FRED}?{params}", timeout=15, agent=FRED_AGENT).splitlines())
         records = [(row.get("observation_date") or row["DATE"], row[series]) for row in rows]
     except (OSError, ValueError, KeyError):
         records = []
     if not records:
         from .drivers import Tables
-        html = _download(f"https://fred.stlouisfed.org/data/{series}")
+        html = _download(f"https://fred.stlouisfed.org/data/{series}", timeout=15, agent=FRED_AGENT)
         if not re.search(rf"\b{re.escape(series)}\b", html):
             raise ValueError(f"FRED did not identify series {series}.")
         records = [(row[0], row[1]) for table in Tables(html).tables for row in table
@@ -208,11 +270,12 @@ def collect_market_inputs(packet, client, quote, peers, risk_free):
     except ValueError:
         try:
             spreads = _series("BAMLC0A4CBBB", end-timedelta(days=10), end)
-        except OSError:
+        except (OSError, ValueError):
             spreads = {}
-        if not spreads:
-            raise ValueError("No recent BBB corporate spread.")
-        day = max(spreads)
-        debt = debt_cost(packet, risk_free, {"value": spreads[day]/100, "date": str(day), "url": SPREAD})
+        if spreads:
+            day = max(spreads)
+            debt = debt_cost(packet, risk_free, {"value": spreads[day]/100, "date": str(day), "url": SPREAD})
+        else:
+            debt = proxy_debt_cost(risk_free, cutoff)
     return {"beta": beta, "erp": erp, "debt": debt, "range": ranges}
 

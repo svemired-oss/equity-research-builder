@@ -25,7 +25,10 @@ _DURATION_METRICS = {
     "net_income_attributable_to_noncontrolling_interest": ("NetIncomeLossAttributableToNoncontrollingInterest",),
     "net_income_from_continuing_operations": ("IncomeLossFromContinuingOperations",),
     "interest_expense": ("InterestExpense", "InterestAndDebtExpense", "InterestExpenseDebt", "InterestExpenseNonoperating"),
-    "depreciation_amortization": ("DepreciationDepletionAndAmortization",),
+    # Components of the labeled operating-income proxy for issuers that present no operating subtotal.
+    "interest_income": ("InvestmentIncomeInterest", "InvestmentIncomeInterestAndDividend"),
+    "other_nonoperating_income": ("OtherNonoperatingIncomeExpense",),
+    "depreciation_amortization": ("DepreciationDepletionAndAmortization", "DepreciationAndAmortization"),
     "depreciation_amortization_accretion": ("DepreciationAmortizationAndAccretionNet",),
     "depreciation": ("Depreciation", "DepreciationDepletionAndAmortizationPropertyPlantAndEquipment"),
     "amortization_of_intangibles": ("AmortizationOfIntangibleAssets",),
@@ -40,7 +43,8 @@ _DURATION_METRICS = {
     "change_in_cash_and_restricted_cash": (
         "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
     ),
-    "capex": ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"),
+    "capex": ("PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets",
+              "PaymentsToAcquireOtherProductiveAssets"),
     "unpaid_capex_disclosure": ("CapitalExpendituresIncurredButNotYetPaid",),
     "dividends_paid": ("PaymentsOfDividends", "PaymentsOfDividendsCommonStock"),
     "share_repurchases": ("PaymentsForRepurchaseOfCommonStock",),
@@ -94,6 +98,9 @@ _INSTANT_METRICS = {
     "short_term_borrowings": ("ShortTermBorrowings",),
     "commercial_paper": ("CommercialPaper",),
     "long_term_debt": ("LongTermDebtNoncurrent",),
+    # Debt totals used only for the filed interest-rate proxy in the debt cost.
+    "long_term_debt_including_current": ("LongTermDebt",),
+    "long_term_debt_and_lease_obligations": ("LongTermDebtAndCapitalLeaseObligations",),
     "total_debt": ("DebtLongtermAndShorttermCombinedAmount",),
     "debt_instrument_face_amount": ("DebtInstrumentFaceAmount",),
     "notes_payable_current": ("NotesPayableCurrent",),
@@ -249,7 +256,14 @@ def _choose_fact(metric, end, start, observations, by_accession, not_reported):
     return next(iter(values)), source, None
 
 
-def _derive(metrics, sources, issues, name, components):
+OPERATING_INCOME_PROXY = ("Analyst proxy: the filing presents no operating income subtotal. Operating income is "
+                          "income before taxes plus interest expense, less interest income and other nonoperating "
+                          "income, all from the same filing.")
+DEPRECIATION_ONLY_PROXY = ("Analyst proxy: the filing tags depreciation but no total D&A or separate amortization. "
+                           "D&A uses filed depreciation, which may understate amortization.")
+
+
+def _derive(metrics, sources, issues, name, components, *, derivation="arithmetic", basis=None):
     # A reported conflict takes priority over a component-derived substitute.
     if issues.get(name) not in {_NOT_REPORTED, _NOT_REPORTED_INTERIM}:
         return
@@ -262,12 +276,14 @@ def _derive(metrics, sources, issues, name, components):
         metrics[name] = sum(metrics[component] * sign for component, sign in components)
         first_source = sources[components[0][0]]
         sources[name] = {
-            "unit": "USD", "derivation": "arithmetic", "accession": first_source["accession"],
+            "unit": "USD", "derivation": derivation, "accession": first_source["accession"],
             "form": first_source["form"], "filed_on": first_source["filed_on"], "url": first_source["url"],
             "period_start": first_source["period_start"], "period_end": first_source["period_end"],
             "filing_period_end": first_source["filing_period_end"],
             "components": {component: {"coefficient": sign, "source": sources[component]} for component, sign in components},
         }
+        if basis:
+            sources[name]["basis"] = basis
         del issues[name]
 
 
@@ -313,6 +329,12 @@ def _record_period(result, end, start, start_issue, observations, by_accession, 
 
     _derive(metrics, sources, issues, "income_before_taxes", (("domestic_income_before_taxes", 1), ("foreign_income_before_taxes", 1)))
     _derive(metrics, sources, issues, "depreciation_amortization", (("depreciation", 1), ("amortization_of_intangibles", 1)))
+    if issues.get("amortization_of_intangibles") in {_NOT_REPORTED, _NOT_REPORTED_INTERIM}:
+        _derive(metrics, sources, issues, "depreciation_amortization", (("depreciation", 1),),
+                derivation="depreciation_only_proxy", basis=DEPRECIATION_ONLY_PROXY)
+    _derive(metrics, sources, issues, "operating_income",
+            (("income_before_taxes", 1), ("interest_expense", 1), ("interest_income", -1), ("other_nonoperating_income", -1)),
+            derivation="operating_income_proxy", basis=OPERATING_INCOME_PROXY)
     _derive(metrics, sources, issues, "total_liabilities", (("current_liabilities", 1), ("noncurrent_liabilities", 1)))
     _derive(metrics, sources, issues, "total_equity", (("equity_attributable_to_parent", 1), ("noncontrolling_interest", 1)))
     _derive(metrics, sources, issues, "current_debt", (("current_portion_long_term_debt", 1), ("short_term_borrowings", 1)))

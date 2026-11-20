@@ -11,6 +11,7 @@ import socket
 import sys
 from tempfile import TemporaryDirectory
 from time import monotonic
+from traceback import extract_tb
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -122,7 +123,9 @@ def run_one(row, cache_dir, cutoff, collect, work_dir, refresh=False, *, legacy=
                           "captured_at": datetime.now(timezone.utc).isoformat(), "evidence": evidence}
             except Exception as exc:
                 record = {"schema_version": 1, "ticker": row["ticker"], "cutoff": str(cutoff),
-                          "stage": "collection", "error_type": type(exc).__name__, "error": str(exc)}
+                          "stage": "collection", "error_type": type(exc).__name__, "error": str(exc),
+                          "error_origin": [f"{Path(frame.filename).name}:{frame.lineno} {frame.name}"
+                                           for frame in extract_tb(exc.__traceback__)[-4:]]}
             if path.exists():
                 old = path.read_bytes()
                 history = cache_dir / ".history" / (row["ticker"] + "-" + sha256(old).hexdigest() + ".json.gz")

@@ -273,6 +273,40 @@ def _forecast_dates(history):
     return tuple(latest + timedelta(days=round(i * 365.25)) for i in range(1, 6))
 
 
+FINANCING_MATERIALITY = .10
+
+
+def _financing_start(latest, bridge_period, opening, debt, bridge_base):
+    """Start forecast debt and interest at the 10-Q when financing moved materially after year-end.
+
+    Material means funded debt or common shares changed more than 10% between the annual
+    and the 10-Q balance sheets. The share count already opens at the 10-Q bridge. The
+    year-1 schedule books the debt move and the fiscal YTD repurchases filed in the 10-Q.
+    """
+    if bridge_period["period_end"] <= latest["period_end"]:
+        return None
+    annual_shares = opening.get("ending_shares")
+    interim_debt, interim_shares = bridge_base["debt"], bridge_base["shares"]
+    debt_move = abs(interim_debt - debt) / debt if debt > 0 else (1 if interim_debt > 0 else 0)
+    share_move = abs(interim_shares - annual_shares) / annual_shares if annual_shares else 0
+    if max(debt_move, share_move) <= FINANCING_MATERIALITY:
+        return None
+    repurchases = bridge_period["metrics"].get("share_repurchases")
+    source = bridge_period.get("sources", {}).get("share_repurchases", {})
+    if type(repurchases) not in (int, float) or repurchases < 0 or not source.get("url"):
+        repurchases, source = 0, {}
+    url = bridge_period.get("operating_bridge_source") or bridge_period["filing"]["url"]
+    basis = (f"funded debt moved {debt_move:.0%} and common shares moved {share_move:.0%} after the "
+             f"{latest['period_end']} annual balance sheet")
+    note = (f"Forecast debt, interest and share count start from the {bridge_period['period_end']} 10-Q because {basis}. "
+            f"Year 1 books a USD {interim_debt - debt:,.0f} million debt change"
+            + (f" and USD {repurchases / 1e6:,.0f} million of fiscal YTD repurchases filed in the 10-Q"
+               if repurchases else "") + ". The opening share count is the 10-Q count.")
+    return {"debt_change": interim_debt - debt, "repurchases": repurchases / 1e6,
+            "repurchases_url": source.get("url") or url, "period_end": bridge_period["period_end"],
+            "url": url, "debt_move": debt_move, "share_move": share_move, "basis": basis, "note": note}
+
+
 def prepare_operating_model(packet, treasury, quote, selection, candidates, overrides=()):
     """Build the independently calculated case from a validated research selection."""
     issuer = packet["issuer"]
@@ -296,6 +330,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     bridge_cash, bridge_debt, shares, movements = apply_capital_events(
         packet, date.fromisoformat(bridge_period["period_end"]), as_of, bridge_cash, bridge_debt, shares,
         date.fromisoformat(bridge_period.get("share_count_date", bridge_period["period_end"])))
+    financing_start = _financing_start(latest, bridge_period, opening, debt, bridge_base) if interim else None
     close = quote["close"]
     growth, roic = .025, .15
     ratios = []
@@ -401,6 +436,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "metrics": {**opening, "equity_attributable_to_parent": equity}, "cash": cash, "investments": investments,
         "debt": debt, "shares": shares, "bridge_cash": bridge_cash, "bridge_investments": bridge_investments,
         "bridge_preferred": preferred, "capital_movements": movements, "bridge_base": bridge_base,
+        "financing_start": financing_start,
         "balance_evidence": [
             {"period_end": row["period_end"], "metric": key, "value": amount,
              "source": row.get("sources", {}).get(key, row.get("bridge_filing_provenance", row["filing"]))}
@@ -445,6 +481,10 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             "Where no standalone liabilities total is tagged, the model derives it from filed liabilities and equity less equity.",
             "Reverse DCF solves for a constant operating margin at the observed price, holding the rest of the base model fixed. An absolute DCF gap of at least 50% requires analyst review.",
             *dict.fromkeys(note for row in (latest, bridge_period) for note in row.get("operating_bridge_notes", ())),
+            *((financing_start["note"],) if financing_start else ()),
+            *dict.fromkeys(row["sources"][key]["basis"] for row in (*history, bridge_period)
+                           for key in ("operating_income", "depreciation_amortization")
+                           if row.get("sources", {}).get(key, {}).get("basis")),
             *(("Full-year combined pro forma revenue replaces the historical revenue growth base. "
                "The acquirer's historical median operating margin and investment ratios are analyst proxies "
                "for the combined business. Synergies and acquiree-specific margins require review.",)
@@ -462,8 +502,9 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         model["valuation_summary"] = summarize(model, comps)
         model["sources"].update({"Damodaran implied ERP": market["erp"]["url"],
                                   f"Broad market benchmark ({market['beta'].get('index_basis', 'FRED S&P 500 index')})": market["beta"]["index_url"],
-                                  "Beta price observations": market["beta"]["url"],
-                                  "Pretax debt cost": market["debt"]["url"]})
+                                  "Beta price observations": market["beta"]["url"]})
+        if market["debt"].get("url"):
+            model["sources"]["Pretax debt cost"] = market["debt"]["url"]
     return model
 
 

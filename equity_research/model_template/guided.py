@@ -245,9 +245,10 @@ def verify_recalculation(book,case,model,changes):
         flow=fcff*(stub if i==0 else 1)
         equal("Cash Flow Statement",column+"12",flow)
         flows.append(DatedFCFF(period,flow))
-        payout.append(max(0,(ebit-debt*debt_cost)*(1-tax))*a(16))
+        start=get("Schedules","B40") if i==0 else 0
+        payout.append(max(0,(ebit-(debt+start)*debt_cost)*(1-tax))*a(16))
         equal("Schedules",column+"23",payout[-1])
-        debt+=a(20)-a(21)
+        debt+=a(20)-a(21)+start
         shares-=a(22)/a(23)
         if debt< -1e-8 or shares<=0:
             raise ResearchGap("Projected debt cannot be negative and common shares must remain positive.")

@@ -7,9 +7,15 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .operating_research import ResearchGap
+from .valuation_comps import SIZE_HIGH, SIZE_LOW
+
+# Mirrors the eligibility checks in valuation_comps.prepare for segment-growth subjects.
+PEER_RULES = (f"Each peer must share the subject's SEC SIC major group (the first two digits of issuer.sic), "
+              f"have market capitalization between {SIZE_LOW:g}x and {SIZE_HIGH:g}x the subject's, report positive "
+              "trailing GAAP earnings, and file U.S. GAAP 10-K and 10-Q reports.")
 
 
-def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
+def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_rules=None):
     """Choose among reconciled evidence groups. Model output cannot inject financial figures."""
     fields = ("group", "reason", "thesis", "risks")
     peer_fields = ("ticker", "reason")
@@ -35,6 +41,8 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
         "latest_earnings_releases": packet["earnings"]["releases"][:2],
         "unavailable_peers": list(rejected_peers),
     }
+    if peer_rules:
+        evidence["peer_eligibility_rules"] = peer_rules
     payload = {
         "model": model, "store": False,
         "instructions": (
@@ -53,57 +61,65 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
         "text": {"format": {"type": "json_schema", "name": "forecast_selection", "strict": True, "schema": schema}},
     }
     try:
-        for limit in (1800, 4600):
-            payload["max_output_tokens"] = limit
-            from .spend_budget import reserve
-            reserve(payload)
-            request = Request("https://api.openai.com/v1/responses",
-                              data=json.dumps(payload, allow_nan=False).encode(),
-                              headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
-            with urlopen(request, timeout=55) as response:
-                result = json.loads(response.read(1_000_000))
-            if not (result.get("status") == "incomplete"
-                    and (result.get("incomplete_details") or {}).get("reason") == "max_output_tokens"):
-                break
-        else:
-            raise ResearchGap("OpenAI reached the research response limit twice. Retry the run.")
-        if result.get("status") != "completed":
-            raise ValueError("Incomplete response.")
-        items = [item["text"] for output in result["output"] if output.get("type") == "message"
-                 for item in output["content"] if item.get("type") == "output_text"]
-        selection = json.loads("".join(items))
-        problems = []
-        if set(selection) != set(schema["required"]):
-            problems.append("fields differ from the schema")
-        else:
-            if selection["group"] not in schema["properties"]["group"]["enum"]:
-                problems.append("unknown revenue group")
-            if selection["driver_type"] not in PLUGINS or selection["driver_passage"] not in ["none", *passages]:
-                problems.append("unknown driver type or passage")
-            elif selection["driver_type"] != FALLBACK and selection["driver_passage"] == "none":
-                # A physical driver needs a cited table. Without one, use the reconciled segment method.
-                selection["reason"] = (selection["reason"].rstrip() + f" No annual table supported {selection['driver_type']}; "
-                                       "segment growth is used.")[:450]
-                selection["driver_type"] = FALLBACK
-            elif selection["driver_type"] == FALLBACK and selection["driver_passage"] != "none":
-                selection["driver_passage"] = "none"
-            for field in fields:
-                value = selection[field]
-                if (not isinstance(value, str) or not 1 <= len(value) <= 450 or not value.isprintable()
-                        or value.lstrip().startswith("=")):
-                    problems.append(f"{field} text failed length or character checks")
-        if problems:
-            raise ValueError("Invalid research selection: " + "; ".join(problems) + ".")
-        peers = selection["peer_candidates"]
-        if not isinstance(peers, list) or len(peers) > 5 or any(
-            not isinstance(peer, dict) or set(peer) != set(peer_fields)
-            or not isinstance(peer["ticker"], str) or not re.fullmatch(r"[A-Z0-9]{1,8}(?:[.-][A-Z0-9]{1,4})?", peer["ticker"])
-            or not isinstance(peer["reason"], str) or not 1 <= len(peer["reason"]) <= 240
-            or not peer["reason"].isprintable() or peer["reason"].lstrip().startswith("=")
-            for peer in peers
-        ):
-            raise ValueError("Invalid peer candidates.")
-        return selection
+        for text_attempt in (0, 1):
+            for limit in (1800, 4600):
+                payload["max_output_tokens"] = limit
+                from .spend_budget import reserve
+                reserve(payload)
+                request = Request("https://api.openai.com/v1/responses",
+                                  data=json.dumps(payload, allow_nan=False).encode(),
+                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+                with urlopen(request, timeout=55) as response:
+                    result = json.loads(response.read(1_000_000))
+                if not (result.get("status") == "incomplete"
+                        and (result.get("incomplete_details") or {}).get("reason") == "max_output_tokens"):
+                    break
+            else:
+                raise ResearchGap("OpenAI reached the research response limit twice. Retry the run.")
+            if result.get("status") != "completed":
+                raise ValueError("Incomplete response.")
+            items = [item["text"] for output in result["output"] if output.get("type") == "message"
+                     for item in output["content"] if item.get("type") == "output_text"]
+            selection = json.loads("".join(items))
+            problems = []
+            if set(selection) != set(schema["required"]):
+                problems.append("fields differ from the schema")
+            else:
+                if selection["group"] not in schema["properties"]["group"]["enum"]:
+                    problems.append("unknown revenue group")
+                if selection["driver_type"] not in PLUGINS or selection["driver_passage"] not in ["none", *passages]:
+                    problems.append("unknown driver type or passage")
+                elif selection["driver_type"] != FALLBACK and selection["driver_passage"] == "none":
+                    # A physical driver needs a cited table. Without one, use the reconciled segment method.
+                    selection["reason"] = (selection["reason"].rstrip() + f" No annual table supported {selection['driver_type']}; "
+                                           "segment growth is used.")[:450]
+                    selection["driver_type"] = FALLBACK
+                elif selection["driver_type"] == FALLBACK and selection["driver_passage"] != "none":
+                    selection["driver_passage"] = "none"
+                for field in fields:
+                    value = selection[field]
+                    if (not isinstance(value, str) or not 1 <= len(value) <= 450 or not value.isprintable()
+                            or value.lstrip().startswith("=")):
+                        problems.append(f"{field} text failed length or character checks")
+            text_only = problems and all(problem.endswith("text failed length or character checks") for problem in problems)
+            if text_only and text_attempt == 0:
+                # One retry for a formatting slip such as a line break or an over-long field.
+                payload["instructions"] += (" A previous answer failed validation: " + "; ".join(problems) + ". "
+                                            "Keep reason, thesis and risks each to 1 or 2 plain-text sentences "
+                                            "under 450 characters, on one line, with no line breaks or tabs.")
+                continue
+            if problems:
+                raise ValueError("Invalid research selection: " + "; ".join(problems) + ".")
+            peers = selection["peer_candidates"]
+            if not isinstance(peers, list) or len(peers) > 5 or any(
+                not isinstance(peer, dict) or set(peer) != set(peer_fields)
+                or not isinstance(peer["ticker"], str) or not re.fullmatch(r"[A-Z0-9]{1,8}(?:[.-][A-Z0-9]{1,4})?", peer["ticker"])
+                or not isinstance(peer["reason"], str) or not 1 <= len(peer["reason"]) <= 240
+                or not peer["reason"].isprintable() or peer["reason"].lstrip().startswith("=")
+                for peer in peers
+            ):
+                raise ValueError("Invalid peer candidates.")
+            return selection
     except HTTPError as exc:
         status = exc.code
         with exc:

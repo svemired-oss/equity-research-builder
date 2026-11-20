@@ -43,7 +43,7 @@ def test_dated_erp_and_interest_debt_cost():
 
 def test_fred_table_fallback(monkeypatch):
     from equity_research import market_valuation
-    def source(url):
+    def source(url, **kwargs):
         if "fredgraph" in url:
             raise TimeoutError
         return "<h1>SP500</h1><table><tr><td>2026-11-18</td><td>100</td></tr></table>"

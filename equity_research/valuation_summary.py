@@ -55,8 +55,10 @@ def summarize(model, comps):
     divergence = abs(exit_value/base.terminal_value_millions-1) if exit_value is not None else None
     blend = BLEND*base.value_per_share+(1-BLEND)*peer if peer is not None else None
     payout = model["payout_ratio"]
+    # Forecast interest accrues on the 10-Q debt from year 1 when financing moved materially.
+    debt = model["debt"] + (model.get("financing_start") or {}).get("debt_change", 0)
     dividends = None if payout is None else sum(
-        max(0, (sales*model["margin"]-model["debt"]*model["cost"].pretax_cost_of_debt)
+        max(0, (sales*model["margin"]-debt*model["cost"].pretax_cost_of_debt)
             *(1-model["cost"].marginal_tax_rate))*payout*fraction/model["shares"]
         for sales,fraction in zip(model["revenue"][:2],(model["stub"],1-model["stub"]),strict=True))
     target = blend*(1+cost.cost_of_equity)-dividends if blend is not None and dividends is not None else None

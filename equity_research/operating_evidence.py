@@ -121,6 +121,49 @@ def recover_comparative_debt(period, annual, instance):
     return notes
 
 
+def recover_instance_balances(period, instance):
+    """Fill interim balances that Company Facts omits from the 10-Q's own XBRL instance.
+
+    Combined utility filings can leave the parent's interim balance sheet out of
+    Company Facts. Only undimensioned USD instants at the balance date are read,
+    with the normalizer's tag order. A metric with conflicting values stays missing,
+    and a recorded conflict is never overwritten. Returns notes.
+    """
+    from .sec_financials import _INSTANT_METRICS
+
+    metrics = period["metrics"]
+    issues = period.setdefault("metric_issues", {})
+    end = date.fromisoformat(period["period_end"])
+    values = {}
+    for fact in instance.facts:
+        if fact.start is None and not fact.dimensions and fact.unit == "USD" and fact.end == end:
+            values.setdefault(fact.concept, set()).add(fact.value)
+    filled = []
+    for metric, tags in _INSTANT_METRICS.items():
+        if metric == "ending_shares" or metrics.get(metric) is not None:
+            continue
+        if issues.get(metric) and not issues[metric].startswith("not_reported"):
+            continue
+        for tag in tags:
+            found = values.get(f"us-gaap:{tag}")
+            if not found:
+                continue
+            if len(found) == 1:
+                metrics[metric] = next(iter(found))
+                period.setdefault("sources", {})[metric] = {
+                    **period["filing"], "url": instance.url, "taxonomy": "us-gaap", "tag": tag, "unit": "USD",
+                    "period_end": period["period_end"], "derivation": "filing_instance",
+                }
+                issues.pop(metric, None)
+                filled.append(metric)
+            break
+    if not filled:
+        return []
+    return [f"Filing instance: {len(filled)} interim balance-sheet facts missing from SEC Company Facts are read "
+            f"directly from the {period['period_end']} 10-Q XBRL instance, including "
+            + ", ".join(key.replace("_", " ") for key in filled[:4]) + ("." if len(filled) <= 4 else ", and others.")]
+
+
 def apply_capital_events(packet, balance_date, as_of, cash, debt, shares, shares_date=None):
     """Roll disclosed completed movements into cash, debt and share count in millions."""
     bridge = packet.get("capital_bridge", {})

@@ -50,6 +50,9 @@ def _wacc(book, market):
         book.sources.pop((tab,"B10"),None)
     else:
         book.input(tab,"B10",debt["spread"],debt["url"],f"{debt['date']} | {debt['basis']}",PCT)
+    # Read by the report, so the PDF states the same basis as the workbook.
+    book.put(tab,"A40","Pretax debt cost basis")
+    book.put(tab,"B40",debt["basis"].rstrip(".") + ".")
 
 
 def _comps(book, comps):

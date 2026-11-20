@@ -183,6 +183,17 @@ def build_statements(book, model, revenue_total):
     for row, label in ((20, "Annual debt issuance"), (21, "Annual debt repayment"), (22, "Annual buybacks")):
         book.put("Assumptions", f"A{row}", label)
         book.input("Assumptions", f"B{row}", 0, basis="Analyst assumption | no future capital transaction modeled")
+    start = model.get("financing_start") or {}
+    book.put("Schedules", "A40", "Year-1 debt change to the latest 10-Q")
+    book.put("Schedules", "A41", "Year-1 repurchases already in the latest 10-Q share count")
+    if start:
+        book.input("Schedules", "B40", start["debt_change"], start["url"],
+                   f"{start['period_end']} | 10-Q funded debt less annual funded debt; {start['basis']}")
+        book.input("Schedules", "B41", start["repurchases"], start["repurchases_url"],
+                   f"{start['period_end']} | Fiscal YTD PaymentsForRepurchaseOfCommonStock in the 10-Q")
+    else:
+        book.input("Schedules", "B40", 0, basis="No material post-year-end financing change; forecast debt opens at the annual balance")
+        book.input("Schedules", "B41", 0, basis="No material post-year-end financing change")
     book.put("Assumptions", "A23", "Repurchase price")
     book.formulas("Assumptions", "B", {23: "Cover!B6"})
     book.put("Assumptions", "C23", "Analyst proxy | dated quote held constant for forecast repurchases")
@@ -224,12 +235,18 @@ def build_statements(book, model, revenue_total):
             4: f"{pb}10", 5: f"{inc}4*(Assumptions!$B$6+(Assumptions!$B$14-Assumptions!$B$6)*{i}/4)",
             6: f"{inc}4*Assumptions!$B$5", 7: f"SUM({col}4:{col}5)-{col}6",
             12: f"SUM({bs}6:{col}8)-SUM({bs}17:{col}20)", 13: f"{col}12-{prev}12",
-            15: f"{pb}21+{pb}23", 16: "Assumptions!$B$20", 17: "Assumptions!$B$21",
-            18: f"SUM({col}15:{col}16)-{col}17", 19: f"{col}15*WACC!$B$6",
+            15: f"{pb}21+{pb}23",
+            # Year 1 books the post-year-end move to the 10-Q balance, so interest accrues on 10-Q debt.
+            16: "Assumptions!$B$20" + ("+MAX(0,Schedules!$B$40)" if not i else ""),
+            17: "Assumptions!$B$21" + ("+MAX(0,-Schedules!$B$40)" if not i else ""),
+            18: f"SUM({col}15:{col}16)-{col}17",
+            19: f"({col}15+Schedules!$B$40)*WACC!$B$6" if not i else f"{col}15*WACC!$B$6",
             21: f"{pb}32", 22: f"{inc}9",
             23: f"MAX(0,{col}22)*Assumptions!$B$16",
-            24: "Assumptions!$B$22", 25: f"SUM({col}21:{col}22)-SUM({col}23:{col}24)",
-            26: f"{'DCF!$B$12' if not i else prev+'26'}-{col}24/Assumptions!$B$23",
+            24: "Assumptions!$B$22" + ("+Schedules!$B$41" if not i else ""),
+            25: f"SUM({col}21:{col}22)-SUM({col}23:{col}24)",
+            # The opening count is the 10-Q bridge count, which already reflects the year-1 repurchases.
+            26: f"{'DCF!$B$12' if not i else prev+'26'}-Assumptions!$B$22/Assumptions!$B$23",
             28: f"{inc}7", 29: "Assumptions!$B$4", 30: f"{col}28*{col}29", 31: f"{inc}5*{col}29",
         })
         fixed = {r: f'{pb}{r}' for r in (5, 11, 12, 13, 14, 24, 25, 26, 31)}
