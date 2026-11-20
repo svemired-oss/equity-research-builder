@@ -21,9 +21,39 @@ SPREAD = "https://fred.stlouisfed.org/series/BAMLC0A4CBBB"
 ERP_SNAPSHOTS = {date(2026, 11, 1): .0441}
 
 
-def _download(url):
-    with urlopen(Request(url, headers={"User-Agent": "Equity Research Builder"}), timeout=15) as response:
-        return response.read(2_000_000).decode(errors="replace")
+def _download(url, attempts=3, timeout=30):
+    for attempt in range(attempts):
+        try:
+            with urlopen(Request(url, headers={"User-Agent": "Equity Research Builder"}), timeout=timeout) as response:
+                return response.read(2_000_000).decode(errors="replace")
+        except OSError:
+            if attempt == attempts - 1:
+                raise
+
+
+SPY_PROXY = "SPY ETF split-adjusted closes as S&P 500 proxy"
+
+
+def _index_series(client, start, end):
+    """Prefer SPY bars from the market-data provider; FRED SP500 is the secondary source."""
+    try:
+        bars = client.adjusted_daily_bars("SPY", start, end)
+        closes = {}
+        for row in bars:
+            day = date.fromisoformat(row["t"][:10])
+            if start <= day <= end and day not in closes and isinstance(row.get("c"), (int, float)) and row["c"] > 0:
+                closes[day] = row["c"]
+        if len(closes) >= 400:
+            return closes, _BARS_SOURCE, SPY_PROXY
+    except (MarketQuoteError, ValueError, KeyError, TypeError, OSError):
+        pass
+    try:
+        series = _series("SP500", start, end)
+    except (OSError, ValueError):
+        series = {}
+    if not series:
+        raise ValueError("Neither SPY bars nor the FRED S&P 500 series were available for beta.")
+    return series, INDEX, "FRED S&P 500 index"
 
 
 def dated_erp(html, cutoff):
@@ -132,7 +162,7 @@ def collect_market_inputs(packet, client, quote, peers, risk_free):
     end = date.fromisoformat(quote["trading_date"])
     cutoff = date.fromisoformat(packet["as_of"])
     start = end-timedelta(days=735)
-    index = _series("SP500", start, end)
+    index, index_url, index_basis = _index_series(client, start, end)
     betas = {}
     ranges = None
     for ticker in (quote["ticker"], *peers):
@@ -155,7 +185,10 @@ def collect_market_inputs(packet, client, quote, peers, risk_free):
                 break
         except (MarketQuoteError, ValueError, KeyError, TypeError):
             continue
+    for item in betas.values():
+        item["index_url"], item["index_basis"] = index_url, index_basis
     beta = select_beta(betas.pop(quote["ticker"], None), betas)
+    beta["index_url"], beta["index_basis"] = index_url, index_basis
     try:
         html = _download(ERP)
     except OSError:
@@ -164,7 +197,10 @@ def collect_market_inputs(packet, client, quote, peers, risk_free):
     try:
         debt = debt_cost(packet, risk_free)
     except ValueError:
-        spreads = _series("BAMLC0A4CBBB", end-timedelta(days=10), end)
+        try:
+            spreads = _series("BAMLC0A4CBBB", end-timedelta(days=10), end)
+        except OSError:
+            spreads = {}
         if not spreads:
             raise ValueError("No recent BBB corporate spread.")
         day = max(spreads)

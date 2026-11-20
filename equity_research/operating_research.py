@@ -455,7 +455,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         model["valuation_comps"] = comps
         model["valuation_summary"] = summarize(model, comps)
         model["sources"].update({"Damodaran implied ERP": market["erp"]["url"],
-                                  "Broad market benchmark": market["beta"]["index_url"],
+                                  f"Broad market benchmark ({market['beta'].get('index_basis', 'FRED S&P 500 index')})": market["beta"]["index_url"],
                                   "Beta price observations": market["beta"]["url"],
                                   "Pretax debt cost": market["debt"]["url"]})
     return model

@@ -115,3 +115,50 @@ def test_phase_four_export(tmp_path):
     summary = {"rating":model["valuation_summary"]["rating"],"spot_value_usd":model["scenarios"]["Base"].value_per_share}
     assert check_pair({"source_mode":"operating_research","summary":summary},book.read_bytes(),report.read_bytes())["peer_value"] == 30
 
+
+
+def _bars(start, days, base=100.0, step=0.001):
+    from datetime import timedelta as _td
+    rows, price = [], base
+    for i in range(days):
+        day = start + _td(days=i)
+        if day.weekday() < 5:
+            price *= 1 + step * (1 if i % 3 else -1.5)
+            rows.append({"t": f"{day.isoformat()}T05:00:00Z", "c": price, "h": price, "l": price})
+    return rows
+
+
+class _SPYClient:
+    def __init__(self, fail=False):
+        self.fail = fail
+
+    def adjusted_daily_bars(self, symbol, start, end):
+        if self.fail:
+            from equity_research.market_quotes import MarketQuoteError
+            raise MarketQuoteError("unavailable")
+        return _bars(start, (end - start).days + 1)
+
+
+def test_index_prefers_spy_when_fred_times_out(monkeypatch):
+    from datetime import date, timedelta
+    from equity_research import market_valuation as mv
+
+    def timeout(*args, **kwargs):
+        raise TimeoutError("The read operation timed out")
+    monkeypatch.setattr(mv, "_download", timeout)
+    end = date(2026, 11, 18)
+    series, url, basis = mv._index_series(_SPYClient(), end - timedelta(days=735), end)
+    assert basis == mv.SPY_PROXY and len(series) >= 400
+
+
+def test_index_reports_specific_error_when_all_sources_fail(monkeypatch):
+    from datetime import date, timedelta
+    import pytest
+    from equity_research import market_valuation as mv
+
+    def timeout(*args, **kwargs):
+        raise TimeoutError("The read operation timed out")
+    monkeypatch.setattr(mv, "_download", timeout)
+    end = date(2026, 11, 18)
+    with pytest.raises(ValueError, match="Neither SPY bars nor the FRED"):
+        mv._index_series(_SPYClient(fail=True), end - timedelta(days=735), end)

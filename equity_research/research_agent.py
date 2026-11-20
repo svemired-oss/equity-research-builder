@@ -72,13 +72,23 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
         items = [item["text"] for output in result["output"] if output.get("type") == "message"
                  for item in output["content"] if item.get("type") == "output_text"]
         selection = json.loads("".join(items))
-        if (set(selection) != set(schema["required"]) or selection["group"] not in schema["properties"]["group"]["enum"]
-                or selection["driver_type"] not in PLUGINS or selection["driver_passage"] not in ["none", *passages]
-                or ((selection["driver_type"] == FALLBACK) != (selection["driver_passage"] == "none"))
-                or any(not isinstance(selection[field], str) or not 1 <= len(selection[field]) <= 450
-                       or not selection[field].isprintable() or selection[field].lstrip().startswith("=")
-                       for field in fields)):
-            raise ValueError("Invalid research selection.")
+        problems = []
+        if set(selection) != set(schema["required"]):
+            problems.append("fields differ from the schema")
+        else:
+            if selection["group"] not in schema["properties"]["group"]["enum"]:
+                problems.append("unknown revenue group")
+            if selection["driver_type"] not in PLUGINS or selection["driver_passage"] not in ["none", *passages]:
+                problems.append("unknown driver type or passage")
+            elif (selection["driver_type"] == FALLBACK) != (selection["driver_passage"] == "none"):
+                problems.append(f"driver {selection['driver_type']} paired with passage {selection['driver_passage']}")
+            for field in fields:
+                value = selection[field]
+                if (not isinstance(value, str) or not 1 <= len(value) <= 450 or not value.isprintable()
+                        or value.lstrip().startswith("=")):
+                    problems.append(f"{field} text failed length or character checks")
+        if problems:
+            raise ValueError("Invalid research selection: " + "; ".join(problems) + ".")
         peers = selection["peer_candidates"]
         if not isinstance(peers, list) or len(peers) > 5 or any(
             not isinstance(peer, dict) or set(peer) != set(peer_fields)
@@ -115,4 +125,5 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=()):
     except ResearchGap:
         raise
     except (URLError, OSError, ValueError, KeyError, TypeError) as exc:
-        raise ResearchGap("The research provider did not return a verified forecast selection.") from exc
+        detail = str(exc)[:200] or type(exc).__name__
+        raise ResearchGap(f"The research provider did not return a verified forecast selection. {detail}") from exc
