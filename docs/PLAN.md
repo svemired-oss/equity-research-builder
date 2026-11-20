@@ -41,7 +41,7 @@ Baseline 2026-11-19: 6/50 (12%), 0 real drivers. Stage 1b (2026-11-19 cutoff): 1
 | Stage | Dates | Build | Gate |
 | --- | --- | --- | --- |
 | 1. Coverage fallbacks | Nov 20-24 | Total revenue as one labeled line when segments don't reconcile; missing current-debt line = 0 when total debt is filed and the balance sheet ties | 15+ pass on the 37-ticker cohort |
-| 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary + FCFF check; CAPM with historical/forward/comparable betas; multiples as cross-check from 3+ peers; carry other and equity-method income; growth-based bull/bear; pass only if value/price 0.5-2x | Sector medians 0.7-1.4 |
+| 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary + FCFF check; CAPM with historical/forward/comparable betas; multiples as cross-check from 3+ peers; carry other and equity-method income; growth-based bull/bear; pass only if value/price 0.5-2x; peers share the subject's 3-digit SIC code, with 2-digit matches only as a labeled fallback (PG currently gets JNJ, ABT and PFE) | Sector medians 0.7-1.4 |
 | 4a. Report minimum | Dec 1-2 | Business and risk text from the 10-K for every pass | No empty business, industry or risk section |
 | 5. Release v1 | Dec 2-4 | Merge to main, deploy Render, publish 10 passing pairs | Signed-out download + password run both work |
 | 3. Real revenue drivers | Dec 7-23 | Stores (SBUX, TGT, MCD), volume x yield (FDX, UPS, DAL), units x price; AI-written cited reasons | 10+ real-driver passes matching filings |
