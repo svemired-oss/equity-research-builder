@@ -207,17 +207,18 @@ LONG_RUN_GROWTH = .04  # docs/method-notes.md, Stage 2d: years 2-5 fade from the
 def normalized_operating_income(metrics):
     """Operating income with disclosed unusual items removed, USD (filed units).
 
-    Charges: the broadest disclosed aggregate of other operating charges, combined restructuring and
-    impairment provisions, or restructuring + impairments + litigation settlements (the maximum, so an
-    item inside an aggregate is not counted twice). Asset-sale gains are removed and losses added back,
-    on the assumption that they are presented within operating income.
+    Charges: the larger of the combined restructuring and impairment provision or restructuring +
+    impairments + litigation settlements (so an item inside the aggregate is not counted twice).
+    Asset-sale gains are removed and losses added back, assuming they sit within operating income.
+    The generic OtherCostAndExpenseOperating tag is not used: most filers (META, UPS, CSX, DAL in the
+    2026-11-21 run) report recurring other operating expense under it, not unusual charges.
     """
     value = lambda key: metrics.get(key) if type(metrics.get(key)) in (int, float) and isfinite(metrics.get(key)) else 0.
     impairment = max(value("unusual_asset_impairment"), value("unusual_goodwill_and_intangible_impairment"),
                      value("unusual_goodwill_impairment") + value("unusual_intangible_impairment")
                      + value("unusual_long_lived_impairment"))
     components = value("unusual_restructuring") + impairment + value("unusual_litigation")
-    charges = max(value("unusual_other_operating_charges"), value("unusual_restructuring_and_impairment"), components, 0.)
+    charges = max(value("unusual_restructuring_and_impairment"), components, 0.)
     gain = value("unusual_asset_sale_gain")
     return _read(metrics, "operating_income") + charges - gain, charges, gain
 
@@ -594,9 +595,10 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
                           f"Years 2-5 fade linearly from the {fade['years']}-year consolidated revenue CAGR ({fade['cagr']:.1%}) "
                           f"in year 2 to 4% nominal in year 5 (docs/method-notes.md). Terminal growth stays 2.5%."),
             f"The base EBIT margin is the three-year median normalized operating margin ({margin:.1%}; reported {reported_margin:.1%}): "
-            "disclosed impairments, restructuring, litigation settlements and other operating charges are added back to each year's "
-            "operating income (the broadest disclosed aggregate, so nothing is counted twice) and asset-sale gains are removed, "
-            "assuming they sit within operating income. The three-year median effective tax rate anchors taxes.",
+            "disclosed impairments, restructuring and litigation settlements are added back to each year's operating income "
+            "(the larger of the combined provision or the components, so nothing is counted twice) and asset-sale gains are "
+            "removed, assuming they sit within operating income. Other operating charges count only through those tags: the "
+            "generic us-gaap other operating expense tag is recurring cost for most filers. The three-year median effective tax rate anchors taxes.",
             " Scenario margin shifts are capped at 25% of base margin or three percentage points, whichever is smaller. Bull and bear cases also add or subtract 0.5 percentage points to every revenue line's annual growth rate in every forecast year.",
             "Terminal value is Gordon growth on the final explicit year's FCFE: FCFE year 5 x (1 + g) / (cost of equity - g), "
             "with g = 2.5% as a labeled analyst assumption. Reinvestment is in the forecast cash flows; the ROIC-based "

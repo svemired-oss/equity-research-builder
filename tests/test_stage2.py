@@ -290,9 +290,11 @@ def test_normalized_margin_removes_disclosed_unusual_items_without_double_counti
     m = {**base, "unusual_restructuring": 5e6, "unusual_goodwill_impairment": 7e6, "unusual_litigation": 2e6,
          "unusual_asset_sale_gain": 3e6}
     assert normalized_operating_income(m) == (100e6 + 14e6 - 3e6, 14e6, 3e6)
-    # KO-style "other operating charges" already include those items: the broadest aggregate is used once.
-    m["unusual_other_operating_charges"] = 20e6
+    # The combined provision already includes those items: the larger aggregate is used once.
+    m["unusual_restructuring_and_impairment"] = 20e6
     assert normalized_operating_income(m)[1] == 20e6
+    # The generic other operating expense tag is recurring cost (META files about $50 billion a year) and is ignored.
+    assert normalized_operating_income({**base, "unusual_other_operating_charges": 50e6})[1] == 0
     # Overlapping impairment totals are not summed.
     m = {**base, "unusual_asset_impairment": 9e6, "unusual_goodwill_impairment": 4e6, "unusual_intangible_impairment": 3e6}
     assert normalized_operating_income(m)[1] == 9e6

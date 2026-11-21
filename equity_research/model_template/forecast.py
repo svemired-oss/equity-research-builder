@@ -42,8 +42,8 @@ def normalized_margin(book, model):
         url = item["url"]
         _evidence(book, TAB, f"{col}51", item["operating_income"], url, f"{item['period_end']} | filed OperatingIncomeLoss")
         _evidence(book, TAB, f"{col}52", item["charges"], url,
-                   f"{item['period_end']} | broadest disclosed aggregate of OtherCostAndExpenseOperating, "
-                   "RestructuringSettlementAndImpairmentProvisions, or restructuring + impairments + LitigationSettlementExpense")
+                   f"{item['period_end']} | larger of RestructuringSettlementAndImpairmentProvisions or restructuring + "
+                   "impairments + LitigationSettlementExpense")
         _evidence(book, TAB, f"{col}53", item["gain"], url,
                    f"{item['period_end']} | filed gain (loss) on asset sales, assumed within operating income")
         book.put(TAB, f"{col}54", f"={col}51+{col}52-{col}53")

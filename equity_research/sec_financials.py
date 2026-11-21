@@ -32,7 +32,6 @@ _DURATION_METRICS = {
     "equity_method_income": ("IncomeLossFromEquityMethodInvestments",),
     # Disclosed unusual operating items removed from historical operating income for the normalized margin
     # (docs/method-notes.md, Stage 2d). Overlapping aggregates are resolved in operating_research.
-    "unusual_other_operating_charges": ("OtherCostAndExpenseOperating",),
     "unusual_restructuring_and_impairment": ("RestructuringSettlementAndImpairmentProvisions",),
     "unusual_restructuring": ("RestructuringCharges", "RestructuringCosts"),
     "unusual_asset_impairment": ("AssetImpairmentCharges",),
