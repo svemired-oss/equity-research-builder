@@ -28,6 +28,21 @@ _DURATION_METRICS = {
     # Components of the labeled operating-income proxy for issuers that present no operating subtotal.
     "interest_income": ("InvestmentIncomeInterest", "InvestmentIncomeInterestAndDividend"),
     "other_nonoperating_income": ("OtherNonoperatingIncomeExpense",),
+    # Carried forward at the historical median with other nonoperating income in the FCFE forecast.
+    "equity_method_income": ("IncomeLossFromEquityMethodInvestments",),
+    # Disclosed unusual operating items removed from historical operating income for the normalized margin
+    # (docs/method-notes.md, Stage 2d). Overlapping aggregates are resolved in operating_research.
+    "unusual_restructuring_and_impairment": ("RestructuringSettlementAndImpairmentProvisions",),
+    "unusual_restructuring": ("RestructuringCharges", "RestructuringCosts"),
+    "unusual_asset_impairment": ("AssetImpairmentCharges",),
+    "unusual_goodwill_and_intangible_impairment": ("GoodwillAndIntangibleAssetImpairment",),
+    "unusual_goodwill_impairment": ("GoodwillImpairmentLoss",),
+    "unusual_intangible_impairment": ("ImpairmentOfIntangibleAssetsExcludingGoodwill",
+                                      "ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill"),
+    "unusual_long_lived_impairment": ("ImpairmentOfLongLivedAssetsHeldForUse",),
+    "unusual_litigation": ("LitigationSettlementExpense",),
+    "unusual_asset_sale_gain": ("GainLossOnSaleOfPropertyPlantEquipment", "GainLossOnDispositionOfAssets",
+                                "GainLossOnDispositionOfAssets1"),
     "depreciation_amortization": ("DepreciationDepletionAndAmortization", "DepreciationAndAmortization"),
     "depreciation_amortization_accretion": ("DepreciationAmortizationAndAccretionNet",),
     "depreciation": ("Depreciation", "DepreciationDepletionAndAmortizationPropertyPlantAndEquipment"),

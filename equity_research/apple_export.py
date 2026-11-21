@@ -87,6 +87,10 @@ def workbook_plan(model):
             sheet("Revenue", [f"=H{row}*(1+Assumptions!$B$9+({growth_recent}{row}/{growth_base}{row}-1-Assumptions!$B$9)*Assumptions!$B$13)"],
                   "B", total_row + row - 1)
         sheet("Revenue", [f"=SUM(B{total_row+3}:B{2*total_row-2})"], "B", 2*total_row-1)
+        if "revenue_fade" in model:
+            # Stage 2d: years 2-5 fade linearly from the 3-year revenue CAGR to 4% nominal.
+            sheet("Assumptions", [f"Year {k + 2} revenue growth (linear fade)" for k in range(4)], start=38)
+            sheet("Assumptions", [(rate, "input", PCT) for rate in model["revenue_fade"]["path"]], "B", 38)
         sheet("Schedules", ["Forecast schedules", "USD millions", "",
                             "Operating current assets", "Operating current liabilities", "Net working capital",
                             "Opening net investment assets", "Cash capital expenditure", "D&A",
@@ -111,6 +115,7 @@ def workbook_plan(model):
         header = (f"FY{model['dates'][i].year}", "header", None)
         sheet("Revenue", [header, *[
             (f"=B{total_row+row-1}*IF(ISNUMBER(Assumptions!$B$15),Assumptions!$B$15/B{2*total_row-1},1)" if not i and normalize_capex else
+             f"={prev}{row}*(1+Assumptions!$B${37+i})" if normalize_capex and "revenue_fade" in model else
              f"={prev}{row}*(1+Assumptions!$B$9+({growth_recent}{row}/{growth_base}{row}-1-Assumptions!$B$9)*Assumptions!$B$13^{i+1})")
             for row in range(4, total_row)], f"=SUM({col}4:{col}{total_row-1})"], col, 3)
         inc = f"'Income statement'!{col}"
@@ -208,7 +213,7 @@ def workbook_plan(model):
         terminal_margin = "'Income statement'!F4*(1+B4)*(1-B4/B5)/(B3-B4)/(1+B3)^F20"
         sheet("DCF", [(f"=Assumptions!B3+Assumptions!B11+(Cover!B6-B15)*B12/((1-Assumptions!B4)*({pv_margin}+{terminal_margin}))",
                        "total", PCT)], "B", 36)
-        expected["DCF"]["B36"] = model["implied_margin"]
+        expected["DCF"]["B36"] = model.get("legacy_implied_margin", model["implied_margin"])
     comps = model.get("comparables")
     if comps is not None:
         sheet("Comps", [f"{comps['basis']} diluted P/E", f"USD closes from {comps['quote_date']}"])
@@ -262,7 +267,7 @@ def workbook_plan(model):
     return {"cells": cells, "case": "Base", "expected": expected,
             "scenarioControls": {key: key for key in MARGIN_SHIFT},
             "scenarioExpected": {name: {"DCF": {"B15": item.value_per_share}}
-                                 for name, item in model["scenarios"].items() if name != "Base"},
+                                 for name, item in model.get("legacy_scenarios", model["scenarios"]).items() if name != "Base"},
             "recalculationProbe": {"input": {"sheet": "Assumptions", "address": "B3", "delta": .01},
                                    "changed": [{"sheet": "DCF", "address": "B15"}],
                                    "unchanged": [{"sheet": "Actuals", "address": "F4"}]}}
@@ -368,7 +373,7 @@ def _write_pdf(model, workbook, pdf):
     paragraph(model.get("thesis", "The model prices Apple as a hardware and services business. iPhone is the largest source of sales, while Services grows from a smaller base. A three-point margin change tests how mix, demand and cost pressure could affect valuation."))
     table = Table([["Case", "Fair value", "EBIT margin shift"]] + [
         [name, f"${result.value_per_share:.2f}", f"{MARGIN_SHIFT[name] / .03 * model.get('margin_step', .03):+.1%}"]
-        for name, result in model["scenarios"].items()
+        for name, result in model.get("legacy_scenarios", model["scenarios"]).items()
     ], colWidths=[130, 130, 130])
     table.setStyle(TableStyle([("BACKGROUND", (0,0), (-1,0), colors.HexColor("#17365D")),
                                ("TEXTCOLOR", (0,0), (-1,0), colors.white),

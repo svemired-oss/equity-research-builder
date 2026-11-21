@@ -9,8 +9,9 @@ from .drivers import FALLBACK, PLUGINS, extract
 from .operating_comps import _earnings_basis
 from .operating_research import ResearchGap, _balance
 
+from .peer_selection import MIN_PEERS, SIZE_HIGH, SIZE_LOW, sic_tier
+
 METRICS = {"EV / EBITDA": "ebitda", "EV / Sales": "sales", "P/E": "eps"}
-SIZE_LOW, SIZE_HIGH = .1, 10.
 
 
 def collect_forward_eps(packet, client):
@@ -45,13 +46,9 @@ def driver_types(packet):
             for kind in PLUGINS if extract(packet, kind, passage)["type"] != FALLBACK}
 
 
-def same_business(subject, peer, kind):
-    if kind != FALLBACK:
-        return kind in driver_types(peer)
-    # A failed extraction alone establishes no business similarity.
-    a, b = (str(p["issuer"].get("sic") or "") for p in (subject, peer))
-    # Research-proposed peers must share the SEC SIC major group (first two digits).
-    return len(a) == len(b) == 4 and a.isdigit() and b.isdigit() and a[:2] == b[:2]
+def same_business(subject, peer, kind=None):
+    """Peers share the subject's 3-digit SIC code, or its 2-digit code as a labeled fallback."""
+    return sic_tier(subject["issuer"].get("sic"), peer["issuer"].get("sic")) is not None
 
 
 def _profile(packet, quote, cutoff, *, equity_only_fallback=False):
@@ -106,7 +103,7 @@ def multiple_summary(rows, subject):
     for label, denominator in METRICS.items():
         values = [row["multiples"][label] for row in rows if label in row["multiples"]]
         base = subject[denominator]
-        if len(values) < 2 or base is None or base <= 0:
+        if len(values) < MIN_PEERS or base is None or base <= 0:
             continue
         cuts = quantiles(values, n=4, method="inclusive")
         def implied(value):
@@ -130,7 +127,7 @@ def prepare(subject, candidates, packets, quotes, kind):
                 raise ResearchGap("Same-session USD market and SEC evidence required.")
             issuer = peer["issuer"]
             if issuer["ticker"] != name or issuer["cik"] in seen or not same_business(subject, peer, kind):
-                raise ResearchGap("Distinct issuer with the same driver type required.")
+                raise ResearchGap("Distinct issuer sharing the subject's 3-digit or 2-digit SIC code required.")
             row = _profile(peer, quote, cutoff, equity_only_fallback=True)
             ratio = row["equity"]/basis["equity"]
             if not SIZE_LOW <= ratio <= SIZE_HIGH:
@@ -165,9 +162,11 @@ def prepare(subject, candidates, packets, quotes, kind):
             else:
                 row["eps"] = None
                 row["multiples"].pop("P/E",None)
-    summary = multiple_summary(rows,basis)
+    summary = multiple_summary(rows,basis) if len(rows) >= MIN_PEERS else {}
     medians = [r["values"][1] for r in summary.values()]
-    return {"subject": basis, "rows": rows, "excluded": excluded, "summary": summary,
+    reason = (None if medians else f"Insufficient peers: {len(rows)} qualified, {MIN_PEERS} required." if len(rows) < MIN_PEERS
+              else f"Insufficient peers: no multiple has {MIN_PEERS} valid peer values.")
+    return {"subject": basis, "rows": rows, "excluded": excluded, "summary": summary, "reason": reason,
             "value": median(medians) if medians else None, "basis": "LTM",
             "driver": kind, "quote_date": quotes[ticker]["trading_date"], "pe_basis": "Forward GAAP NTM" if use_forward else "LTM GAAP"}
 

@@ -9,14 +9,14 @@ from ..workbook_renderer import render_workbook
 from .statements import BALANCE, CASH, INCOME, build_statements
 
 SHEETS = ("Cover", "Assumptions", "Revenue Build", INCOME, BALANCE, CASH, "Schedules",
-          "WACC", "DCF", "Sensitivity", "Comps", "Football Field", "Checks", "Sources")
+          "Cost of Equity", "DCF", "Scenarios", "Sensitivity", "WACC", "Comps", "Football Field", "Checks", "Sources")
 PCT = "0.00%"
 PRICE = '"$"0.00'
 
 
 def ordered_sheets(cells):
     """Place common presentation tabs before issuer detail tabs."""
-    return {name:cells[name] for name in (*SHEETS,*(tab for tab in cells if tab not in SHEETS))}
+    return {name:cells[name] for name in (*SHEETS,*(tab for tab in cells if tab not in SHEETS)) if name in cells}
 
 
 class Template:
@@ -74,10 +74,11 @@ def _legacy_sources(book, model, revenue_total):
     book.cite("Cover", "B5", None, "Analyst scenario selector")
     book.cite("Cover", "B6", price, f"Dated market close | {model['price_date']}")
     assumptions = {
-        3: (annual, "Three-year median EBIT margin"), 4: (annual, "Three-year median effective tax rate"),
+        3: (annual, "Three-year median normalized operating margin | calculation on Assumptions rows 50-59"),
+        4: (annual, "Three-year median effective tax rate"),
         5: (annual, "Three-year median D&A / revenue"),
         6: (annual, "Historical capex ratio with D&A floor and available interim evidence"),
-        9: (None, "Analyst assumption | terminal growth"), 10: (None, "Analyst assumption | incremental terminal ROIC"),
+        9: (None, "Analyst assumption | terminal growth"), 10: (None, "Analyst assumption | incremental ROIC for forecast reinvestment and the ROIC-based terminal check"),
         13: (None, "Analyst assumption | annual growth convergence"),
         15: (next((url for label, url in sources.items()
                    if label.startswith(("FY revenue guidance", "Reported current YTD sales"))), None),
@@ -130,37 +131,41 @@ def _legacy_sources(book, model, revenue_total):
         book.cite("Guided changes", f"B{row}", annual, "Previous model default before Guided change")
 
 
-def _sensitivity(book):
+def _sensitivity(book, model):
+    from ..fcfe_valuation import value_fcfe
+    from .equity import BRIDGE, G, KE, SHARES, VALUE, YEARS, FLOW
     tab = "Sensitivity"
-    book.put(tab, "A1", "DCF sensitivity | USD per share", "title")
-    book.input(tab, "H3", .005, basis="Analyst assumption | sensitivity WACC and terminal growth step", fmt=PCT)
-    book.put(tab, "G3", "WACC / terminal growth step")
+    book.put(tab, "A1", "FCFE DCF sensitivity | USD per share", "title")
+    book.input(tab, "H3", .005, basis="docs/method-notes.md rule 4 | cost of equity step", fmt=PCT)
+    book.put(tab, "G3", "Cost of equity step")
+    book.input(tab, "H5", .0025, basis="docs/method-notes.md rule 4 | terminal growth step", fmt=PCT)
+    book.put(tab, "G5", "Terminal growth step")
     book.input(tab, "H4", .01, basis="Analyst assumption | sensitivity EBIT margin and revenue growth step", fmt=PCT)
     book.put(tab, "G4", "Margin / annual revenue growth step")
     for row in range(26, 33):
         for col in "ABCDEF":
-            address = f"{col}{row}"
-            record = book.cells["DCF"].pop(address, None)
-            if record is None:
-                continue
-            value, kind, fmt = record
-            if row == 27 and col != "A":
-                offset = "BCDEF".index(col)-2
-                value = f"=DCF!$B$4+({offset})*$H$3"
-            elif col == "A" and row >= 28:
-                value = f"=DCF!$B$3+({row-30})*$H$3"
-            elif row >= 28:
-                value = re.sub(r"\$[B-F]\$(?:20|21)|\$B\$(?:5|6|7|8|9|10|12|23)\b",
-                               lambda match: "DCF!" + match[0], value)
-            book.put(tab, address, value, kind, fmt)
-    book.expected[tab] = {f"{col}{row}": book.expected["DCF"].pop(f"{col}{row}")
-                          for row in range(28, 33) for col in "BCDEF"}
-    book.put("DCF", "A30", "WACC × terminal growth sensitivity center")
+            book.cells["DCF"].pop(f"{col}{row}", None)
+            book.expected["DCF"].pop(f"{col}{row}", None)
+    tax = "Assumptions!$B$4"
+    book.put(tab, "A26", "Cost of equity × terminal growth", "section")
+    inputs, revenues, margin = model["fcfe_inputs"], model["revenue"], model["margin"]
+    book.expected[tab] = {}
+    for offset, col in enumerate("BCDEF", -2):
+        book.put(tab, f"{col}27", f"=DCF!$B${G}+({offset})*$H$5", "header", PCT)
+    for row, offset in enumerate(range(-2, 3), 28):
+        book.put(tab, f"A{row}", f"=DCF!$B${KE}+({offset})*$H$3", "header", PCT)
+        for step, col in enumerate("BCDEF", -2):
+            pv = "+".join(f"DCF!${year}${FLOW}/(1+$A{row})^DCF!${year}${YEARS}" for year in "BCDEF")
+            terminal = f"DCF!$F${FLOW}*(1+{col}$27)/($A{row}-{col}$27)/(1+$A{row})^DCF!$F${YEARS}"
+            book.put(tab, f"{col}{row}", f"=({pv}+{terminal}+{BRIDGE})/DCF!$B${SHARES}", fmt=PRICE)
+            book.expected[tab][f"{col}{row}"] = value_fcfe(
+                inputs, revenues, margin, model["cost_of_equity"] + offset*.005, model["growth"] + step*.0025).value_per_share
+    book.put("DCF", "A30", "Cost of equity × terminal growth sensitivity center")
     book.put("DCF", "D30", "=Sensitivity!D30", "total", PRICE)
     book.expected["DCF"]["D30"] = book.expected[tab]["D30"]
 
     book.put(tab, "A6", "EBIT margin × annual revenue growth adjustment", "section")
-    book.put(tab, "A7", "Capex ratios, working capital ratios, WACC and terminal growth are held at the selected case.")
+    book.put(tab, "A7", "Capex ratios, working capital ratios, cost of equity and terminal growth are held at the selected case.")
     for offset, col in enumerate("BCDEF", -2):
         book.put(tab, f"{col}9", f"={offset}*$H$4", "header", PCT)
     for row, offset in enumerate(range(-2, 3), 10):
@@ -182,24 +187,27 @@ def _sensitivity(book):
                 sales = f"{'CDEFG'[i]}{start}"
                 previous = f"'{INCOME}'!$L$4" if i == 0 else f"{'CDEF'[i-1]}{start}"
                 capex = f"Schedules!{case_col}5/'{INCOME}'!{case_col}4"
-                formula = (f"{sales}*($A{start}*(1-Assumptions!$B$4)+Assumptions!$B$5-{capex})"
+                formula = (f"{sales}*($A{start}*(1-{tax})+Assumptions!$B$5-{capex})"
                            f"-({sales}*Assumptions!$B$32-"
-                           + ("Schedules!$L$12" if i==0 else f"{previous}*Assumptions!$B$32") + ")")
+                           + ("Schedules!$L$12" if i==0 else f"{previous}*Assumptions!$B$32") + ")"
+                           f"+('{INCOME}'!{case_col}14-'{INCOME}'!{case_col}6)*(1-{tax})")
                 stub = "*Assumptions!$B$12" if not i else ""
-                book.put(tab, f"{out}{start}", f"=({formula}){stub}/(1+DCF!$B$3)^DCF!{case_col}20")
-            terminal = (f"G{start}*A{start}*(1-Assumptions!$B$4)*(1+DCF!$B$4)*(1-DCF!$B$4/DCF!$B$5)"
-                        "/(DCF!$B$3-DCF!$B$4)/(1+DCF!$B$3)^DCF!$F$20")
+                borrowing = f"'{CASH}'!{case_col}18-'{CASH}'!{case_col}19" + ("-Schedules!$B$40" if not i else "")
+                book.put(tab, f"{out}{start}", f"=(({formula}){stub}+{borrowing})/(1+DCF!$B${KE})^DCF!{case_col}20")
+            # Gordon growth on the grid's final-year FCFE; L is already discounted by the same factor.
+            terminal = f"L{start}*(1+DCF!$B${G})/(DCF!$B${KE}-DCF!$B${G})"
             book.put(tab, f"M{start}", f"={terminal}")
-            book.put(tab, f"{col}{row}", f"=(SUM(H{start}:M{start})+DCF!$B$6+DCF!$B$7-SUM(DCF!$B$8:$B$10))/DCF!$B$12", fmt=PRICE)
+            book.put(tab, f"{col}{row}", f"=(SUM(H{start}:M{start})+{BRIDGE})/DCF!$B${SHARES}", fmt=PRICE)
     for col, label in zip("ABCDEFGHIJKLM", (
         "EBIT margin", "Growth shock", *(f"Revenue Y{i}" for i in range(1, 6)),
-        *(f"PV of FCFF Y{i}" for i in range(1, 6)), "PV of terminal value",
+        *(f"PV of FCFE Y{i}" for i in range(1, 6)), "PV of terminal value",
     ), strict=True):
         book.put(tab, f"{col}35", label, "header")
-    book.expected[tab]["D12"] = book.expected["DCF"]["B15"]
-    book.put("Checks", "B11", "=Sensitivity!D12-DCF!B15", "check")
-    book.put("Checks", "B12", "=Sensitivity!D30-DCF!B15", "check")
-    book.put("Checks", "A12", "WACC × terminal growth sensitivity center difference")
+    book.expected[tab]["D12"] = model["fcfe"]["Base"].value_per_share
+    book.put("Checks", "B11", f"=Sensitivity!D12-DCF!B{VALUE}", "check")
+    book.put("Checks", "B12", f"=Sensitivity!D30-DCF!B{VALUE}", "check")
+    book.put("Checks", "A11", "Margin × growth sensitivity center difference")
+    book.put("Checks", "A12", "Cost of equity × terminal growth sensitivity center difference")
     book.expected["Checks"].update(B11=0, B12=0)
 
 
@@ -209,8 +217,8 @@ def _football_field(book):
     for col, label in zip("ABCD", ("Method", "Low", "High", "Reference"), strict=True):
         book.put(tab, f"{col}4", label, "header")
     for row, label, low, high, reference in (
-        (5, "DCF | WACC × terminal growth", "MIN(Sensitivity!B28:F32)", "MAX(Sensitivity!B28:F32)", "DCF!B15"),
-        (6, "DCF | margin × growth", "MIN(Sensitivity!B10:F14)", "MAX(Sensitivity!B10:F14)", "DCF!B15"),
+        (5, "FCFE DCF | cost of equity × terminal growth", "MIN(Sensitivity!B28:F32)", "MAX(Sensitivity!B28:F32)", "DCF!B123"),
+        (6, "FCFE DCF | margin × growth", "MIN(Sensitivity!B10:F14)", "MAX(Sensitivity!B10:F14)", "DCF!B123"),
     ):
         book.put(tab, f"A{row}", label)
         for col, formula in zip("BCD", (low, high, reference), strict=True):
@@ -232,6 +240,18 @@ def _football_field(book):
             book.put(tab, f"A{chart_row}", f"=A{source}")
             book.put(tab, f"{col}{chart_row}",
                      f'=IF(AND(ISNUMBER($B{source}),{col}$12>=$B{source},{col}$12<=$C{source}),"■","")')
+
+
+def _implied_margin(book, model):
+    """Constant EBIT margin at which the FCFE value equals the close, other inputs fixed."""
+    from .equity import G, KE, SHARES, VALUE, YEARS
+    pv = "+".join(f"'{INCOME}'!{c}4/(1+DCF!B{KE})^DCF!{c}{YEARS}" + ("*Assumptions!B12" if c == "B" else "")
+                  for c in "BCDEF")
+    terminal = f"'{INCOME}'!F4*(1+DCF!B{G})/(DCF!B{KE}-DCF!B{G})/(1+DCF!B{KE})^DCF!F{YEARS}"
+    book.put("DCF", "A36", "Market-implied operating margin (FCFE)")
+    book.put("DCF", "B36", f"=Assumptions!B3+Assumptions!B11+(Cover!B6-DCF!B{VALUE})*DCF!B{SHARES}"
+                           f"/((1-Assumptions!B4)*({pv}+{terminal}))", "total", PCT)
+    book.expected["DCF"]["B36"] = model["implied_margin"]
 
 
 def workbook_plan(model):
@@ -283,6 +303,10 @@ def workbook_plan(model):
     book.put("WACC", "B10", model["cost"].pretax_cost_of_debt-model["cost"].risk_free_rate, "input", PCT)
     book.put("WACC", "B6", "=SUM(B3,B10)", fmt=PCT)
     build_statements(book, model, revenue_total)
+    from . import equity
+    equity.assumptions(book, model)
+    equity.case_revenue(book, model, revenue_total)
+    equity.cash_flow(book)
     book.put("Assumptions", "B7", "=SUM('Balance Sheet'!L6:L8)/'Income Statement'!L4", fmt=PCT)
     book.put("Assumptions", "B8", "=SUM('Balance Sheet'!L17:L20)/'Income Statement'!L4", fmt=PCT)
     book.put("Assumptions", "A32", "Forecast operating working capital / sales")
@@ -291,10 +315,17 @@ def workbook_plan(model):
     _legacy_sources(book, model, revenue_total)
     from ..drivers import formula_block
     formula_block(book, model)
+    from . import forecast
+    forecast.build(book, model, revenue_total)
     for address, record in cells["Revenue Build"].items():
         if address[0] in "GHIJ" and type(record[0]) in (int,float):
             record[1] = "evidence"
-    _sensitivity(book)
+    equity.dcf_block(book, model)
+    if model.get("beta"):
+        equity.cost_of_equity(book, model)
+    equity.scenarios(book, model, revenue_total)
+    _implied_margin(book, model)
+    _sensitivity(book, model)
     if "Comps" not in cells:
         book.put("Comps", "A1", "Comparable valuation", "title")
         book.put("Comps", "A3", "Verified comparable evidence is unavailable.")
@@ -308,6 +339,11 @@ def workbook_plan(model):
     plan["formulaColor"] = "000000"
     plan["cells"] = ordered_sheets(cells)
     plan["recalculationProbe"]["unchanged"] = [{"sheet": INCOME, "address": "L4"}]
+    plan["recalculationProbe"]["changed"] = [{"sheet": "DCF", "address": "B123"}]
+    for name, expectations in plan["scenarioExpected"].items():
+        expectations["DCF"] = {"B15": model["scenarios"][name].value_per_share,
+                               "B123": model["fcfe"][name].value_per_share}
+        expectations["Cover"] = {"B7": model["fcfe"][name].value_per_share}
     plan["recalculationProbe"]["expected"] = {"Checks": {key: 0 for key in book.expected["Checks"]
                                                        if key[0] in "BCDEF"}}
     for expectations in plan["scenarioExpected"].values():

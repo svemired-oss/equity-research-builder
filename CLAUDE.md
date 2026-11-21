@@ -27,6 +27,7 @@ The model is measured against the owner's own build process:
 ## Decisions (2026-11-20)
 
 - FCFE at the cost of equity is the primary DCF. FCFF at WACC is a cross-check.
+- Valuation follows the "Rules for the automated model" in `docs/method-notes.md` (2026-11-21; rules 5-8 added for Stage 2d forecast normalization).
 - Peer multiples are a football-field cross-check only. The target comes from the DCF.
 - Code sets every number. The AI writes a one-line reason under each growth assumption, citing the filing or guidance passage.
 - As-reported line items, cost tables and days-based working capital arrive in v2, not v1.
@@ -38,7 +39,7 @@ Stages run in the order listed. Stage 3 comes after the v1 release.
 | Stage | Dates | Build | Gate |
 | --- | --- | --- | --- |
 | 1. Coverage fallbacks | Nov 20-24 | Total revenue as one labeled line when segments don't reconcile. Missing current-debt line = 0 when total debt is filed and the balance sheet ties. | 15+/37 pass |
-| 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary plus FCFF check. CAPM with historical, forward and comparable betas. Multiples as a cross-check from 3+ peers. Carry other and equity-method income. Growth-based bull/bear. Pass only if value/price is 0.5-2x. Peers share the subject's 3-digit SIC code; 2-digit matches only as a labeled fallback (PG currently gets JNJ, ABT and PFE). | Sector medians 0.7-1.4 |
+| 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary plus FCFF check. CAPM with historical, forward and comparable betas. Multiples as a cross-check from 3+ peers. Carry other and equity-method income. Growth-based bull/bear. Pass only if value/price is 0.5-2x. Peers share the subject's 3-digit SIC code; 2-digit matches only as a labeled fallback (PG currently gets JNJ, ABT and PFE). | Sector medians 0.7-1.4 for sectors with 2+ verified values; single-value sectors reported, not gated |
 | 4a. Report minimum | Dec 1-2 | Business and risk text from the 10-K for every pass | No empty business, industry or risk section |
 | 5. Release v1 | Dec 2-4 | Merge to main, deploy Render, publish 10 passing pairs | Signed-out download and password run both work |
 | 3. Real revenue drivers | Dec 7-23 | Stores (SBUX, TGT, MCD), volume × yield (FDX, UPS, DAL), units × price. AI-written cited reasons. | 10+ real-driver passes matching filings |

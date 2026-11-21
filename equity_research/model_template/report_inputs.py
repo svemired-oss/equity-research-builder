@@ -7,7 +7,8 @@ def add_report_inputs(book, model, revenue_total):
     for row, label in ((1,"Operating report evidence"), (2,"Issuer ticker"), (3,"Valuation cutoff"),
                        (4,"Revenue-line count"), (5,"Revenue method"),(6,"Method basis"),
                        (8,"Bear | EBIT margin change in percentage points"),
-                       (9,"Bull | EBIT margin change in percentage points")):
+                       (9,"Bull | EBIT margin change in percentage points"),
+                       (10,"Primary method"),(11,"Selected beta basis"),(12,"Peer selection tier")):
         book.put(tab,f"A{row}",label)
     book.input(tab,"B2",model["ticker"],basis="Resolved SEC issuer")
     book.input(tab,"B3",str(model["as_of"]),basis="Valuation cutoff used in this workbook")
@@ -25,16 +26,20 @@ def add_report_inputs(book, model, revenue_total):
     }
     book.input(tab,"B5",driver_labels[driver["type"]],driver.get("url"),"Verified model driver or documented fallback")
     book.input(tab,"B6",driver["reason"],driver.get("url"),"Driver verification outcome")
-    book.put(tab,"C7","Fair value per share")
-    exposure = "+".join(f"'Income Statement'!{col}4/(1+DCF!B3)^DCF!{col}20" +
-                         ("*Assumptions!B12" if col == "B" else "") for col in "BCDEF")
-    terminal = "'Income Statement'!F4*(1+DCF!B4)*(1-DCF!B4/DCF!B5)/(DCF!B3-DCF!B4)/(1+DCF!B3)^DCF!F20"
-    book.put(tab,"B11",f"=(1-Assumptions!B4)*({exposure}+{terminal})/DCF!B12")
-    book.put(tab,"A11","DCF sensitivity to a unit of EBIT margin")
+    book.put(tab,"C7","FCFE value per share")
+    book.put(tab,"D7","Revenue growth change in percentage points")
+    from .equity import SCENARIOS, CASE_ROWS
+    lines = len(model["lines"])
     for row, case, sign in ((8,"Bear","-"),(9,"Bull","+")):
+        top = 4 + list(CASE_ROWS).index(case) * (lines + 12)
         book.put(tab,f"B{row}",f"={sign}Assumptions!B17*100")
-        book.put(tab,f"C{row}",f"=DCF!B15+(B{row}/100-Assumptions!B11)*B11")
-        book.expected.setdefault(tab,{})[f"C{row}"] = model["scenarios"][case].value_per_share
+        book.put(tab,f"C{row}",f"={SCENARIOS}!B{top+7+lines}")
+        book.put(tab,f"D{row}",f"={sign}Assumptions!B35*100")
+        book.expected.setdefault(tab,{})[f"C{row}"] = model["fcfe"][case].value_per_share
+    book.put(tab,"B10","FCFE at the cost of equity")
+    book.put(tab,"B11","='Cost of Equity'!B32" if model.get("beta") else "Legacy beta of 1.0")
+    selection = model.get("peer_selection") or {}
+    book.put(tab,"B12",selection.get("tier","Not recorded"))
     for col,label in zip("ABCD",("Evidence type","Filed date","Verbatim passage","Filing URL"),strict=True):
         book.put(tab,f"{col}14",label,"header")
     for row, evidence in enumerate(model.get("report_evidence",()),15):

@@ -44,7 +44,9 @@ def check_pair(run, workbook, report):
             template = "Revenue Build" in formulas
             if template:
                 formula_cells = (("Cover", "B7"), ("Income Statement", "B4"), ("Balance Sheet", "B4"),
-                                 ("Cash Flow Statement", "B12"), ("Sensitivity", "D30"), ("Comps", "B14"))
+                                 ("Cash Flow Statement", "B12"), ("Cash Flow Statement", "B31"), ("DCF", "B123"),
+                                 ("DCF", "B15"), ("Cost of Equity", "B33"), ("Cover", "B16"), ("Cover", "B20"),
+                                 ("Cover", "B22"), ("Sensitivity", "D30"), ("Comps", "B14"))
             for tab, cell in formula_cells:
                 if tab not in formulas or formulas[tab][cell].data_type != "f":
                     raise ValueError(f"{tab}!{cell} is missing its forecast formula.")
@@ -58,15 +60,24 @@ def check_pair(run, workbook, report):
                 if any(cell.data_type == "e" for row in sheet.iter_rows() for cell in row):
                     raise ValueError(f"Formula error found on {sheet.title}.")
             for col in "BCDEF":
-                rows = range(4, 11) if template else (4,)
+                rows = (*range(4, 11), 13) if template else (4,)
                 for row in rows:
                     difference = cached["Checks"][f"{col}{row}"].value
                     if type(difference) not in (int, float) or abs(difference) > 1e-5:
                         raise ValueError(f"Forecast reconciliation failed at Checks!{col}{row}.")
             fair = cached["Cover"]["B7"].value
             peer = cached["Comps"]["B14"].value
-            if not isinstance(peer, (int, float)) or not isfinite(peer) or peer <= 0:
-                raise ValueError("A verified peer valuation is required for acceptance.")
+            if template:
+                for address in ("B11", "B12", "B14"):
+                    difference = cached["Checks"][address].value
+                    if type(difference) not in (int, float) or abs(difference) > 1e-5:
+                        raise ValueError(f"Valuation reconciliation failed at Checks!{address}.")
+                if not isclose(cached["DCF"]["B123"].value, fair, abs_tol=1e-6):
+                    raise ValueError("The cover value is not the FCFE value at the cost of equity.")
+                ratio = fair / cached["Cover"]["B6"].value
+                if not .5 <= ratio <= 2:
+                    raise ValueError("Valuation outside 0.5–2×, analyst review needed.")
+            peer = peer if isinstance(peer, (int, float)) and isfinite(peer) and peer > 0 else None
             if cached["Cover"]["B9"].value != summary["rating"] or not isclose(fair, summary["spot_value_usd"], abs_tol=1e-6):
                 raise ValueError("The workbook headline differs from the site.")
             if not isclose(cached["DCF"]["D30"].value, fair, abs_tol=1e-6):
@@ -82,8 +93,10 @@ def check_pair(run, workbook, report):
     fingerprint = sha256(workbook).hexdigest()
     if fingerprint not in "".join(text.split()) or f"DCF fair value ${fair:.2f}" not in text:
         raise ValueError("The PDF does not match the exact workbook or DCF.")
-    if f"Peer-implied value ${peer:.2f}" not in text:
+    if peer is not None and f"Peer-implied value ${peer:.2f}" not in text:
         raise ValueError("The PDF peer value differs from the workbook.")
+    if peer is None and template and "insufficient peers" not in text:
+        raise ValueError("The PDF does not state that the peer cross-check has insufficient peers.")
     return {"dcf": fair, "peer_value": peer, "rating": summary["rating"]}
 
 

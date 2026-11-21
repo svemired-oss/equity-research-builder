@@ -114,7 +114,7 @@ def test_proxy_debt_basis_is_printed_in_the_verified_pdf(tmp_path):
     model = op.prepare_operating_model(packet, data["treasury"], data["quote"], data["selection"],
                                        op.revenue_candidates(packet))
     book, report = export_operating(model, tmp_path)
-    summary = {"rating": model["valuation_summary"]["rating"], "spot_value_usd": model["scenarios"]["Base"].value_per_share}
+    summary = {"rating": model["valuation_summary"]["rating"], "spot_value_usd": model["fcfe"]["Base"].value_per_share}
     check_pair({"source_mode": "operating_research", "summary": summary}, book.read_bytes(), report.read_bytes())
     text = " ".join(page.extract_text() for page in PdfReader(report).pages)
     assert "Analyst proxy: BBB spread unavailable" in " ".join(text.split())
@@ -184,12 +184,16 @@ def test_provider_text_failure_twice_stops_with_the_specific_reason(monkeypatch)
 
 def test_peer_retry_sends_the_valuation_eligibility_rules(monkeypatch):
     # HD: the retry must say which peers the acceptance comps can use.
-    research_agent, packet, sent = _provider(monkeypatch, [_selection()])
+    research_agent, packet, sent = _provider(monkeypatch, [_selection(), _selection()])
     research_agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m",
                                    rejected_peers=["FND", "TSCO"], peer_rules=research_agent.PEER_RULES)
     evidence = json.loads(sent[0]["input"])
     assert evidence["unavailable_peers"] == ["FND", "TSCO"]
-    assert "SIC major group" in evidence["peer_eligibility_rules"] and "0.1x and 10x" in evidence["peer_eligibility_rules"]
+    rules = evidence["peer_eligibility_rules"]
+    assert "first three digits" in rules and "labeled fallback" in rules and "0.1x and 10x" in rules
+    # The first request carries the same rules, so proposals start from the 3-digit SIC rule.
+    research_agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")
+    assert json.loads(sent[-1]["input"])["peer_eligibility_rules"] == rules
 
 
 def _instance(end, values):
@@ -313,9 +317,10 @@ def test_financing_start_keeps_the_statements_tied(tmp_path):
     model["financing_start"] = {"debt_change": 25.0, "repurchases": 12.0, "repurchases_url": url,
                                 "period_end": "2026-03-31", "url": url, "basis": "fixture"}
     from equity_research.valuation_summary import summarize
+    op.attach_fcfe(model)
     model["valuation_summary"] = summarize(model, model["valuation_comps"])
     book, report = export_operating(model, tmp_path)
-    summary = {"rating": model["valuation_summary"]["rating"], "spot_value_usd": model["scenarios"]["Base"].value_per_share}
+    summary = {"rating": model["valuation_summary"]["rating"], "spot_value_usd": model["fcfe"]["Base"].value_per_share}
     check_pair({"source_mode": "operating_research", "summary": summary}, book.read_bytes(), report.read_bytes())
     sheet = load_workbook(book, data_only=True)["Schedules"]
     assert sheet["B16"].value == pytest.approx(25) and sheet["B24"].value == pytest.approx(12)

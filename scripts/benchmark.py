@@ -59,6 +59,9 @@ def cache_write(path, value):
     temporary.replace(path)
 
 
+GATED_SECTOR_VALUES = 2  # docs/PLAN.md: single-value sectors are reported but not gated.
+
+
 def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     if evidence["packet"]["issuer"]["ticker"] != ticker:
         raise ValueError("Cache issuer differs from the requested ticker.")
@@ -73,17 +76,29 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
                                     selection, candidates)
     result["driver_type"] = model["driver"]["type"]
     result["driver_reason"] = model["driver"]["reason"]
-    ratio = model["scenarios"]["Base"].value_per_share / model["close"]
-    result.update(value_price_ratio=ratio, value=model["scenarios"]["Base"].value_per_share,
-                  price=model["close"], cutoff=str(model["as_of"]))
+    value = (model["scenarios"] if legacy else model["fcfe"])["Base"].value_per_share
+    ratio = value / model["close"]
+    result.update(value_price_ratio=ratio, value=value, price=model["close"], cutoff=str(model["as_of"]))
     rating = operating_rating(ratio - 1)
     if "valuation_summary" in model and not legacy:
         recommendation = model["valuation_summary"]
         rating = recommendation["rating"]
-        blended = recommendation["blended"]
-        result.update(valuation_basis="phase4_blended", dcf_value_price_ratio=ratio,
-                      target_price=recommendation["target"], rating=rating,
-                      value_price_ratio=blended/model["close"] if blended is not None else None)
+        selection = model.get("peer_selection") or {}
+        comps = model.get("valuation_comps") or {}
+        result.update(valuation_basis="stage2_fcfe", target_price=recommendation["target"], rating=rating,
+                      fcff_value_price_ratio=recommendation["fcff"] / model["close"],
+                      cost_of_equity=model["cost_of_equity"], beta=model["cost"].levered_beta,
+                      beta_basis=model["beta"]["source"], peer_tier=selection.get("tier", "not recorded"),
+                      peers=[row["ticker"] for row in selection.get("peers", ())],
+                      comps_peers=len(comps.get("rows", ())),
+                      peer_value_price_ratio=(recommendation["peer"] / model["close"]
+                                              if recommendation["peer"] is not None else None))
+    if "fcfe" in model and not legacy:
+        base = model["fcfe"]["Base"]
+        result.update(roic_check_value_price_ratio=base.roic_value_per_share / model["close"],
+                      capex_below_da=model["capex_below_da"], buyback_spend=model.get("buyback_spend"),
+                      erp=model["cost"].equity_risk_premium, normalized_margin=model["margin"],
+                      reported_margin=model.get("reported_margin"), leverage=model.get("leverage", {}).get("ratio"))
     review = verify_valuation_range(model)
     if review:
         model["notes"] += (review,)
@@ -95,7 +110,7 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     exporter = export_apple if legacy else export_operating
     workbook, report = exporter(model, folder, None, None)
     run = {"ticker": ticker, "source_mode": "operating_research",
-           "summary": {"spot_value_usd": model["scenarios"]["Base"].value_per_share,
+           "summary": {"spot_value_usd": value,
                        "rating": rating, "reference_close_usd": model["close"]}}
     check_pair(run, workbook.read_bytes(), report.read_bytes())
     if artifacts is not None:
@@ -104,7 +119,7 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
         artifacts.mkdir(parents=True, exist_ok=True)
         for file in (workbook, report):
             copyfile(file, artifacts / file.name)
-    return {"value_price_ratio": result["value_price_ratio"], "value": model["scenarios"]["Base"].value_per_share,
+    return {"value_price_ratio": result["value_price_ratio"], "value": value,
             "price": model["close"], "cutoff": str(model["as_of"]),
             "price_date": str(model["price_date"]), "rating": rating,
             "workbook_sha256": sha256(workbook.read_bytes()).hexdigest(),
@@ -166,7 +181,8 @@ def failure_type(reason):
         ("financial_history", ("normalized annual", "three normalized")),
         ("missing_balance_fact", ("required financial fact", "investment balance", "lease balance", "lease liability")),
         ("statement_reconciliation", ("balance sheet", "reconciliation", "cash aggregate")),
-        ("valuation_guard", ("standard dcf", "wacc", "terminal growth", "review reinvestment")),
+        ("valuation_guard", ("valuation outside", "standard dcf", "wacc", "terminal growth", "review reinvestment",
+                             "cost of equity", "beta unavailable")),
         ("comparable_evidence", ("peer valuation", "comparables")),
         ("provider_or_market_data", ("openai", "alpaca", "treasury", "market close", "closing price")),
         ("collection_code_error", ("'dimensions'", "has no attribute")),
@@ -178,12 +194,12 @@ def write_results(output, results):
     passed = sum(row["status"] == "PASS" for row in results)
     physical = sum(row["status"] == "PASS" and row.get("driver_type", "segment_growth") != "segment_growth" for row in results)
     missing = sum(row["stage"] == "cache" for row in results)
-    lines = ["# Generic operating model baseline", "",
+    lines = ["# Generic operating model benchmark", "",
              f"Completed {len(results)} tickers. Verified pairs {passed}/{len(results)} ({passed/len(results):.1%}).",
              f"Verified pairs using non-fallback drivers: {physical}/{passed}" + (f" ({physical/passed:.1%})." if passed else " (no verified pairs)."),
              f"Missing or invalid caches {missing}. These count as failures in the full-set rate.",
              "A complete baseline requires a recorded collection attempt for every ticker.",
-             "PASS requires the existing valuation checks, real formula workbook export, and paired PDF verification.",
+             "PASS requires the valuation checks (base FCFE value / price between 0.5x and 2x), real formula workbook export, and paired PDF verification.",
              "The rate measures mechanical completion. Economic assumptions and narrative still require analyst review.", "",
              "## Remaining failures by type", "",
              "| Failure type | Count |", "| --- | --- |"]
@@ -192,19 +208,48 @@ def write_results(output, results):
     lines.extend(f"| {label} | {count} |" for label, count in sorted(counts.items()))
     from statistics import median
     lines.extend(["", "## Sector valuation review", "",
-                  "Median blended present value / close among verified Phase 4 pairs.",
-                  "Legacy caches and failed runs are excluded.", "",
-                  "| Sector | Verified Phase 4 values | Median value / price | Status |",
+                  "Median base FCFE value at the cost of equity / close among verified pairs.",
+                  "Failed runs are excluded. A pass already requires value / price between 0.5x and 2x.", "",
+                  "| Sector | Verified values | Median value / price | Status |",
                   "| --- | ---: | ---: | --- |"])
+    in_range, without, single = [], [], []
     for sector in sorted({r["sector"] for r in results}):
         ratios = [r["value_price_ratio"] for r in results if r["sector"] == sector and r["status"] == "PASS"
-                  and r.get("valuation_basis") == "phase4_blended" and r["value_price_ratio"] is not None]
+                  and r.get("valuation_basis") == "stage2_fcfe" and r["value_price_ratio"] is not None]
         if ratios:
             center = median(ratios)
-            flag = "Review" if center < .7 or center > 1.4 else "Within range"
+            inside = .7 <= center <= 1.4
+            if len(ratios) >= GATED_SECTOR_VALUES:
+                in_range.append(inside)
+                flag = "Within range" if inside else "Review"
+            else:
+                single.append(sector)
+                flag = f"Reported, not gated ({'inside' if inside else 'outside'} 0.7-1.4)"
             lines.append(f"| {sector} | {len(ratios)} | {center:.4f} | {flag} |")
         else:
+            without.append(sector)
             lines.append(f"| {sector} | 0 | — | No evidence |")
+    ratings = {name: sum(r["status"] == "PASS" and r.get("rating") == name for r in results)
+               for name in ("Buy", "Hold", "Sell")}
+    lines.extend(["", "## Stage 2 gate", "",
+                  f"- Verified pairs: {passed}/{len(results)} (gate: 15 or more) — {'met' if passed >= 15 else 'not met'}.",
+                  f"- Sectors with {GATED_SECTOR_VALUES} or more verified values inside 0.7-1.4: "
+                  f"{sum(in_range)}/{len(in_range)} — {'met' if in_range and all(in_range) else 'not met'}.",
+                  f"- Single-value sectors (reported, not gated): {', '.join(single) if single else 'none'}.",
+                  f"- Sectors without any verified value: {', '.join(without) if without else 'none'}.",
+                  f"- Ratings among verified pairs: Buy {ratings['Buy']}, Hold {ratings['Hold']}, Sell {ratings['Sell']}."])
+    lines.extend(["", "## Valuation detail for verified pairs", "",
+                  "| Ticker | FCFE value / price | ROIC-terminal check / price | Final-year capex < D&A | FCFF / price | Cost of equity | Beta | Beta basis | Normalized margin | Reported margin | Debt / EBITDA | Peer tier | Peers | Comps peers | Rating |",
+                  "| --- | ---: | ---: | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- | --- | ---: | --- |"])
+    for row in results:
+        if row["status"] == "PASS" and row.get("valuation_basis") == "stage2_fcfe":
+            number = lambda key, spec: format(row[key], spec) if row.get(key) is not None else "—"
+            flag = {True: "Flag", False: "No"}.get(row.get("capex_below_da"), "—")
+            lines.append(f"| {row['ticker']} | {number('value_price_ratio', '.4f')} | {number('roic_check_value_price_ratio', '.4f')} | "
+                         f"{flag} | {number('fcff_value_price_ratio', '.4f')} | "
+                         f"{number('cost_of_equity', '.2%')} | {number('beta', '.2f')} | {row.get('beta_basis', '—')} | "
+                         f"{number('normalized_margin', '.1%')} | {number('reported_margin', '.1%')} | {number('leverage', '.2f')} | {row.get('peer_tier', '—')} | "
+                         f"{' '.join(row.get('peers', ())) or 'none'} | {row.get('comps_peers', '—')} | {row.get('rating', '—')} |")
     lines.extend(["", "## Per-ticker outcomes", "",
              "| Ticker | Sector | Status | Driver | Stage | Value / price | Reason |",
              "| --- | --- | --- | --- | --- | --- | --- |"])

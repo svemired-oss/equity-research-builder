@@ -101,7 +101,14 @@ def test_prepare_model_frozen_outputs_and_guided_change():
     expected = read("expected.json")["operating"]
     assert model["wacc"] == pytest.approx(expected["wacc"])
     assert model["revenue"] == pytest.approx(expected["revenue"])
-    assert [model["scenarios"][name].value_per_share for name in ("Bear", "Base", "Bull")] == pytest.approx(expected["values"])
+    # Stage 2d: years 2-5 fade linearly from the revenue CAGR (100 -> 120 over two years) to 4% in year 5.
+    cagr = 1.2 ** .5 - 1
+    path = [cagr + (.04 - cagr) * k / 3 for k in range(4)]
+    assert model["revenue_fade"]["cagr"] == pytest.approx(cagr) and model["revenue_fade"]["path"] == pytest.approx(path)
+    for k, rate in enumerate(path):
+        assert model["revenue"][k + 1] == pytest.approx(model["revenue"][k] * (1 + rate))
+    # Frozen FCFF values use the margin-only cases; Stage 2 bull and bear also shift revenue growth.
+    assert [model["legacy_scenarios"][name].value_per_share for name in ("Bear", "Base", "Bull")] == pytest.approx(expected["values"])
     revised = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"], candidates,
         [{"target": "margin", "value": model["margin"] + .01, "reason": "Synthetic margin sensitivity"}])
     assert revised["scenarios"]["Base"].value_per_share == pytest.approx(expected["guided_value"])

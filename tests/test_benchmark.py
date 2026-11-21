@@ -25,8 +25,8 @@ def test_fixed_universe(benchmark):
     assert {"GD", "FAST", "SBUX", "NVDA"} <= {row["ticker"] for row in rows}
 
 
-def test_phase_four_sector_review_excludes_legacy_and_failed_rows(benchmark, tmp_path):
-    def row(symbol, sector, ratio, status="PASS", basis="phase4_blended"):
+def test_stage_two_sector_review_excludes_legacy_and_failed_rows(benchmark, tmp_path):
+    def row(symbol, sector, ratio, status="PASS", basis="stage2_fcfe"):
         return {"ticker": symbol, "sector": sector, "status": status, "stage": "verified_pair",
                 "reason": "", "value_price_ratio": ratio, "valuation_basis": basis}
     records = [row("LO1","low",.5), row("LO2","low",.7), row("OLD","low",5,basis="legacy"),
@@ -36,9 +36,13 @@ def test_phase_four_sector_review_excludes_legacy_and_failed_rows(benchmark, tmp
     benchmark.write_results(report, records)
     text = report.read_text(encoding="utf-8")
     assert "| low | 2 | 0.6000 | Review |" in text
-    assert "| high | 1 | 1.4100 | Review |" in text
-    assert "| in | 1 | 1.4000 | Within range |" in text
+    # Single-value sectors are reported but not gated (docs/PLAN.md, Stage 2).
+    assert "| high | 1 | 1.4100 | Reported, not gated (outside 0.7-1.4) |" in text
+    assert "| in | 1 | 1.4000 | Reported, not gated (inside 0.7-1.4) |" in text
     assert "| none | 0 |" in text
+    assert "- Sectors with 2 or more verified values inside 0.7-1.4: 0/1 — not met." in text
+    assert "- Single-value sectors (reported, not gated): high, in." in text
+    assert "- Ratings among verified pairs: Buy 0, Hold 0, Sell 0." in text
 
 
 def test_failure_groups_preserve_missing_data_and_code_errors(benchmark):
@@ -102,14 +106,18 @@ def test_export_failure_cannot_count_as_success(benchmark, tmp_path, monkeypatch
     outcome = benchmark.run_one({"ticker": "TEST", "sector": "synthetic"}, tmp_path, None, False, tmp_path)
     assert outcome["status"] == "FAIL"
     assert "Saved workbook failed validation" in outcome["reason"]
-    assert outcome["value_price_ratio"] == pytest.approx(1.1175812324305436)
+    model = benchmark.prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"],
+                                              data["candidates"])
+    # The benchmark ratio is the base FCFE value at the cost of equity over the close.
+    assert outcome["value_price_ratio"] == pytest.approx(model["fcfe"]["Base"].value_per_share / model["close"])
 
 
 def test_offline_real_export_and_pair_check(benchmark, tmp_path, monkeypatch):
     import shutil
     if not shutil.which("soffice"):
         pytest.skip("Real export requires LibreOffice, installed in CI")
-    data = json.loads((Path(__file__).parent / "fixtures/operating.json").read_text())
+    from test_market_valuation import fixture_data
+    data = fixture_data()
     data["candidates"] = benchmark.revenue_candidates(data["packet"])
     data["comparables"] = {
         "basis": "Synthetic annual", "quote_date": "2026-06-30", "median": 6,
@@ -124,4 +132,8 @@ def test_offline_real_export_and_pair_check(benchmark, tmp_path, monkeypatch):
     })
     outcome = benchmark.run_one({"ticker": "TEST", "sector": "synthetic"}, tmp_path, None, False, tmp_path)
     assert outcome["status"] == "PASS", outcome["reason"]
-    assert outcome["value"] == pytest.approx(33.52743697291631)
+    model = benchmark.prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"],
+                                              data["candidates"])
+    assert outcome["value"] == pytest.approx(model["fcfe"]["Base"].value_per_share)
+    assert outcome["valuation_basis"] == "stage2_fcfe" and outcome["beta_basis"] == "50/50 historical and comparable"
+    assert outcome["fcff_value_price_ratio"] == pytest.approx(model["scenarios"]["Base"].value_per_share / model["close"])

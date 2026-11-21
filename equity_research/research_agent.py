@@ -7,15 +7,29 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .operating_research import ResearchGap
-from .valuation_comps import SIZE_HIGH, SIZE_LOW
-
-# Mirrors the eligibility checks in valuation_comps.prepare for segment-growth subjects.
-PEER_RULES = (f"Each peer must share the subject's SEC SIC major group (the first two digits of issuer.sic), "
-              f"have market capitalization between {SIZE_LOW:g}x and {SIZE_HIGH:g}x the subject's, report positive "
-              "trailing GAAP earnings, and file U.S. GAAP 10-K and 10-Q reports.")
+from .peer_selection import PEER_RULES
 
 
-def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_rules=None):
+
+def _timed_out(exc):
+    return isinstance(exc, TimeoutError) or (isinstance(exc, URLError) and isinstance(exc.reason, TimeoutError))
+
+
+def _post_with_timeout_retry(payload, key):
+    """Post one research request. A timeout is retried once; any other failure is raised at once."""
+    from .spend_budget import reserve
+    for attempt in (0, 1):
+        reserve(payload)
+        request = Request("https://api.openai.com/v1/responses", data=json.dumps(payload, allow_nan=False).encode(),
+                          headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+        try:
+            with urlopen(request, timeout=55) as response:
+                return json.loads(response.read(1_000_000))
+        except (TimeoutError, URLError) as exc:
+            if attempt or isinstance(exc, HTTPError) or not _timed_out(exc):
+                raise
+
+def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_rules=PEER_RULES):
     """Choose among reconciled evidence groups. Model output cannot inject financial figures."""
     fields = ("group", "reason", "thesis", "risks")
     peer_fields = ("ticker", "reason")
@@ -64,13 +78,7 @@ def select_forecast(packet, candidates, *, key, model, rejected_peers=(), peer_r
         for text_attempt in (0, 1):
             for limit in (1800, 4600):
                 payload["max_output_tokens"] = limit
-                from .spend_budget import reserve
-                reserve(payload)
-                request = Request("https://api.openai.com/v1/responses",
-                                  data=json.dumps(payload, allow_nan=False).encode(),
-                                  headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"})
-                with urlopen(request, timeout=55) as response:
-                    result = json.loads(response.read(1_000_000))
+                result = _post_with_timeout_retry(payload, key)
                 if not (result.get("status") == "incomplete"
                         and (result.get("incomplete_details") or {}).get("reason") == "max_output_tokens"):
                     break
