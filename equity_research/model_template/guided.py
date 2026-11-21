@@ -18,16 +18,19 @@ ASSUMPTIONS = {
     16: ("Margins", 0, 1, "Cash dividends from zero to all positive net income."),
     17: ("Margins", 0, .15, "Absolute margin shift. Both scenarios must retain a positive EBIT margin."),
     18: ("Capex and working capital", 350, 380, "Day-count convention for working-capital display. Ratios stay unchanged."),
-    20: ("Capex and working capital", 0, 0, "Annual debt issued in USD millions. The limit is opening annual revenue."),
-    21: ("Capex and working capital", 0, 0, "Annual principal repayment in USD millions. The projected debt balance cannot turn negative."),
+    20: ("Capex and working capital", 0, 0, "Cumulative annual debt addition on top of the debt / EBITDA target, USD millions. The limit is opening annual revenue."),
+    21: ("Capex and working capital", 0, 0, "Cumulative annual debt reduction against the debt / EBITDA target, USD millions. Projected debt cannot turn negative."),
     22: ("Margins", 0, 0, "Annual repurchases in USD millions. Projected outstanding shares must remain positive."),
     26: ("WACC", 0, 1, "Minimum total return for a Buy."),
     27: ("WACC", -1, 0, "Maximum total return for a Sell, below the Buy threshold."),
     29: ("Terminal", 0, 1, "Relative terminal valuation difference above which the cross-check is flagged."),
     30: ("Capex and working capital", .25, 3, "Multiplier on filed operating current assets per dollar of sales."),
     31: ("Capex and working capital", .25, 3, "Multiplier on filed operating current liabilities per dollar of sales."),
-    33: ("Margins", 0, 0, "Annual other nonoperating and equity-method income in USD millions, within opening annual revenue."),
+    42: ("Margins", 0, 0, "Annual interest income in USD millions, within opening annual revenue."),
+    43: ("Margins", 0, 0, "Annual equity-method income in USD millions, within opening annual revenue."),
+    44: ("Margins", 0, 0, "Annual other nonoperating income in USD millions, within opening annual revenue."),
     35: ("Drivers", 0, .05, "Bull and bear revenue growth change in every forecast year, as a decimal."),
+    37: ("Drivers", -.05, .15, "Nominal revenue growth reached in year 5; years 2-5 fade linearly from the 3-year CAGR."),
 }
 FORMATS = {"0.00%": "decimal", "0%": "decimal"}
 
@@ -51,7 +54,8 @@ def fields(plan, model):
     identifiers={3:"margin",4:"tax",5:"da",6:"capex",9:"growth",10:"roic",13:"convergence",
                  15:"revenue_anchor",16:"payout",17:"margin_shift",18:"wc_days",20:"debt_issued",
                  21:"debt_repaid",22:"buybacks",25:"dcf_weight",26:"buy_threshold",27:"sell_threshold",
-                 29:"terminal_gap_threshold",30:"wc_assets",31:"wc_liabilities",33:"other_income",
+                 29:"terminal_gap_threshold",30:"wc_assets",31:"wc_liabilities",42:"interest_income",
+                 43:"equity_method_income",44:"other_income",37:"long_run_growth",
                  35:"growth_step"}
     for row,(group,low,high,explanation) in ASSUMPTIONS.items():
         address = f"B{row}"
@@ -63,9 +67,9 @@ def fields(plan, model):
             low, high = max(.001,model.get("filed_ytd_revenue",0)), default*3
         if row in (20,21,22):
             high = model["revenue"][0] if row!=21 else max(model["debt"],model["revenue"][0])
-        if row == 33:
+        if row in (42,43,44):
             low, high = -model["metrics"]["revenue"], model["metrics"]["revenue"]
-        unit = "days" if row == 18 else "USD millions" if row in (15,20,21,22,33) else "decimal"
+        unit = "days" if row == 18 else "USD millions" if row in (15,20,21,22,42,43,44) else "decimal"
         add(identifiers[row],"Assumptions",address,cells[f"A{row}"][0],group,low,high,explanation,unit=unit)
 
     for row,target,label,low,high,explanation,value in (
@@ -233,7 +237,9 @@ def verify_recalculation(book,case,model,changes):
             mix=sum(filed.values())
             base_segments.append({k:raw*scale*v/mix for k,v in filed.items()})
         else:
-            latest={k:v*(1+growth+(rates[k]-growth)*convergence**(i+1)) for k,v in latest.items()}
+            # Year 1 fades halfway (convergence) toward terminal growth; years 2-5 use the Stage 2d fade rows.
+            rate=(lambda k:growth+(rates[k]-growth)*convergence) if i==0 else (lambda k,r=a(37+i):r)
+            latest={k:v*(1+rate(k)) for k,v in latest.items()}
             if i==0 and type(anchor) in (float,int):
                 factor=anchor/sum(latest.values())
                 latest={k:v*factor for k,v in latest.items()}
@@ -263,13 +269,17 @@ def verify_recalculation(book,case,model,changes):
         flow=fcff*(stub if i==0 else 1)
         equal("Cash Flow Statement",column+"12",flow)
         flows.append(DatedFCFF(period,flow))
-        start=get("Schedules","B40") if i==0 else 0
-        year_interest=(debt+start)*debt_cost
+        if i==0:
+            debt+=get("Schedules","B40")
+            cutoff_debt=debt
+        # Closing debt holds debt / EBITDA at the last actual year's level plus any cumulative analyst change.
+        closing=a(45)*(ebit+sales*da)+(i+1)*(a(20)-a(21))
+        year_interest=debt*debt_cost
         payout.append(max(0,(ebit-year_interest+other_income)*(1-tax))*a(16))
         equal("Schedules",column+"23",payout[-1])
-        net_borrowing.append(a(20)-a(21))
+        net_borrowing.append(closing-debt)
         interest.append(year_interest)
-        debt+=a(20)-a(21)+start
+        debt=closing
         shares-=a(22)/a(23)
         if debt< -1e-8 or shares<=0:
             raise ResearchGap("Projected debt cannot be negative and common shares must remain positive.")
@@ -282,8 +292,9 @@ def verify_recalculation(book,case,model,changes):
     result=discount_fcff(flows,model["as_of"],cost.wacc,terminal,bridge)
     equal("DCF","B15",result.value_per_share)
     inputs=FCFEInputs(model["metrics"]["revenue"],opening_wc,wc,tax,da,tuple(capex_path),tuple(interest),other_income,
-                      debt,debt_cost,tuple(net_borrowing),stub,tuple(p.discount_years for p in result.periods),
-                      growth,roic,bridge.adjustment_millions+dcf(8)-dcf(105),bridge.diluted_shares_millions)
+                      cutoff_debt,debt_cost,tuple(net_borrowing),stub,tuple(p.discount_years for p in result.periods),
+                      growth,roic,bridge.adjustment_millions+dcf(8)-dcf(6)-dcf(7),bridge.diluted_shares_millions,
+                      a(45),a(20)-a(21))
     fcfe=value_fcfe(inputs,revenue_path,base_margin+shift,ke)
     equal("DCF","B123",fcfe.value_per_share)
     equal("Cover","B7",fcfe.value_per_share)
@@ -301,7 +312,7 @@ def verify_recalculation(book,case,model,changes):
                 fair=value_fcfe(inputs,revenue_path,base_margin,ke+(i-2)*.005,growth+(j-2)*.0025)
                 equal("Sensitivity",f"{col}{28+i}",fair.value_per_share)
         if "valuation_summary" in model:
-            revised={**model,"fcfe_inputs":inputs,"cost_of_equity":ke,"margin":base_margin}
+            revised={**model,"fcfe_inputs":inputs,"cost_of_equity":ke,"margin":base_margin,"revenue":revenue_path}
             implied=implied_growth(revised)
             equal("DCF","B38",implied if implied is not None else "Unavailable")
             multiple=model["valuation_comps"]["summary"].get("EV / EBITDA") if model["valuation_comps"] else None

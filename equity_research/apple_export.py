@@ -87,6 +87,10 @@ def workbook_plan(model):
             sheet("Revenue", [f"=H{row}*(1+Assumptions!$B$9+({growth_recent}{row}/{growth_base}{row}-1-Assumptions!$B$9)*Assumptions!$B$13)"],
                   "B", total_row + row - 1)
         sheet("Revenue", [f"=SUM(B{total_row+3}:B{2*total_row-2})"], "B", 2*total_row-1)
+        if "revenue_fade" in model:
+            # Stage 2d: years 2-5 fade linearly from the 3-year revenue CAGR to 4% nominal.
+            sheet("Assumptions", [f"Year {k + 2} revenue growth (linear fade)" for k in range(4)], start=38)
+            sheet("Assumptions", [(rate, "input", PCT) for rate in model["revenue_fade"]["path"]], "B", 38)
         sheet("Schedules", ["Forecast schedules", "USD millions", "",
                             "Operating current assets", "Operating current liabilities", "Net working capital",
                             "Opening net investment assets", "Cash capital expenditure", "D&A",
@@ -111,6 +115,7 @@ def workbook_plan(model):
         header = (f"FY{model['dates'][i].year}", "header", None)
         sheet("Revenue", [header, *[
             (f"=B{total_row+row-1}*IF(ISNUMBER(Assumptions!$B$15),Assumptions!$B$15/B{2*total_row-1},1)" if not i and normalize_capex else
+             f"={prev}{row}*(1+Assumptions!$B${37+i})" if normalize_capex and "revenue_fade" in model else
              f"={prev}{row}*(1+Assumptions!$B$9+({growth_recent}{row}/{growth_base}{row}-1-Assumptions!$B$9)*Assumptions!$B$13^{i+1})")
             for row in range(4, total_row)], f"=SUM({col}4:{col}{total_row-1})"], col, 3)
         inc = f"'Income statement'!{col}"

@@ -201,6 +201,40 @@ def _read(metrics, key):
     return value
 
 
+LONG_RUN_GROWTH = .04  # docs/method-notes.md, Stage 2d: years 2-5 fade from the 3-year revenue CAGR to 4% nominal.
+
+
+def normalized_operating_income(metrics):
+    """Operating income with disclosed unusual items removed, USD (filed units).
+
+    Charges: the broadest disclosed aggregate of other operating charges, combined restructuring and
+    impairment provisions, or restructuring + impairments + litigation settlements (the maximum, so an
+    item inside an aggregate is not counted twice). Asset-sale gains are removed and losses added back,
+    on the assumption that they are presented within operating income.
+    """
+    value = lambda key: metrics.get(key) if type(metrics.get(key)) in (int, float) and isfinite(metrics.get(key)) else 0.
+    impairment = max(value("unusual_asset_impairment"), value("unusual_goodwill_and_intangible_impairment"),
+                     value("unusual_goodwill_impairment") + value("unusual_intangible_impairment")
+                     + value("unusual_long_lived_impairment"))
+    components = value("unusual_restructuring") + impairment + value("unusual_litigation")
+    charges = max(value("unusual_other_operating_charges"), value("unusual_restructuring_and_impairment"), components, 0.)
+    gain = value("unusual_asset_sale_gain")
+    return _read(metrics, "operating_income") + charges - gain, charges, gain
+
+
+def revenue_fade(history):
+    """Three-year consolidated revenue CAGR (fewer years when the history is shorter) and the year 2-5 path."""
+    years = min(3, len(history) - 1)
+    if years < 1:
+        raise ResearchGap("Two annual revenue periods are required for the growth fade.")
+    latest, earlier = (_read(history[i]["metrics"], "revenue") for i in (-1, -1 - years))
+    if latest <= 0 or earlier <= 0:
+        raise ResearchGap("Positive filed revenue is required for the growth fade.")
+    cagr = (latest / earlier) ** (1 / years) - 1
+    return {"cagr": cagr, "years": years, "long_run": LONG_RUN_GROWTH,
+            "path": [cagr + (LONG_RUN_GROWTH - cagr) * k / 3 for k in range(4)]}
+
+
 def _balance(period):
     from .operating_evidence import assume_absent_balances
 
@@ -348,16 +382,22 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     growth, roic = .025, .15
     ratios = []
     payouts = []
+    normalization = []
     for period in history[-3:]:
         m = period["metrics"]
         sales = _read(m, "revenue")
         if sales <= 0:
             raise ResearchGap("A positive revenue base is required.")
-        ratios.append((_read(m, "operating_income") / sales, _read(m, "depreciation_amortization") / sales,
+        normalized, charges, gain = normalized_operating_income(m)
+        normalization.append({"period_end": period["period_end"], "url": period["filing"]["url"],
+                              "revenue": sales / 1e6, "operating_income": _read(m, "operating_income") / 1e6,
+                              "charges": charges / 1e6, "gain": gain / 1e6, "normalized": normalized / 1e6})
+        ratios.append((normalized / sales, _read(m, "depreciation_amortization") / sales,
                        _read(m, "capex") / sales, _read(m, "income_taxes") / max(1, _read(m, "income_before_taxes"))))
         if m.get("dividends_paid") is not None and (m.get("net_income") or 0) > 0:
             payouts.append(m["dividends_paid"] / m["net_income"])
     margin, da, capex, tax = map(median, zip(*ratios))
+    reported_margin = median(row["operating_income"] / row["revenue"] for row in normalization)
     if interim:
         m = bridge_period["metrics"]
         ytd_sales = _read(m, "revenue")
@@ -372,7 +412,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     if not .03 < margin < .8 or not 0 < tax < .5:
         raise ResearchGap("Profitability or taxes require normalization outside the standard model.")
     market = packet.get("valuation_market")
-    from .fcfe_valuation import (GROWTH_STEP, case_revenues, comparable_beta, historical_beta, other_income_carry,
+    from .fcfe_valuation import (GROWTH_STEP, case_revenues, comparable_beta, historical_beta,
                                  regression_evidence, select_beta)
     beta_evidence = None
     beta = 1.
@@ -413,6 +453,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
     path = forecast(driver, growth) if driver["type"] != FALLBACK else []
     if selection["group"] == "verified_operating_driver" and not path:
         raise ResearchGap("No verified operating driver or reconciled segment basis is available.")
+    fade = revenue_fade(history)
     revenues = []
     segment_path = []
     anchor_scale = 1
@@ -422,7 +463,9 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             amounts = {"Consolidated": path[index-1]*anchor_scale}
         else:
             for key, rate in rates.items():
-                amounts[key] *= 1 + growth + (rate - growth) * .5 ** index
+                # Year 1 fades the line's recent rate halfway to terminal growth (before any guidance anchor);
+                # years 2-5 follow the consolidated fade from the 3-year CAGR to 4%.
+                amounts[key] *= 1 + (growth + (rate - growth) * .5 if index == 1 else fade["path"][index - 2])
         if index == 1:
             anchor_packet = {**packet, "earnings_interim": {}} if packet.get("acquisition_revenue_basis") else packet
             target, anchor_sources, anchor_note = _revenue_anchor(anchor_packet, dates[0].year, sum(amounts.values()), opening["revenue"])
@@ -472,7 +515,15 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             flows, as_of, wacc, TerminalAssumptions(revenues[-1] * (margin + shift) * (1-tax), growth, roic), bridge)
     legacy_implied_margin = margin + (close - scenarios["Base"].value_per_share) / (
         (legacy_scenarios["Bull"].value_per_share - scenarios["Base"].value_per_share) / margin_step)
-    other_income = other_income_carry(history)
+    from .fcfe_valuation import nonoperating_carry
+    nonoperating = nonoperating_carry(history)
+    other_income = sum(nonoperating.values())
+    latest_ebitda = (_read(latest["metrics"], "operating_income") + _read(latest["metrics"], "depreciation_amortization")) / 1e6
+    if latest_ebitda <= 0:
+        raise ResearchGap("Positive latest-year EBITDA is required to hold debt / EBITDA.")
+    leverage = {"debt": debt, "ebitda": latest_ebitda, "ratio": debt / latest_ebitda, "period_end": latest["period_end"],
+                "url": latest["filing"]["url"]}
+    model_leverage = leverage["ratio"]
     buyback_years = [(period["period_end"], period["filing"]["url"], period["metrics"].get("share_repurchases"))
                      for period in history[-3:]]
     filed_buybacks = [value / 1e6 for _, _, value in buyback_years if type(value) in (int, float) and isfinite(value)]
@@ -515,7 +566,9 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "legacy_scenarios": legacy_scenarios, "legacy_implied_margin": legacy_implied_margin, "cost_of_equity": cost_of_equity, "beta": beta_evidence,
         "capex_path": tuple(capex_path), "wc_ratio": wc_ratio, "cases": cases,
         "case_revenue": case_revenue, "segment_path": segment_path, "growth_step": GROWTH_STEP,
-        "other_income": other_income, "buyback_spend": buyback_spend, "buyback_years": buyback_years,
+        "other_income": other_income, "nonoperating": nonoperating, "leverage": leverage, "revenue_fade": fade,
+        "normalization": normalization, "reported_margin": reported_margin,
+        "buyback_spend": buyback_spend, "buyback_years": buyback_years,
         "peer_selection": packet.get("peer_selection"),
         "margin_step": margin_step,
         "revenue_anchor": target, "guided_defaults": defaults, "overrides": list(overrides),
@@ -535,9 +588,16 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             selection["reason"], f"Revenue driver: {driver['type']}. {driver['reason']}",
             anchor_note,
             *((recent["note"],) if recent else ()),
-            ("Operating-driver growth fades halfway annually toward labeled analyst industry proxies. Revenue line allocations use latest filed mix."
-             if path else "Revenue growth fades halfway each year toward terminal growth."),
-            "Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario margin shifts are capped at 25% of base margin or three percentage points, whichever is smaller. Bull and bear cases also add or subtract 0.5 percentage points to every revenue line's annual growth rate in every forecast year.",
+            ("Operating-driver growth fades halfway annually toward labeled analyst industry proxies. Revenue line allocations use latest filed mix. "
+             "The Stage 2d year 2-5 fade does not apply to operating-driver paths."
+             if path else f"Year 1 fades each line's recent growth halfway toward terminal growth before any filed guidance anchor. "
+                          f"Years 2-5 fade linearly from the {fade['years']}-year consolidated revenue CAGR ({fade['cagr']:.1%}) "
+                          f"in year 2 to 4% nominal in year 5 (docs/method-notes.md). Terminal growth stays 2.5%."),
+            f"The base EBIT margin is the three-year median normalized operating margin ({margin:.1%}; reported {reported_margin:.1%}): "
+            "disclosed impairments, restructuring, litigation settlements and other operating charges are added back to each year's "
+            "operating income (the broadest disclosed aggregate, so nothing is counted twice) and asset-sale gains are removed, "
+            "assuming they sit within operating income. The three-year median effective tax rate anchors taxes.",
+            " Scenario margin shifts are capped at 25% of base margin or three percentage points, whichever is smaller. Bull and bear cases also add or subtract 0.5 percentage points to every revenue line's annual growth rate in every forecast year.",
             "Terminal value is Gordon growth on the final explicit year's FCFE: FCFE year 5 x (1 + g) / (cost of equity - g), "
             "with g = 2.5% as a labeled analyst assumption. Reinvestment is in the forecast cash flows; the ROIC-based "
             "terminal value (15% incremental ROIC, debt growing at g) is shown on the DCF tab as a check only. "
@@ -555,13 +615,17 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
              "weights the five-year monthly regression and the comparable beta 50/50. "
              "FCFF at WACC is shown on the DCF tab as a cross-check only."
              if market else "Legacy WACC uses a 4.5% ERP, beta of 1.0 and a debt spread of 2 points."),
-            "Other nonoperating income and equity-method income are carried forward at their three-year filed median. "
-            "Interest income is excluded because cash is valued in the equity bridge. Equity-method investments are "
-            "excluded from the FCFE bridge because their income is in FCFE.",
+            "Interest income, equity-method income and other nonoperating income are each carried forward at their own "
+            "three-year filed median and shown on the forecast income statement. Because their income is in FCFE, cash, "
+            "short-term investments and equity-method investments are not added to the FCFE value (value = PV of FCFE + PV "
+            "of terminal value, less noncontrolling interests and preferred equity, per docs/method-notes.md). The FCFF "
+            "cross-check still adds cash in its enterprise-value bridge.",
             "The 12-month price target rolls the FCFE value forward one year at the cost of equity and deducts expected "
             "dividends. Peer multiples are a cross-check and never enter the target.",
             "The first DCF period prorates full-year cash flow by remaining days. The equity bridge uses the latest filed balances, short-term investments, carrying debt, and ending common shares.",
-            "The standard model holds noncurrent residual balances and funded debt flat after the year-1 move to the latest 10-Q debt, so forecast net borrowing is zero. Terminal FCFE grows debt at the terminal rate. When three years of dividend payments are available, projected payouts use the median historical payout ratio. Acquisitions are outside the forecast.",
+            f"Funded debt each forecast year is debt / EBITDA held at the last actual year's {model_leverage:.2f}x times forecast EBITDA; "
+            "the change is net borrowing in FCFE and interest accrues on opening debt. Reverse DCF, implied margin and the margin × "
+            "growth grid hold debt flows at the base path. Noncurrent residual balances are held flat. When three years of dividend payments are available, projected payouts use the median historical payout ratio. Acquisitions are outside the forecast.",
             "Where no standalone liabilities total is tagged, the model derives it from filed liabilities and equity less equity.",
             "Reverse DCF solves for a constant operating margin at the observed price, holding the rest of the base model fixed. An absolute DCF gap of at least 50% requires analyst review.",
             *dict.fromkeys(note for row in (latest, bridge_period) for note in row.get("operating_bridge_notes", ())),
@@ -615,7 +679,10 @@ def attach_fcfe(model):
         model["metrics"]["revenue"], model["opening_wc_assets"] - model["opening_wc_liabilities"], model["wc_ratio"],
         tax, model["da"], model["capex_path"], (debt * cost.pretax_cost_of_debt,) * 5, model["other_income"], debt,
         cost.pretax_cost_of_debt, (0.,) * 5, stub, tuple(p.discount_years for p in base.periods), growth, roic,
-        base.bridge.adjustment_millions + model["bridge_debt"] - model["bridge_affiliate_book_value"], model["shares"])
+        # docs/method-notes.md: value = PV of FCFE + PV of TV. Interest income on cash and investments is in FCFE,
+        # so cash, short-term and equity-method investments are not added again; NCI and preferred are deducted.
+        base.bridge.adjustment_millions + model["bridge_debt"] - model["bridge_cash"] - model["bridge_investments"],
+        model["shares"], model["leverage"]["ratio"], 0.)
     model["fcfe_inputs"] = inputs
     model["fcfe"] = {name: value_fcfe(inputs, model["case_revenue"][name], model["margin"] + shift, ke)
                      for name, (shift, _) in model["cases"].items()}

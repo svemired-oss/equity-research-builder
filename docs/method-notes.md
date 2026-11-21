@@ -58,3 +58,20 @@ the same method.
 3. Share count: project buybacks at the trailing 3-year average buyback spend over the share price;
    12-month target uses the projected count one year out.
 4. Sensitivity table: Ke +/- 0.5% and g +/- 0.25%.
+5. Normalized margin (Stage 2d): remove disclosed unusual items from each historical year's operating income before
+   taking the 3-year median operating margin: impairments, restructuring, litigation settlements, "other operating
+   charges", and asset-sale gains or losses. Use the broadest disclosed aggregate (other operating charges, combined
+   restructuring and impairment provisions, or restructuring + impairments + litigation, whichever is largest) so an
+   item inside an aggregate is not counted twice. Asset-sale gains are assumed to sit within operating income. Show the
+   reported and normalized margins side by side (Assumptions rows 50-59).
+6. Growth path: year 1 from guidance where filed (otherwise each line's recent growth faded halfway toward terminal
+   growth); years 2-5 fade linearly from the 3-year consolidated revenue CAGR in year 2 to 4% nominal in year 5,
+   applied to every revenue line; terminal growth stays 2.5%. Operating-driver paths keep their driver forecast.
+7. Non-operating income: interest income, equity-method income and other nonoperating income are each carried forward
+   at their own 3-year filed median and shown on the forecast income statement. Because that income is in FCFE, value
+   per share = PV of FCFE + PV of terminal value, less noncontrolling interests and preferred equity; cash, short-term
+   investments and equity-method investments are not added again. The FCFF cross-check keeps its enterprise-value
+   bridge with cash.
+8. Net borrowing: closing funded debt each forecast year = the last actual year's debt / EBITDA (reported operating
+   income + D&A) times forecast EBITDA; interest accrues on opening debt and the change in debt is net borrowing in
+   FCFE. Reverse DCF, implied margin and the margin x growth grid hold debt flows at the base path.

@@ -74,7 +74,8 @@ def _legacy_sources(book, model, revenue_total):
     book.cite("Cover", "B5", None, "Analyst scenario selector")
     book.cite("Cover", "B6", price, f"Dated market close | {model['price_date']}")
     assumptions = {
-        3: (annual, "Three-year median EBIT margin"), 4: (annual, "Three-year median effective tax rate"),
+        3: (annual, "Three-year median normalized operating margin | calculation on Assumptions rows 50-59"),
+        4: (annual, "Three-year median effective tax rate"),
         5: (annual, "Three-year median D&A / revenue"),
         6: (annual, "Historical capex ratio with D&A floor and available interim evidence"),
         9: (None, "Analyst assumption | terminal growth"), 10: (None, "Analyst assumption | incremental ROIC for forecast reinvestment and the ROIC-based terminal check"),
@@ -314,6 +315,8 @@ def workbook_plan(model):
     _legacy_sources(book, model, revenue_total)
     from ..drivers import formula_block
     formula_block(book, model)
+    from . import forecast
+    forecast.build(book, model, revenue_total)
     for address, record in cells["Revenue Build"].items():
         if address[0] in "GHIJ" and type(record[0]) in (int,float):
             record[1] = "evidence"

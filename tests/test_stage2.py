@@ -87,13 +87,16 @@ def test_historical_and_comparable_betas_are_weighted_fifty_fifty():
     assert fv.regression_evidence({"beta": {"value": 1, "weeks": 104, "url": "u", "date": "d"}})["value"] is None
 
 
-def test_other_and_equity_method_income_carry_at_the_historical_median():
-    # KO: other income 570, 1,992 and 1,073 plus equity income 1,691, 1,770 and 2,031 (USD millions).
-    history = [{"metrics": {"other_nonoperating_income": o*1e6, "equity_method_income": e*1e6}}
-               for o, e in ((570, 1691), (1992, 1770), (1073, 2031))]
-    assert fv.other_income_carry(history) == pytest.approx(3104)
+def test_each_nonoperating_line_carries_at_its_own_three_year_median():
+    # KO: other income 570, 1,992 and 1,073; equity income 1,691, 1,770 and 2,031; interest income 300, 900, 800.
+    history = [{"metrics": {"other_nonoperating_income": o*1e6, "equity_method_income": e*1e6, "interest_income": i*1e6}}
+               for o, e, i in ((570, 1691, 300), (1992, 1770, 900), (1073, 2031, 800))]
+    carry = fv.nonoperating_carry(history)
+    assert carry == pytest.approx({"interest_income": 800, "equity_method_income": 1770, "other_nonoperating_income": 1073})
+    assert fv.other_income_carry(history) == pytest.approx(800 + 1770 + 1073)
+    # A year without the fact counts as zero.
     history[0]["metrics"]["equity_method_income"] = None
-    assert fv.other_income_carry(history) == pytest.approx(3104)
+    assert fv.nonoperating_carry(history)["equity_method_income"] == pytest.approx(1770)
 
 
 def test_case_revenue_adds_the_step_to_every_lines_growth_each_year():
@@ -154,8 +157,10 @@ def test_equity_method_income_flows_into_fcfe_and_its_investment_leaves_the_brid
     # FCFF ignores nonoperating income, so the cross-check is unchanged.
     assert carried["scenarios"]["Base"].value_per_share == pytest.approx(base["scenarios"]["Base"].value_per_share)
     bridge = carried["scenarios"]["Base"].bridge
+    # Value = PV of FCFE + PV of TV less NCI and preferred: cash and investments earn income already in FCFE.
     assert carried["fcfe_inputs"].bridge_adjustment == pytest.approx(
-        bridge.adjustment_millions + carried["bridge_debt"] - carried["bridge_affiliate_book_value"])
+        bridge.adjustment_millions + carried["bridge_debt"] - carried["bridge_cash"] - carried["bridge_investments"])
+    assert carried["fcfe_inputs"].bridge_adjustment == pytest.approx(-carried["bridge_nci"] - carried["bridge_preferred"])
     # Bull and bear shift both growth and margin around the base FCFE value.
     values = [carried["fcfe"][c].value_per_share for c in ("Bear", "Base", "Bull")]
     assert values == sorted(values)
@@ -276,3 +281,61 @@ def test_research_non_timeout_error_is_not_retried(monkeypatch):
     with pytest.raises(ResearchGap, match="connection refused"):
         agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")
     assert len(sent) == 1
+
+
+def test_normalized_margin_removes_disclosed_unusual_items_without_double_counting():
+    from equity_research.operating_research import normalized_operating_income
+    base = {"operating_income": 100e6}
+    # Restructuring + impairments + litigation, when no broader aggregate is filed.
+    m = {**base, "unusual_restructuring": 5e6, "unusual_goodwill_impairment": 7e6, "unusual_litigation": 2e6,
+         "unusual_asset_sale_gain": 3e6}
+    assert normalized_operating_income(m) == (100e6 + 14e6 - 3e6, 14e6, 3e6)
+    # KO-style "other operating charges" already include those items: the broadest aggregate is used once.
+    m["unusual_other_operating_charges"] = 20e6
+    assert normalized_operating_income(m)[1] == 20e6
+    # Overlapping impairment totals are not summed.
+    m = {**base, "unusual_asset_impairment": 9e6, "unusual_goodwill_impairment": 4e6, "unusual_intangible_impairment": 3e6}
+    assert normalized_operating_income(m)[1] == 9e6
+    assert normalized_operating_income({**base, "unusual_asset_sale_gain": -6e6})[0] == 106e6
+
+
+def test_debt_holds_last_year_debt_to_ebitda_and_flows_into_fcfe():
+    inputs = fv.FCFEInputs(100., 10., .1, .2, .05, (.06,)*5, (0.,)*5, 1., 40., .05, (0.,)*5, .5,
+                           (.5, 1.5, 2.5, 3.5, 4.5), .02, .1, -5., 10., 1.5, 0.)
+    revenues = [110., 120., 130., 140., 150.]
+    result = fv.value_fcfe(inputs, revenues, .2, .09)
+    closing = [1.5 * r * (.2 + .05) for r in revenues]
+    opening = [40., *closing[:-1]]
+    assert result.net_borrowing == pytest.approx([c - o for c, o in zip(closing, opening)])
+    assert result.interest == pytest.approx([o * .05 for o in opening]) and result.closing_debt == pytest.approx(closing[-1])
+    flows, previous = [], 10.
+    for i, r in enumerate(revenues):
+        income = (r*.2 - opening[i]*.05 + 1)*.8
+        operating = income + r*.05 - (r*.1 - previous) - r*.06
+        flows.append(operating*(.5 if i == 0 else 1) + closing[i] - opening[i])
+        previous = r*.1
+    assert result.post_cutoff_fcfe == pytest.approx(flows)
+
+
+@pytest.mark.skipif(not which("soffice"), reason="Requires LibreOffice")
+def test_forecast_income_statement_shows_each_nonoperating_line(tmp_path):
+    # KO is the live case; the fixture carries interest, equity-method and other income.
+    from openpyxl import load_workbook
+    from equity_research.model_template import export_operating
+    data = fixture_data()
+    for period, (i, e, o) in zip(data["packet"]["actuals"]["periods"], ((3, 5, 1), (4, 6, -1), (5, 7, 2))):
+        period["metrics"].update(interest_income=i*1e6, equity_method_income=e*1e6, other_nonoperating_income=o*1e6)
+    model = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"],
+                                    revenue_candidates(data["packet"]))
+    assert model["nonoperating"] == pytest.approx({"interest_income": 4, "equity_method_income": 6,
+                                                   "other_nonoperating_income": 1})
+    book, _ = export_operating(model, tmp_path)
+    saved = load_workbook(book, data_only=True)
+    income = saved["Income Statement"]
+    for row, value in ((19, 4), (20, 6), (21, 1)):
+        assert [income[f"{c}{row}"].value for c in "BCDEF"] == pytest.approx([value]*5)
+    assert [income[f"{c}14"].value for c in "BCDEF"] == pytest.approx([11]*5)
+    assumptions = saved["Assumptions"]
+    assert assumptions["B45"].value == pytest.approx(model["leverage"]["ratio"])
+    assert assumptions["B58"].value == pytest.approx(model["margin"]) and assumptions["B59"].value == pytest.approx(model["reported_margin"])
+    assert saved["Schedules"]["F18"].value == pytest.approx(model["fcfe"]["Base"].closing_debt)

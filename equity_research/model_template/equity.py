@@ -14,7 +14,8 @@ T_NOPAT, T_INTEREST, T_OTHER, T_BORROW, T_FCFE, T_VALUE, T_PV, EQUITY, VALUE = r
 CHECK_FCFE, CHECK_VALUE, CAPEX_FLAG = 124, 125, 126
 CASE_ROWS = {"Bear": -1, "Base": 0, "Bull": 1}
 TAX = "Assumptions!$B$4"
-BRIDGE = f"DCF!$B${CASH_ROW}+DCF!$B${INVEST}-DCF!$B${NCI}-DCF!$B${PREF}"
+# docs/method-notes.md: interest and equity-method income are in FCFE, so cash and investments are not added.
+BRIDGE = f"-DCF!$B${NCI}-DCF!$B${PREF}"
 
 
 def case_block_start(revenue_total):
@@ -163,8 +164,8 @@ def dcf_block(book, model):
     book.put(tab, "A15", "FCFF at WACC cross-check value per share")
     book.put(tab, "A99", "Primary valuation | FCFE at the cost of equity", "section")
     rows = {KE: ("Cost of equity (CAPM on the Cost of Equity tab)", "=WACC!B3+WACC!B5*WACC!B4", PCT), G: ("Terminal growth (analyst assumption)", "=Assumptions!B9", PCT),
-            CASH_ROW: ("Cash", "=B6", None),
-            INVEST: ("Marketable investments excluding equity-method investments", f"=B7-B{AFFILIATE}", None),
+            CASH_ROW: ("Memo | cash, not added: its interest income is in FCFE", "=B6", None),
+            INVEST: ("Memo | marketable investments, not added: their income is in FCFE", f"=B7-B{AFFILIATE}", None),
             NCI: ("Noncontrolling interests (book proxy)", "=B9", None),
             PREF: ("Preferred equity (book proxy)", "=B10", None), SHARES: ("Ending common shares (millions)", "=B12", None)}
     for row, (label, formula, fmt) in rows.items():
@@ -193,13 +194,13 @@ def dcf_block(book, model):
         T_FCFE: ("Terminal FCFE | final-year FCFE × (1 + g), Gordon growth", f"=F{FLOW}*(1+B{G})"),
         T_VALUE: ("Terminal equity value | terminal FCFE / (cost of equity − g)", f"=B{T_FCFE}/(B{KE}-B{G})"),
         T_PV: ("PV of terminal equity value", f"=B{T_VALUE}/(1+B{KE})^F{YEARS}"),
-        EQUITY: ("Common equity value", f"=SUM(B{PV}:F{PV})+B{T_PV}+B{CASH_ROW}+B{INVEST}-B{NCI}-B{PREF}"),
+        EQUITY: ("Common equity value | PV of FCFE + PV of terminal value − NCI − preferred", f"=SUM(B{PV}:F{PV})+B{T_PV}-B{NCI}-B{PREF}"),
         VALUE: ("FCFE value per share", f"=B{EQUITY}/B{SHARES}"),
         CHECK_FCFE: ("Check | ROIC-based terminal FCFE (not used in the value)",
                      f"=B{T_NOPAT}-B{T_INTEREST}+B{T_OTHER}+B{T_BORROW}"),
         CHECK_VALUE: ("Check | value per share with the ROIC-based terminal value",
                       f"=(SUM(B{PV}:F{PV})+B{CHECK_FCFE}/(B{KE}-B{G})/(1+B{KE})^F{YEARS}"
-                      f"+B{CASH_ROW}+B{INVEST}-B{NCI}-B{PREF})/B{SHARES}"),
+                      f"-B{NCI}-B{PREF})/B{SHARES}"),
         CAPEX_FLAG: ("Flag | final forecast year capex below D&A (flagged, not changed)",
                      '=IF(Schedules!F5<Schedules!F6,"Flag: capex below D&A","No")'),
     }
@@ -227,7 +228,7 @@ def scenarios(book, model, revenue_total):
     book.put(tab, "A1", "Scenario FCFE values | USD per share", "title")
     book.put(tab, "A2", "Bull and bear shift every revenue line's annual growth by the scenario step and the EBIT margin by the case shift.")
     lines = len(model["lines"])
-    height = lines + 9
+    height = lines + 12
     results = {}
     for index, (case, sign) in enumerate(CASE_ROWS.items()):
         top = 4 + index * height
@@ -245,17 +246,26 @@ def scenarios(book, model, revenue_total):
             for col, prev in zip("CDEF", "BCDE", strict=True):
                 book.put(tab, f"{col}{row}", f"={prev}{row}*('Revenue Build'!{col}{base}/'Revenue Build'!{prev}{base}+$B${top+2})")
         total, flow, pv = top + 3 + lines, top + 4 + lines, top + 5 + lines
+        debt, borrow, interest = top + 8 + lines, top + 9 + lines, top + 10 + lines
         book.put(tab, f"A{total}", "Revenue", "total")
         book.put(tab, f"A{flow}", "Post-cutoff FCFE")
         book.put(tab, f"A{pv}", "PV of FCFE")
+        book.put(tab, f"A{debt}", "Closing funded debt (debt / EBITDA held)")
+        book.put(tab, f"A{borrow}", "Net borrowing")
+        book.put(tab, f"A{interest}", "Interest on opening debt")
         for i, col in enumerate("BCDEF"):
             book.put(tab, f"{col}{total}", f"=SUM({col}{top+3}:{col}{total-1})", "total")
+            book.put(tab, f"{col}{debt}", f"=Assumptions!$B$45*{col}{total}*($B${top+1}+Assumptions!$B$5)"
+                                          f"+{i + 1}*(Assumptions!$B$20-Assumptions!$B$21)")
+            prior_debt = "(Schedules!$B$15+Schedules!$B$40)" if i == 0 else f"{'BCDE'[i-1]}{debt}"
+            book.put(tab, f"{col}{borrow}", f"={col}{debt}-{prior_debt}")
+            book.put(tab, f"{col}{interest}", f"={prior_debt}*WACC!$B$6")
             opening = "Schedules!$L$12" if i == 0 else f"{'BCDE'[i-1]}{total}*Assumptions!$B$32"
             capex = f"Schedules!{col}5/'{INCOME}'!{col}4"
             operating = (f"{col}{total}*($B${top+1}*(1-{TAX})+Assumptions!$B$5-{capex})"
                          f"-({col}{total}*Assumptions!$B$32-{opening})"
-                         f"+('{INCOME}'!{col}14-'{INCOME}'!{col}6)*(1-{TAX})")
-            borrowing = f"'{CASH}'!{col}18-'{CASH}'!{col}19" + ("-Schedules!$B$40" if i == 0 else "")
+                         f"+('{INCOME}'!{col}14-{col}{interest})*(1-{TAX})")
+            borrowing = f"{col}{borrow}"
             stub = "*Assumptions!$B$12" if i == 0 else ""
             book.put(tab, f"{col}{flow}", f"=({operating}){stub}+{borrowing}")
             book.put(tab, f"{col}{pv}", f"={col}{flow}/(1+DCF!$B${KE})^DCF!{col}{YEARS}")

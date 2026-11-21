@@ -12,9 +12,14 @@ GROWTH_MIN, GROWTH_MAX = -.50, 1.
 
 def implied_growth(model):
     """Constant five-year revenue CAGR at which the base FCFE value equals the close."""
+    from dataclasses import replace
     from .fcfe_valuation import value_fcfe
     from .operating_research import ResearchGap
     inputs = model["fcfe_inputs"]
+    if inputs.leverage is not None:
+        # Debt flows are held at the base path, matching the workbook's reverse DCF.
+        base = value_fcfe(inputs, model["revenue"], model["margin"], model["cost_of_equity"])
+        inputs = replace(inputs, leverage=None, interest=base.interest, post_cutoff_net_borrowing=base.net_borrowing)
     start = inputs.opening_revenue
 
     def value(rate):

@@ -31,7 +31,7 @@ def add_report_inputs(book, model, revenue_total):
     from .equity import SCENARIOS, CASE_ROWS
     lines = len(model["lines"])
     for row, case, sign in ((8,"Bear","-"),(9,"Bull","+")):
-        top = 4 + list(CASE_ROWS).index(case) * (lines + 9)
+        top = 4 + list(CASE_ROWS).index(case) * (lines + 12)
         book.put(tab,f"B{row}",f"={sign}Assumptions!B17*100")
         book.put(tab,f"C{row}",f"={SCENARIOS}!B{top+7+lines}")
         book.put(tab,f"D{row}",f"={sign}Assumptions!B35*100")

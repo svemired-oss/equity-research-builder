@@ -37,6 +37,10 @@ class FCFEInputs:
     roic: float
     bridge_adjustment: float
     shares: float
+    # Debt / EBITDA held at the last actual year's level; None holds the explicit interest and borrowing paths.
+    leverage: float = None
+    # Analyst cumulative change on top of the leverage target, USD millions per year (default zero).
+    debt_step: float = 0.
 
 
 @dataclass(frozen=True)
@@ -53,19 +57,36 @@ class FCFEResult:
     cost_of_equity: float
     roic_terminal_fcfe: float
     roic_value_per_share: float
+    interest: tuple = ()
+    net_borrowing: tuple = ()
+    closing_debt: float = 0.
 
 
-def year_adjustments(inputs):
-    """FCFE less FCFF for each post-cutoff year: after-tax other income less interest, plus net borrowing."""
-    return tuple((inputs.other_income - inputs.interest[i]) * (1 - inputs.tax) * (inputs.stub if i == 0 else 1)
-                 + inputs.post_cutoff_net_borrowing[i] for i in range(5))
-
-
-def roic_terminal_fcfe(inputs, final_revenue, margin, growth):
+def roic_terminal_fcfe(inputs, final_revenue, margin, growth, closing_debt=None):
     """Check only: next-year FCFE with reinvestment set by incremental ROIC and debt growing at g."""
+    debt = inputs.closing_debt if closing_debt is None else closing_debt
     nopat = final_revenue * margin * (1 - inputs.tax) * (1 + growth) * (1 - growth / inputs.roic)
-    return (nopat - inputs.closing_debt * inputs.debt_cost * (1 - inputs.tax)
-            + inputs.other_income * (1 + growth) * (1 - inputs.tax) + growth * inputs.closing_debt)
+    return (nopat - debt * inputs.debt_cost * (1 - inputs.tax)
+            + inputs.other_income * (1 + growth) * (1 - inputs.tax) + growth * debt)
+
+
+def debt_path(inputs, revenues, margin):
+    """Closing debt = leverage x EBITDA (+ cumulative analyst step); interest accrues on opening debt.
+
+    Opening debt for year 1 is the debt at the cutoff (`closing_debt` on the inputs). Returns the
+    per-year interest, net borrowing and the final closing debt.
+    """
+    if inputs.leverage is None:
+        return tuple(inputs.interest), tuple(inputs.post_cutoff_net_borrowing), inputs.closing_debt
+    opening, interest, borrowing = inputs.closing_debt, [], []
+    for i, revenue in enumerate(revenues):
+        closing = inputs.leverage * revenue * (margin + inputs.da) + (i + 1) * inputs.debt_step
+        if closing < -1e-8:
+            raise ResearchGap("Projected debt cannot be negative.")
+        interest.append(opening * inputs.debt_cost)
+        borrowing.append(closing - opening)
+        opening = closing
+    return tuple(interest), tuple(borrowing), opening
 
 
 def value_fcfe(inputs, revenues, margin, cost_of_equity, growth=None):
@@ -78,13 +99,14 @@ def value_fcfe(inputs, revenues, margin, cost_of_equity, growth=None):
     if cost_of_equity <= growth:
         raise ResearchGap("Terminal growth must be below the cost of equity.")
     previous_wc = inputs.opening_wc
+    interest, borrowing, final_debt = debt_path(inputs, revenues, margin)
     incomes, flows, values = [], [], []
     for i, revenue in enumerate(revenues):
         ebit = revenue * margin
-        net_income = (ebit - inputs.interest[i] + inputs.other_income) * (1 - inputs.tax)
+        net_income = (ebit - interest[i] + inputs.other_income) * (1 - inputs.tax)
         wc = revenue * inputs.wc_ratio
         operating = net_income + revenue * inputs.da - (wc - previous_wc) - revenue * inputs.capex_path[i]
-        flow = operating * (inputs.stub if i == 0 else 1) + inputs.post_cutoff_net_borrowing[i]
+        flow = operating * (inputs.stub if i == 0 else 1) + borrowing[i]
         incomes.append(net_income)
         flows.append(flow)
         values.append(flow / (1 + cost_of_equity) ** inputs.discount_years[i])
@@ -95,12 +117,13 @@ def value_fcfe(inputs, revenues, margin, cost_of_equity, growth=None):
     terminal_pv = terminal_value / discount
     equity = fsum((*values, terminal_pv, inputs.bridge_adjustment))
     per_share = equity / inputs.shares
-    check = roic_terminal_fcfe(inputs, revenues[-1], margin, growth)
+    check = roic_terminal_fcfe(inputs, revenues[-1], margin, growth, final_debt)
     check_value = fsum((*values, check / (cost_of_equity - growth) / discount, inputs.bridge_adjustment)) / inputs.shares
     if not isfinite(per_share):
         raise ResearchGap("The FCFE value per share is not finite.")
     return FCFEResult(tuple(revenues), tuple(incomes), tuple(flows), tuple(values), terminal,
-                      terminal_value, terminal_pv, equity, per_share, cost_of_equity, check, check_value)
+                      terminal_value, terminal_pv, equity, per_share, cost_of_equity, check, check_value,
+                      interest, borrowing, final_debt)
 
 
 def case_revenues(base_segments, latest, shift):
@@ -174,12 +197,23 @@ def regression_evidence(market):
     return beta
 
 
-def other_income_carry(history):
-    """Historical median of filed other nonoperating income plus equity-method income, USD millions."""
-    values = []
-    for period in history[-3:]:
-        m = period["metrics"]
-        parts = [m.get(key) for key in ("other_nonoperating_income", "equity_method_income")]
-        values.append(sum(x for x in parts if type(x) in (int, float) and isfinite(x)) / 1e6)
+NONOPERATING = (("interest_income", "Interest income"), ("equity_method_income", "Equity-method income"),
+                ("other_nonoperating_income", "Other nonoperating income"))
+
+
+def nonoperating_carry(history):
+    """Each nonoperating line at its own three-year filed median, USD millions. A year without the fact counts as zero."""
     from statistics import median
-    return median(values) if values else 0.
+    result = {}
+    for key, _ in NONOPERATING:
+        values = []
+        for period in history[-3:]:
+            value = period["metrics"].get(key)
+            values.append(value / 1e6 if type(value) in (int, float) and isfinite(value) else 0.)
+        result[key] = median(values) if values else 0.
+    return result
+
+
+def other_income_carry(history):
+    """Total carried nonoperating income: the sum of each line's three-year median, USD millions."""
+    return sum(nonoperating_carry(history).values())

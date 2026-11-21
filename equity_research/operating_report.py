@@ -37,7 +37,8 @@ def fact_sheet(workbook):
                 ("beta","Cost of Equity","B31"),("beta_basis","Cost of Equity","B32"),
                 ("regression_beta","Cost of Equity","B11"),("regression_months","Cost of Equity","B8"),
                 ("implied_erp","Cost of Equity","B5"),("roic_check","DCF","B125"),("capex_flag","DCF","B126"),
-                ("projected_shares","Schedules","B26"),
+                ("projected_shares","Schedules","B26"),("reported_margin","Assumptions","B59"),
+                ("leverage","Assumptions","B45"),
                 ("comparable_beta","Cost of Equity","B29"),("forward_beta","Cost of Equity","B14"),
                 ("bear_growth","Report Evidence","D8"),("bull_growth","Report Evidence","D9"),
                 ("peer_tier","Report Evidence","B12"),
@@ -192,7 +193,10 @@ def report_lines(sheet, digest, order):
     section("Forecast")
     for col in "BCDEF":
         add(f"{f(f'year_{col}')} | Revenue ${f(f'sales_{col}',',.1f')} million")
-    add(f"Base EBIT margin {f('margin','.2%')}. Terminal growth {f('growth','.2%')} is a labeled analyst assumption.")
+    add(f"Base EBIT margin {f('margin','.2%')}: the three-year median normalized operating margin with disclosed unusual "
+        f"items removed (reported {f('reported_margin','.2%')}). Terminal growth {f('growth','.2%')} is a labeled analyst assumption.")
+    add(f"Years 2-5 revenue growth fades linearly from the three-year revenue CAGR to 4% nominal. Funded debt holds the last "
+        f"actual year's debt / EBITDA of {f('leverage','.2f')}x; the change is net borrowing in FCFE.")
     section("Valuation")
     add(f"DCF fair value {f('dcf','$')} from free cash flow to equity discounted at a {f('ke','.2%')} cost of equity. "
         f"Terminal value is Gordon growth on the final-year FCFE; the ROIC-based terminal value gives "

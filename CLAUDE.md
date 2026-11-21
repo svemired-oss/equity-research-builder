@@ -27,7 +27,7 @@ The model is measured against the owner's own build process:
 ## Decisions (2026-11-20)
 
 - FCFE at the cost of equity is the primary DCF. FCFF at WACC is a cross-check.
-- Valuation follows the "Rules for the automated model" in `docs/method-notes.md` (2026-11-21).
+- Valuation follows the "Rules for the automated model" in `docs/method-notes.md` (2026-11-21; rules 5-8 added for Stage 2d forecast normalization).
 - Peer multiples are a football-field cross-check only. The target comes from the DCF.
 - Code sets every number. The AI writes a one-line reason under each growth assumption, citing the filing or guidance passage.
 - As-reported line items, cost tables and days-based working capital arrive in v2, not v1.
