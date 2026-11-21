@@ -3,6 +3,7 @@ from copy import deepcopy
 from shutil import which
 
 import pytest
+from urllib.error import URLError
 
 from equity_research import fcfe_valuation as fv
 from equity_research import peer_selection as ps
@@ -202,3 +203,63 @@ def test_peer_leverage_uses_a_labeled_filed_total_or_zero_only_without_any_debt_
     assert none["debt"] == 0 and "No funded debt fact" in none["debt_basis"]
     with pytest.raises(ValueError, match="filed total"):
         _peer_leverage(packet({"commercial_paper": 4e6}), quote)
+
+
+def _timeout_provider(monkeypatch, outcomes):
+    """outcomes: exceptions to raise or selection dicts to return, one per request."""
+    import json as _json
+    from urllib.error import URLError
+    from equity_research import research_agent, spend_budget
+    sent = []
+
+    class Response:
+        def __init__(self, body):
+            self.body = body
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            return False
+        def read(self, limit):
+            return self.body
+
+    def fake(request, timeout):
+        sent.append(request)
+        outcome = outcomes[len(sent) - 1]
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return Response(_json.dumps({"status": "completed", "output": [{"type": "message", "content": [
+            {"type": "output_text", "text": _json.dumps(outcome)}]}]}).encode())
+    monkeypatch.setattr(research_agent, "urlopen", fake)
+    monkeypatch.setattr(spend_budget, "reserve", lambda payload: None)
+    packet = {"issuer": {"ticker": "GOOGL", "sic": "7370"}, "driver_passages": {},
+              "actuals": {"periods": [{"filing": {"url": "https://www.sec.gov/a.htm"}}]},
+              "revenue_guidance": {}, "event_revenue_guidance": {}, "earnings": {"releases": []}}
+    return research_agent, packet, sent, URLError
+
+
+def _ok_selection():
+    return {"group": "segment_revenue", "reason": "Segments reconcile.", "thesis": "Steady growth.",
+            "risks": "Cyclical demand.", "driver_type": "segment_growth", "driver_passage": "none",
+            "peer_candidates": [{"ticker": "META", "reason": "Advertising."}]}
+
+
+def test_research_timeout_is_retried_once(monkeypatch):
+    # GOOGL, 2026-11-21 collection: "The read operation timed out".
+    agent, packet, sent, _ = _timeout_provider(monkeypatch, [TimeoutError("The read operation timed out"), _ok_selection()])
+    assert agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")["group"] == "segment_revenue"
+    assert len(sent) == 2
+
+
+def test_research_second_timeout_stops(monkeypatch):
+    agent, packet, sent, _ = _timeout_provider(
+        monkeypatch, [TimeoutError("timed out"), URLError(TimeoutError("timed out"))])
+    with pytest.raises(ResearchGap, match="did not return a verified forecast selection"):
+        agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")
+    assert len(sent) == 2
+
+
+def test_research_non_timeout_error_is_not_retried(monkeypatch):
+    agent, packet, sent, _ = _timeout_provider(monkeypatch, [URLError("connection refused"), _ok_selection()])
+    with pytest.raises(ResearchGap, match="connection refused"):
+        agent.select_forecast(packet, {"segment_revenue": {}}, key="k", model="m")
+    assert len(sent) == 1

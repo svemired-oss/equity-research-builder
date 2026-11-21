@@ -10,6 +10,9 @@ SCENARIOS = "Scenarios"
 KE, G, CASH_ROW, INVEST, AFFILIATE, NCI, PREF, SHARES = 101, 102, 103, 104, 105, 106, 107, 108
 YEARS, FLOW, PV = 111, 112, 113
 T_NOPAT, T_INTEREST, T_OTHER, T_BORROW, T_FCFE, T_VALUE, T_PV, EQUITY, VALUE = range(115, 124)
+# Terminal ROIC calculation from filed history.
+ROIC_TOP, ROIC_FIRST = 126, 128
+ROIC_MEDIAN, ROIC_LOW_ROW, ROIC_HIGH_ROW, ROIC_USED, ROIC_PRIOR_ROW, ROIC_PRIOR_VALUE = range(134, 140)
 CASE_ROWS = {"Bear": -1, "Base": 0, "Bull": 1}
 TAX = "Assumptions!$B$4"
 BRIDGE = f"DCF!$B${CASH_ROW}+DCF!$B${INVEST}-DCF!$B${NCI}-DCF!$B${PREF}"
@@ -248,3 +251,50 @@ def scenarios(book, model, revenue_total):
     book.put("Checks", "B14", f'=DCF!B{VALUE}-IF(Cover!B5="Bear",{results["Bear"]},IF(Cover!B5="Bull",{results["Bull"]},{results["Base"]}))', "check")
     book.expected["Checks"]["B14"] = 0
     return results
+
+
+def terminal_roic(book, model):
+    """Five-year filed ROIC table on the DCF sheet; Assumptions B10 links to the bounded median."""
+    tab, evidence = "DCF", model["roic_evidence"]
+    book.put(tab, f"A{ROIC_TOP}", "Terminal incremental ROIC | five-year median of filed NOPAT / invested capital", "section")
+    for col, label in zip("ABCDEFGHIJ", ("Fiscal year end", "Operating income", "Model tax rate", "NOPAT", "Total debt",
+                                          "Total equity", "Cash and short-term investments", "Invested capital", "ROIC",
+                                          "Excluded"), strict=True):
+        book.put(tab, f"{col}{ROIC_TOP + 1}", label, "header")
+    rows = evidence["rows"]
+    last = ROIC_FIRST + max(len(rows), 1) - 1
+    for k, item in enumerate(rows):
+        r = ROIC_FIRST + k
+        book.put(tab, f"A{r}", item["period_end"], "evidence")
+        if "invested_capital" in item:
+            for col, key in zip("BEFG", ("operating_income", "debt", "equity", "cash_investments"), strict=True):
+                book.input(tab, f"{col}{r}", item[key], item["url"],
+                           f"Filed 10-K {item['period_end']} | {key.replace('_', ' ')} on the valuation bridge basis")
+            book.put(tab, f"C{r}", f"={TAX}", fmt=PCT)
+            book.put(tab, f"D{r}", f"=B{r}*(1-C{r})")
+            book.put(tab, f"H{r}", f"=E{r}+F{r}-G{r}")
+        if "roic" in item:
+            book.put(tab, f"I{r}", f"=D{r}/H{r}", fmt=PCT)
+            book.expected[tab][f"I{r}"] = item["roic"]
+        if "excluded" in item:
+            book.put(tab, f"J{r}", item["excluded"])
+    labels = {ROIC_MEDIAN: "Median filed ROIC", ROIC_LOW_ROW: "Lower bound", ROIC_HIGH_ROW: "Upper bound",
+              ROIC_USED: "Terminal ROIC used (bounded median; former 15% when fewer than 3 usable years)",
+              ROIC_PRIOR_ROW: "Former fixed terminal ROIC, for comparison",
+              ROIC_PRIOR_VALUE: "Comparison: FCFE value per share at the former 15% (model-computed, not live)"}
+    for row, label in labels.items():
+        book.put(tab, f"A{row}", label, "total" if row == ROIC_USED else "text")
+    span = f"I{ROIC_FIRST}:I{last}"
+    book.put(tab, f"B{ROIC_MEDIAN}", f'=IF(COUNT({span})>0,MEDIAN({span}),"n/a")', fmt=PCT)
+    book.input(tab, f"B{ROIC_LOW_ROW}", .08, basis="Analyst bound on terminal ROIC", fmt=PCT)
+    book.input(tab, f"B{ROIC_HIGH_ROW}", .40, basis="Analyst bound on terminal ROIC", fmt=PCT)
+    book.input(tab, f"B{ROIC_PRIOR_ROW}", evidence["prior"], basis="Former fixed analyst assumption, comparison only", fmt=PCT)
+    book.put(tab, f"B{ROIC_USED}", f"=IF(COUNT({span})>=3,MIN(MAX(B{ROIC_MEDIAN},B{ROIC_LOW_ROW}),B{ROIC_HIGH_ROW}),"
+                                   f"B{ROIC_PRIOR_ROW})", "total", PCT)
+    book.put(tab, f"C{ROIC_USED}", evidence["basis"])
+    book.expected[tab][f"B{ROIC_USED}"] = evidence["value"]
+    book.input(tab, f"B{ROIC_PRIOR_VALUE}", model["roic_comparison"]["value_per_share"],
+               basis="Model-computed comparison with capex converging at the former 15% ROIC", fmt=PRICE)
+    if "roic" not in {item["target"] for item in model.get("overrides", ())}:
+        book.put("Assumptions", "B10", f"=DCF!B{ROIC_USED}", fmt=PCT)
+        book.expected.setdefault("Assumptions", {})["B10"] = model["roic"]

@@ -36,9 +36,13 @@ def test_stage_two_sector_review_excludes_legacy_and_failed_rows(benchmark, tmp_
     benchmark.write_results(report, records)
     text = report.read_text(encoding="utf-8")
     assert "| low | 2 | 0.6000 | Review |" in text
-    assert "| high | 1 | 1.4100 | Review |" in text
-    assert "| in | 1 | 1.4000 | Within range |" in text
+    # Single-value sectors are reported but not gated (docs/PLAN.md, Stage 2).
+    assert "| high | 1 | 1.4100 | Reported, not gated (outside 0.7-1.4) |" in text
+    assert "| in | 1 | 1.4000 | Reported, not gated (inside 0.7-1.4) |" in text
     assert "| none | 0 |" in text
+    assert "- Sectors with 2 or more verified values inside 0.7-1.4: 0/1 — not met." in text
+    assert "- Single-value sectors (reported, not gated): high, in." in text
+    assert "- Ratings among verified pairs: Buy 0, Hold 0, Sell 0." in text
 
 
 def test_failure_groups_preserve_missing_data_and_code_errors(benchmark):

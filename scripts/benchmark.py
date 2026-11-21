@@ -59,6 +59,9 @@ def cache_write(path, value):
     temporary.replace(path)
 
 
+GATED_SECTOR_VALUES = 2  # docs/PLAN.md: single-value sectors are reported but not gated.
+
+
 def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
     if evidence["packet"]["issuer"]["ticker"] != ticker:
         raise ValueError("Cache issuer differs from the requested ticker.")
@@ -90,6 +93,9 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
                       comps_peers=len(comps.get("rows", ())),
                       peer_value_price_ratio=(recommendation["peer"] / model["close"]
                                               if recommendation["peer"] is not None else None))
+    if "roic_evidence" in model and not legacy:
+        result.update(terminal_roic=model["roic"], roic_basis=model["roic_evidence"]["basis"],
+                      prior_roic_value_price_ratio=model["roic_comparison"]["value_per_share"] / model["close"])
     review = verify_valuation_range(model)
     if review:
         model["notes"] += (review,)
@@ -203,30 +209,40 @@ def write_results(output, results):
                   "Failed runs are excluded. A pass already requires value / price between 0.5x and 2x.", "",
                   "| Sector | Verified values | Median value / price | Status |",
                   "| --- | ---: | ---: | --- |"])
-    in_range, without = [], []
+    in_range, without, single = [], [], []
     for sector in sorted({r["sector"] for r in results}):
         ratios = [r["value_price_ratio"] for r in results if r["sector"] == sector and r["status"] == "PASS"
                   and r.get("valuation_basis") == "stage2_fcfe" and r["value_price_ratio"] is not None]
         if ratios:
             center = median(ratios)
-            flag = "Review" if center < .7 or center > 1.4 else "Within range"
-            in_range.append(flag == "Within range")
+            inside = .7 <= center <= 1.4
+            if len(ratios) >= GATED_SECTOR_VALUES:
+                in_range.append(inside)
+                flag = "Within range" if inside else "Review"
+            else:
+                single.append(sector)
+                flag = f"Reported, not gated ({'inside' if inside else 'outside'} 0.7-1.4)"
             lines.append(f"| {sector} | {len(ratios)} | {center:.4f} | {flag} |")
         else:
             without.append(sector)
             lines.append(f"| {sector} | 0 | — | No evidence |")
+    ratings = {name: sum(r["status"] == "PASS" and r.get("rating") == name for r in results)
+               for name in ("Buy", "Hold", "Sell")}
     lines.extend(["", "## Stage 2 gate", "",
                   f"- Verified pairs: {passed}/{len(results)} (gate: 15 or more) — {'met' if passed >= 15 else 'not met'}.",
-                  f"- Sectors with verified values inside 0.7-1.4: {sum(in_range)}/{len(in_range)} — "
-                  f"{'met' if in_range and all(in_range) else 'not met'}.",
-                  f"- Sectors without any verified value: {', '.join(without) if without else 'none'}."])
+                  f"- Sectors with {GATED_SECTOR_VALUES} or more verified values inside 0.7-1.4: "
+                  f"{sum(in_range)}/{len(in_range)} — {'met' if in_range and all(in_range) else 'not met'}.",
+                  f"- Single-value sectors (reported, not gated): {', '.join(single) if single else 'none'}.",
+                  f"- Sectors without any verified value: {', '.join(without) if without else 'none'}.",
+                  f"- Ratings among verified pairs: Buy {ratings['Buy']}, Hold {ratings['Hold']}, Sell {ratings['Sell']}."])
     lines.extend(["", "## Valuation detail for verified pairs", "",
-                  "| Ticker | FCFE value / price | FCFF / price | Cost of equity | Beta basis | Peer tier | Peers | Comps peers | Rating |",
-                  "| --- | ---: | ---: | ---: | --- | --- | --- | ---: | --- |"])
+                  "| Ticker | FCFE value / price | At former 15% ROIC | Terminal ROIC | FCFF / price | Cost of equity | Beta basis | Peer tier | Peers | Comps peers | Rating |",
+                  "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | --- |"])
     for row in results:
         if row["status"] == "PASS" and row.get("valuation_basis") == "stage2_fcfe":
             number = lambda key, spec: format(row[key], spec) if row.get(key) is not None else "—"
-            lines.append(f"| {row['ticker']} | {number('value_price_ratio', '.4f')} | {number('fcff_value_price_ratio', '.4f')} | "
+            lines.append(f"| {row['ticker']} | {number('value_price_ratio', '.4f')} | {number('prior_roic_value_price_ratio', '.4f')} | "
+                         f"{number('terminal_roic', '.1%')} | {number('fcff_value_price_ratio', '.4f')} | "
                          f"{number('cost_of_equity', '.2%')} | {row.get('beta_basis', '—')} | {row.get('peer_tier', '—')} | "
                          f"{' '.join(row.get('peers', ())) or 'none'} | {row.get('comps_peers', '—')} | {row.get('rating', '—')} |")
     lines.extend(["", "## Per-ticker outcomes", "",

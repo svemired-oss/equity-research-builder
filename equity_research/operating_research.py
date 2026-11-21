@@ -3,6 +3,7 @@
 from calendar import monthrange
 from datetime import date, timedelta
 from itertools import combinations
+from copy import deepcopy
 from math import isclose, isfinite
 from statistics import median
 import re
@@ -201,6 +202,46 @@ def _read(metrics, key):
     return value
 
 
+ROIC_LOW, ROIC_HIGH, ROIC_PRIOR, ROIC_MIN_YEARS = .08, .40, .15, 3
+
+
+def filed_roic(history, tax):
+    """Five-year median filed ROIC: operating income x (1 - model tax rate) / year-end invested capital.
+
+    Invested capital is filed total debt plus total equity less cash and short-term investments,
+    read with the same balance-sheet bridge as the valuation. The median is bounded to 8%-40%.
+    With fewer than three usable years the former fixed 15% is used and labeled.
+    """
+    rows = []
+    for period in history[-5:]:
+        row = {"period_end": period["period_end"], "url": period["filing"]["url"]}
+        try:
+            metrics, cash, investments, debt, equity, _, _ = _balance(deepcopy(period))
+            operating = _read(metrics, "operating_income")
+        except ResearchGap as gap:
+            rows.append({**row, "excluded": str(gap)})
+            continue
+        capital = debt + (equity or 0) - cash - investments
+        row.update(operating_income=operating, debt=debt, equity=equity or 0, cash_investments=cash + investments,
+                   invested_capital=capital)
+        if equity is None or capital <= 0:
+            row["excluded"] = "Invested capital is not positive." if equity is not None else "Total equity is not filed."
+        else:
+            row["roic"] = operating * (1 - tax) / capital
+        rows.append(row)
+    values = [row["roic"] for row in rows if "roic" in row]
+    if len(values) < ROIC_MIN_YEARS:
+        return {"rows": rows, "median": None, "value": ROIC_PRIOR, "prior": ROIC_PRIOR,
+                "basis": f"Only {len(values)} usable filed years ({ROIC_MIN_YEARS} required); the former fixed "
+                         f"{ROIC_PRIOR:.0%} analyst assumption is used."}
+    middle = median(values)
+    value = min(max(middle, ROIC_LOW), ROIC_HIGH)
+    bound = "" if value == middle else f", bounded to {value:.0%}"
+    return {"rows": rows, "median": middle, "value": value, "prior": ROIC_PRIOR,
+            "basis": f"Median filed ROIC {middle:.1%} over {len(values)} years{bound} "
+                     f"({ROIC_LOW:.0%}-{ROIC_HIGH:.0%} bounds)."}
+
+
 def _balance(period):
     from .operating_evidence import assume_absent_balances
 
@@ -345,7 +386,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         date.fromisoformat(bridge_period.get("share_count_date", bridge_period["period_end"])))
     financing_start = _financing_start(latest, bridge_period, opening, debt, bridge_base) if interim else None
     close = quote["close"]
-    growth, roic = .025, .15
+    growth = .025
     ratios = []
     payouts = []
     for period in history[-3:]:
@@ -365,6 +406,8 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             raise ResearchGap("Positive interim revenue is required.")
         capex = max(capex, _read(m, "capex") / ytd_sales)
     capex = max(da, capex)
+    roic_evidence = filed_roic(history, tax)
+    roic = roic_evidence["value"]
     defaults = {"margin": margin, "capex": capex, "growth": growth, "roic": roic}
     changes = {row["target"]: row["value"] for row in overrides}
     used = {**defaults, **changes}
@@ -500,7 +543,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         "bridge_debt": bridge_debt, "bridge_nci": nci, "bridge_affiliate_book_value": affiliate_book_value,
         "other_assets": opening["total_assets"]-cash-investments-wc_assets-_read(opening,"net_ppe"),
         "other_liabilities": opening["total_liabilities"]-debt-wc_liab,
-        "cost": cost, "wacc": wacc, "growth": growth, "roic": roic, "stub": stub, "scenarios": scenarios, "revenue": revenues,
+        "cost": cost, "wacc": wacc, "growth": growth, "roic": roic, "roic_evidence": roic_evidence, "stub": stub, "scenarios": scenarios, "revenue": revenues,
         "legacy_scenarios": legacy_scenarios, "legacy_implied_margin": legacy_implied_margin, "cost_of_equity": cost_of_equity, "beta": beta_evidence,
         "capex_path": tuple(capex_path), "wc_ratio": wc_ratio, "cases": cases,
         "case_revenue": case_revenue, "segment_path": segment_path, "growth_step": GROWTH_STEP,
@@ -526,6 +569,7 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
             ("Operating-driver growth fades halfway annually toward labeled analyst industry proxies. Revenue line allocations use latest filed mix."
              if path else "Revenue growth fades halfway each year toward terminal growth."),
             "Three-year median EBIT margin and effective tax rate anchor the baseline. Scenario margin shifts are capped at 25% of base margin or three percentage points, whichever is smaller. Bull and bear cases also add or subtract 0.5 percentage points to every revenue line's annual growth rate in every forecast year.",
+            "Terminal incremental ROIC is the company's five-year median filed ROIC (operating income after tax at the model rate, divided by year-end debt plus equity less cash and short-term investments), bounded to 8%-40%. The DCF tab shows the calculation and the value at the former fixed 15% for comparison. " + roic_evidence["basis"],
             "D&A uses the annual median ratio. Initial capex uses the greater of the annual median, available interim ratio and D&A ratio. It converges linearly to capex consistent with terminal reinvestment, adjusting for working capital.",
             ("The primary DCF discounts FCFE (net income plus D&A, less capex and working-capital investment, plus net "
              "borrowing from the debt schedule) at the CAPM cost of equity on the Cost of Equity tab. The two-year weekly "
@@ -596,6 +640,14 @@ def attach_fcfe(model):
     model["fcfe_inputs"] = inputs
     model["fcfe"] = {name: value_fcfe(inputs, model["case_revenue"][name], model["margin"] + shift, ke)
                      for name, (shift, _) in model["cases"].items()}
+    # Comparison only: the base value with the former fixed terminal ROIC, including its capex convergence.
+    from dataclasses import replace
+    prior = ROIC_PRIOR
+    prior_capex = model["da"] + model["margin"] * (1 - tax) * growth / prior - growth * model["wc_ratio"]
+    prior_inputs = replace(inputs, roic=prior, capex_path=tuple(
+        model["capex"] + (prior_capex - model["capex"]) * i / 4 for i in range(5)))
+    model["roic_comparison"] = {"roic": prior, "value_per_share": value_fcfe(
+        prior_inputs, model["case_revenue"]["Base"], model["margin"], ke).value_per_share}
     revenues = model["revenue"]
     discount = [(1 + ke) ** -t for t in inputs.discount_years]
     per_point = (1 - tax) * (

@@ -77,7 +77,7 @@ def _legacy_sources(book, model, revenue_total):
         3: (annual, "Three-year median EBIT margin"), 4: (annual, "Three-year median effective tax rate"),
         5: (annual, "Three-year median D&A / revenue"),
         6: (annual, "Historical capex ratio with D&A floor and available interim evidence"),
-        9: (None, "Analyst assumption | terminal growth"), 10: (None, "Analyst assumption | incremental terminal ROIC"),
+        9: (None, "Analyst assumption | terminal growth"), 10: (model["sources"]["Annual financials and revenue lines"], "Five-year median filed ROIC bounded 8%-40% | calculation on DCF rows 126-139"),
         13: (None, "Analyst assumption | annual growth convergence"),
         15: (next((url for label, url in sources.items()
                    if label.startswith(("FY revenue guidance", "Reported current YTD sales"))), None),
@@ -319,6 +319,7 @@ def workbook_plan(model):
         if address[0] in "GHIJ" and type(record[0]) in (int,float):
             record[1] = "evidence"
     equity.dcf_block(book, model)
+    equity.terminal_roic(book, model)
     if model.get("beta"):
         equity.cost_of_equity(book, model)
     equity.scenarios(book, model, revenue_total)

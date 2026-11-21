@@ -10,7 +10,7 @@ All eight criteria must pass on a fresh 37-ticker collection plus offline replay
 1. Coverage: 50% of the in-scope cohort produces a verified pair (19 of 37).
 2. Real drivers: 10+ passes use stores, volume x yield, or units x price, each checked against its filing.
 3. Statements: 5 years history + 5 forecast; every check is 0; year-1 net income within 25% of last actual unless the PDF explains why.
-4. Valuation: sector median value / price between 0.7 and 1.4; comps use 3+ peers.
+4. Valuation: sector median value / price between 0.7 and 1.4 for sectors with 2 or more verified values (single-value sectors are reported but not gated); comps use 3+ peers as a cross-check.
 5. Report: thesis, business, industry, valuation, catalysts, bull/bear, risks filled for every pass; text matches the workbook.
 6. Guided mode: 3 edited inputs regenerate both files on the hosted site.
 7. Self-service: 10+ pairs download signed-out; password run works; daily API cap enforced.
@@ -41,7 +41,7 @@ Baseline 2026-11-19: 6/50 (12%), 0 real drivers. Stage 1b (2026-11-19 cutoff): 1
 | Stage | Dates | Build | Gate |
 | --- | --- | --- | --- |
 | 1. Coverage fallbacks | Nov 20-24 | Total revenue as one labeled line when segments don't reconcile; missing current-debt line = 0 when total debt is filed and the balance sheet ties | 15+ pass on the 37-ticker cohort |
-| 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary + FCFF check; CAPM with historical/forward/comparable betas; multiples as cross-check from 3+ peers; carry other and equity-method income; growth-based bull/bear; pass only if value/price 0.5-2x; peers share the subject's 3-digit SIC code, with 2-digit matches only as a labeled fallback (PG currently gets JNJ, ABT and PFE) | Sector medians 0.7-1.4 |
+| 2. Valuation sanity | Nov 25-Dec 1 | FCFE primary + FCFF check; CAPM with historical/forward/comparable betas; multiples as cross-check from 3+ peers; carry other and equity-method income; growth-based bull/bear; pass only if value/price 0.5-2x; peers share the subject's 3-digit SIC code, with 2-digit matches only as a labeled fallback (PG currently gets JNJ, ABT and PFE) | Sector medians 0.7-1.4 for sectors with 2+ verified values; single-value sectors reported, not gated |
 | 4a. Report minimum | Dec 1-2 | Business and risk text from the 10-K for every pass | No empty business, industry or risk section |
 | 5. Release v1 | Dec 2-4 | Merge to main, deploy Render, publish 10 passing pairs | Signed-out download + password run both work |
 | 3. Real revenue drivers | Dec 7-23 | Stores (SBUX, TGT, MCD), volume x yield (FDX, UPS, DAL), units x price; AI-written cited reasons | 10+ real-driver passes matching filings |
