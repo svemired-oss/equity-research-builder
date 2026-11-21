@@ -1,0 +1,125 @@
+# Generic operating model benchmark
+
+Completed 37 tickers. Verified pairs 13/37 (35.1%).
+Verified pairs using non-fallback drivers: 0/13 (0.0%).
+Missing or invalid caches 0. These count as failures in the full-set rate.
+A complete baseline requires a recorded collection attempt for every ticker.
+PASS requires the valuation checks (base FCFE value / price between 0.5x and 2x), real formula workbook export, and paired PDF verification.
+The rate measures mechanical completion. Economic assumptions and narrative still require analyst review.
+
+## Remaining failures by type
+
+| Failure type | Count |
+| --- | --- |
+| acquisition_or_merger_basis | 3 |
+| conflicting_filing_facts | 1 |
+| financing_bridge | 1 |
+| missing_balance_fact | 5 |
+| other | 1 |
+| valuation_guard | 13 |
+
+## Sector valuation review
+
+Median base FCFE value at the cost of equity / close among verified pairs.
+Failed runs are excluded. A pass already requires value / price between 0.5x and 2x.
+
+| Sector | Verified values | Median value / price | Status |
+| --- | ---: | ---: | --- |
+| communications | 1 | 0.6250 | Reported, not gated (outside 0.7-1.4) |
+| consumer | 3 | 0.8770 | Within range |
+| healthcare | 1 | 0.8238 | Reported, not gated (inside 0.7-1.4) |
+| industrials | 1 | 0.9912 | Reported, not gated (inside 0.7-1.4) |
+| materials | 1 | 1.4509 | Reported, not gated (outside 0.7-1.4) |
+| retail | 2 | 0.6557 | Review |
+| tech | 2 | 1.0681 | Within range |
+| transport | 2 | 0.8531 | Within range |
+
+## Stage 2 gate
+
+- Verified pairs: 13/37 (gate: 15 or more) — not met.
+- Sectors with 2 or more verified values inside 0.7-1.4: 3/4 — not met.
+- Single-value sectors (reported, not gated): communications, healthcare, industrials, materials.
+- Sectors without any verified value: none.
+- Ratings among verified pairs: Buy 4, Hold 5, Sell 4.
+
+## Stage 4a gate
+
+- Passing tickers with business, industry and risk sections filled from the 10-K: 12/13 — not met.
+- Missing sections: PG (industry).
+- Passing tickers with five Item 1A risk headings: 13/13.
+
+| Ticker | Business | Industry | Risk headings |
+| --- | ---: | ---: | ---: |
+| NVDA | 2 | 2 | 5 |
+| ADBE | 2 | 2 | 5 |
+| PG | 2 | 0 | 5 |
+| KO | 2 | 2 | 5 |
+| PEP | 1 | 2 | 5 |
+| LMT | 2 | 2 | 5 |
+| JNJ | 2 | 1 | 5 |
+| APD | 2 | 1 | 5 |
+| META | 2 | 1 | 5 |
+| UPS | 2 | 2 | 5 |
+| DAL | 1 | 2 | 5 |
+| HD | 2 | 2 | 5 |
+| TGT | 2 | 1 | 5 |
+
+## Valuation detail for verified pairs
+
+| Ticker | FCFE value / price | ROIC-terminal check / price | Final-year capex < D&A | FCFF / price | Cost of equity | Beta | Beta basis | Normalized margin | Reported margin | Debt / EBITDA | Peer tier | Peers | Comps peers | Rating |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- | --- | ---: | --- |
+| NVDA | 1.2193 | 1.2218 | No | 1.2493 | 18.22% | 2.05 | 50/50 historical and comparable | 60.4% | 60.4% | 0.06 | 3-digit SIC | AMD AVGO MU | 3 | Buy |
+| ADBE | 0.9169 | 0.8991 | No | 0.8943 | 13.09% | 1.26 | 50/50 historical and comparable | 34.3% | 34.3% | 0.65 | 3-digit SIC | INTU CRM ADSK ORCL | 3 | Hold |
+| PG | 0.8770 | 0.8462 | No | 0.8244 | 7.25% | 0.36 | historical only (comparable beta unavailable: 0 peer betas, 2 required.) | 24.2% | 22.7% | 1.49 | 3-digit SIC | CL | 1 | Hold |
+| KO | 0.8459 | 0.8058 | No | 0.6854 | 6.74% | 0.28 | 50/50 historical and comparable | 30.1% | 24.7% | 3.07 | 3-digit SIC | PEP KDP MNST | 2 | Hold |
+| PEP | 1.3634 | 1.2663 | No | 1.3320 | 6.98% | 0.32 | 50/50 historical and comparable | 14.4% | 13.1% | 3.29 | 3-digit SIC | KO MNST KDP | 2 | Buy |
+| LMT | 0.9912 | 0.9438 | No | 0.9459 | 7.58% | 0.41 | 50/50 historical and comparable | 10.3% | 10.3% | 2.30 | 2-digit SIC fallback | RTX GD BA TDG | 3 | Hold |
+| JNJ | 0.8238 | 0.7890 | No | 0.9004 | 6.27% | 0.21 | 50/50 historical and comparable | 27.0% | 24.9% | 1.46 | 3-digit SIC | PFE MRK LLY ABBV BMY | 5 | Hold |
+| APD | 1.4509 | 1.3053 | No | 0.4223 | 8.87% | 0.61 | 50/50 historical and comparable | 24.5% | 0.2% | 11.51 | 2-digit SIC fallback | LIN DD DOW EMN LYB | 3 | Buy |
+| META | 0.6250 | 0.6164 | No | 0.6307 | 12.82% | 1.21 | 50/50 historical and comparable | 41.4% | 41.4% | 0.59 | 3-digit SIC | GOOGL MSFT ORCL CRM | 3 | Sell |
+| UPS | 0.5939 | 0.5659 | No | 0.5249 | 12.65% | 1.19 | 50/50 historical and comparable | 9.8% | 9.3% | 2.22 | 3-digit SIC | JBHT KNX ODFL | 3 | Sell |
+| DAL | 1.1122 | 1.0290 | No | 1.0394 | 12.40% | 1.15 | 50/50 historical and comparable | 9.5% | 9.5% | 1.71 | 3-digit SIC | AAL UAL LUV | 3 | Buy |
+| HD | 0.5750 | 0.5550 | No | 0.4772 | 10.77% | 0.90 | 50/50 historical and comparable | 13.5% | 13.5% | 2.29 | 2-digit SIC fallback | LOW SHW | 2 | Sell |
+| TGT | 0.7365 | 0.6916 | No | 0.6839 | 9.34% | 0.68 | 50/50 historical and comparable | 5.2% | 5.2% | 1.99 | 3-digit SIC | DG DLTR FIVE | 3 | Sell |
+
+## Per-ticker outcomes
+
+| Ticker | Sector | Status | Driver | Stage | Value / price | Reason |
+| --- | --- | --- | --- | --- | --- | --- |
+| NVDA | tech | PASS | segment_growth | verified_pair | 1.2193 |  |
+| MSFT | tech | FAIL | segment_growth | model_export_verification | 0.4045 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $195.98 per share versus a $484.52 close (0.40×). The model uses a 45.6% EBIT margin and implies a 95.1% margin at the verified close with other assumptions fixed. |
+| ADBE | tech | PASS | segment_growth | verified_pair | 0.9169 |  |
+| CRM | tech | FAIL | segment_growth | model_export_verification | 0.4403 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $79.53 per share versus a $180.62 close (0.44×). The model uses a 20.2% EBIT margin and implies a 39.9% margin at the verified close with other assumptions fixed. |
+| ORCL | tech | FAIL | Unverified | model_export_verification | — | ResearchGap: Completed common stock issuance needs verified net proceeds. |
+| SBUX | consumer | FAIL | segment_growth | model_export_verification | 0.3157 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $32.56 per share versus a $103.13 close (0.32×). The model uses a 11.6% EBIT margin and implies a 36.2% margin at the verified close with other assumptions fixed. |
+| MCD | consumer | FAIL | Unverified | collection | — | McDonald's interim balance sheet combines operating and finance leases. The latest separate finance lease liability is needed to finish the live valuation bridge. |
+| PG | consumer | PASS | segment_growth | verified_pair | 0.8770 |  |
+| KO | consumer | PASS | segment_growth | verified_pair | 0.8459 |  |
+| PEP | consumer | PASS | segment_growth | verified_pair | 1.3634 |  |
+| GD | industrials | FAIL | Unverified | collection | — | Conflicting facts were found in the filed balance-sheet bridge. |
+| FAST | industrials | FAIL | segment_growth | model_export_verification | 0.3042 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $15.40 per share versus a $50.61 close (0.30×). The model uses a 20.2% EBIT margin and implies a 57.6% margin at the verified close with other assumptions fixed. |
+| CAT | industrials | FAIL | segment_growth | model_export_verification | 0.4525 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $230.96 per share versus a $510.45 close (0.45×). The model uses a 20.5% EBIT margin and implies a 45.2% margin at the verified close with other assumptions fixed. |
+| HON | industrials | FAIL | Unverified | collection | — | Pro forma basis required: HONEYWELL INTERNATIONAL INC's 10-Q filed 2026-10-22 reports a spin-off. Discontinued operations held USD 19,844 million of assets at 2025-12-31 (27% of total assets) and were separated by 2026-09-30. The 10-K history and opening balance sheet include those operations, so a valuation needs pro forma continuing-operations history. |
+| LMT | industrials | PASS | segment_growth | verified_pair | 0.9912 |  |
+| JNJ | healthcare | PASS | segment_growth | verified_pair | 0.8238 |  |
+| PFE | healthcare | FAIL | Unverified | model_export_verification | — | ResearchGap: Profitability or taxes require normalization outside the standard model. |
+| NEM | materials | FAIL | Unverified | model_export_verification | — | ResearchGap: Required financial fact is missing: operating income. |
+| FCX | materials | FAIL | Unverified | model_export_verification | — | ResearchGap: Required financial fact is missing: capex. |
+| NUE | materials | FAIL | Unverified | model_export_verification | — | ResearchGap: Required financial fact is missing: operating income. |
+| DOW | materials | FAIL | Unverified | model_export_verification | — | ResearchGap: Required financial fact is missing: operating income. |
+| APD | materials | PASS | segment_growth | verified_pair | 1.4509 |  |
+| GOOGL | communications | FAIL | segment_growth | model_export_verification | 0.3324 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $88.18 per share versus a $265.29 close (0.33×). The model uses a 32.0% EBIT margin and implies a 76.0% margin at the verified close with other assumptions fixed. |
+| META | communications | PASS | segment_growth | verified_pair | 0.6250 |  |
+| NFLX | communications | FAIL | segment_growth | model_export_verification | 0.4370 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $24.79 per share versus a $56.73 close (0.44×). The model uses a 26.7% EBIT margin and implies a 57.2% margin at the verified close with other assumptions fixed. |
+| VZ | communications | FAIL | segment_growth | model_export_verification | 2.5251 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $117.37 per share versus a $46.48 close (2.53×). The model uses a 21.3% EBIT margin and implies a 10.1% margin at the verified close with other assumptions fixed. |
+| CMCSA | communications | FAIL | segment_growth | model_export_verification | 2.6558 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $66.13 per share versus a $24.90 close (2.66×). The model uses a 18.8% EBIT margin and implies a 8.0% margin at the verified close with other assumptions fixed. |
+| FDX | transport | FAIL | Unverified | collection | — | Pro forma basis required: FEDEX CORP's 10-Q filed 2026-10-28 reports a spin-off. Discontinued operations held USD 6,895 million of assets at 2026-05-31 (7% of total assets) and were separated by 2026-09-30. The 10-K history and opening balance sheet include those operations, so a valuation needs pro forma continuing-operations history. |
+| UPS | transport | PASS | segment_growth | verified_pair | 0.5939 |  |
+| UNP | transport | FAIL | Unverified | collection | — | Union Pacific's filing reports a pending Norfolk Southern acquisition. A current model requires stand-alone and merger cases and the financing terms. |
+| CSX | transport | FAIL | segment_growth | model_export_verification | 0.4249 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $20.86 per share versus a $49.10 close (0.42×). The model uses a 36.7% EBIT margin and implies a 80.5% margin at the verified close with other assumptions fixed. |
+| DAL | transport | PASS | segment_growth | verified_pair | 1.1122 |  |
+| WMT | retail | FAIL | segment_growth | model_export_verification | 0.3560 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $45.55 per share versus a $127.95 close (0.36×). The model uses a 4.2% EBIT margin and implies a 10.3% margin at the verified close with other assumptions fixed. |
+| COST | retail | FAIL | segment_growth | model_export_verification | 0.2532 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $279.04 per share versus a $1102.15 close (0.25×). The model uses a 3.8% EBIT margin and implies a 13.4% margin at the verified close with other assumptions fixed. |
+| HD | retail | PASS | segment_growth | verified_pair | 0.5750 |  |
+| TGT | retail | PASS | segment_growth | verified_pair | 0.7365 |  |
+| AMZN | retail | FAIL | segment_growth | model_export_verification | 0.1286 | ResearchGap: Valuation outside 0.5–2×, analyst review needed. The base FCFE value is $31.74 per share versus a $246.82 close (0.13×). The model uses a 10.8% EBIT margin and implies a 45.4% margin at the verified close with other assumptions fixed. |
