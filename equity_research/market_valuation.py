@@ -87,33 +87,44 @@ def dated_erp(html, cutoff):
     raise ValueError("No dated Damodaran adjusted-payout ERP within 45 days of the cutoff.")
 
 
-MIN_WEEKS = 90
+MIN_MONTHS = 36
+HISTORICAL_ERP_PAGE = "https://pages.stern.nyu.edu/~adamodar/New_Home_Page/datafile/histretSP.html"
+# docs/method-notes.md, Rules for the automated model, rule 2. The value is the historical ERP recorded from
+# the three reviewed models; the cited page (updated January 5, 2026) was not parsed to re-verify it.
+HISTORICAL_ERP = {"value": .065, "date": "2026-01-05", "url": HISTORICAL_ERP_PAGE,
+                  "basis": "Damodaran historical equity risk premium, 6.5% as recorded in docs/method-notes.md "
+                           "from the reviewed models (page updated January 5, 2026; value not re-verified)"}
 
 
-def weekly_beta(stock, index, start, end, minimum=MIN_WEEKS):
-    """Use the same last observed index session in each week and split-adjusted stock prices."""
-    weeks = {}
+def _month_ends(index, start, end):
+    """Last observed index session in each complete calendar month inside the window."""
+    last = {}
     for day in sorted(index):
         if start <= day <= end:
-            friday = day + timedelta(days=4-day.weekday())
-            if day.weekday() <= 4 and friday <= end:
-                weeks[friday] = day
+            last[(day.year, day.month)] = day
+    # The month containing `end` is incomplete unless it is also the window end month's final session.
+    last.pop((end.year, end.month), None)
+    return [last[key] for key in sorted(last)]
+
+
+def monthly_beta(stock, index, start, end, minimum=MIN_MONTHS):
+    """Five-year monthly OLS regression of split-adjusted stock returns on index returns. Raw slope, no adjustment."""
+    sessions = _month_ends(index, start, end)
     pairs = []
-    for friday, day in weeks.items():
-        previous = weeks.get(friday-timedelta(days=7))
-        if previous is not None and day in stock and previous in stock:
+    for previous, day in zip(sessions, sessions[1:]):
+        if day in stock and previous in stock:
             values = (stock[day], stock[previous], index[day], index[previous])
             if all(isinstance(v, (int, float)) and isfinite(v) and v > 0 for v in values):
                 pairs.append((index[day]/index[previous]-1, stock[day]/stock[previous]-1))
     if len(pairs) < max(minimum, 3):
-        raise ValueError(f"At least {max(minimum, 3)} matched weekly returns are required for two-year beta.")
+        raise ValueError(f"At least {max(minimum, 3)} matched monthly returns are required for the five-year beta.")
     market, equity = zip(*pairs, strict=True)
     var = variance(market)
     if var <= 0:
         raise ValueError("Market returns have zero variance.")
     raw = covariance(market, equity)/var
-    return {"raw": raw, "value": (2*raw+1)/3, "weeks": len(pairs), "start": str(start), "date": str(end),
-            "url": _BARS_SOURCE, "index_url": INDEX, "basis": "Two-year weekly regression, Blume adjusted"}
+    return {"raw": raw, "value": raw, "months": len(pairs), "start": str(sessions[0]), "date": str(sessions[-1]),
+            "url": _BARS_SOURCE, "index_url": INDEX, "basis": "Five-year monthly regression, raw OLS slope"}
 
 
 def debt_cost(packet, risk_free, observed_spread=None):
@@ -266,10 +277,14 @@ def _peer_leverage(packet, quote):
 
 
 def collect_market_inputs(packet, client, quote, peers, risk_free, peer_packets=None, peer_quotes=None):
-    """Subject regression beta (any length; the model applies the 90-week rule) and peer beta evidence."""
+    """Five-year monthly regression betas for the subject and peers, the historical ERP and debt cost.
+
+    The subject regression is recorded at any length; the model applies the 36-month rule.
+    """
     end = date.fromisoformat(quote["trading_date"])
     cutoff = date.fromisoformat(packet["as_of"])
-    start = end-timedelta(days=735)
+    # From the first day of the month before the five-year mark, so its month-end anchors the first of 60 returns.
+    start = (date(end.year - 5, end.month, 1) - timedelta(days=1)).replace(day=1)
     index, index_url, index_basis = _index_series(client, start, end)
     betas, failures = {}, {}
     ranges = None
@@ -289,8 +304,8 @@ def collect_market_inputs(packet, client, quote, peers, risk_free, peer_packets=
                     ranges = {"low": min(r["l"] for r in year), "high": max(r["h"] for r in year),
                               "date": str(end), "url": _BARS_SOURCE}
             subject = ticker == quote["ticker"]
-            betas[ticker] = weekly_beta({day: r["c"] for day,r in prices.items()}, index, start, end,
-                                        minimum=0 if subject else MIN_WEEKS)
+            betas[ticker] = monthly_beta({day: r["c"] for day,r in prices.items()}, index, start, end,
+                                         minimum=3 if subject else MIN_MONTHS)
         except (MarketQuoteError, ValueError, KeyError, TypeError) as exc:
             failures[ticker] = str(exc) or type(exc).__name__
             continue
@@ -298,8 +313,8 @@ def collect_market_inputs(packet, client, quote, peers, risk_free, peer_packets=
         item["index_url"], item["index_basis"] = index_url, index_basis
     regression = betas.pop(quote["ticker"], None)
     if regression is None:
-        regression = {"value": None, "weeks": 0, "unavailable": failures.get(quote["ticker"], "No price history."),
-                      "basis": "Two-year weekly regression unavailable", "url": _BARS_SOURCE,
+        regression = {"value": None, "months": 0, "unavailable": failures.get(quote["ticker"], "No price history."),
+                      "basis": "Five-year monthly regression unavailable", "url": _BARS_SOURCE,
                       "date": str(end), "index_url": index_url, "index_basis": index_basis}
     comparable = {}
     for ticker in peers:
@@ -316,7 +331,11 @@ def collect_market_inputs(packet, client, quote, peers, risk_free, peer_packets=
         html = _download(ERP)
     except OSError:
         html = ""
-    erp = dated_erp(html, cutoff)
+    try:
+        implied = dated_erp(html, cutoff)
+    except ValueError as exc:
+        implied = {"value": None, "unavailable": str(exc), "url": ERP, "basis": "Damodaran implied ERP unavailable"}
+    erp = {**HISTORICAL_ERP, "implied": implied}
     try:
         debt = debt_cost(packet, risk_free)
     except ValueError:

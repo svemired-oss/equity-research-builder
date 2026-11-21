@@ -77,7 +77,7 @@ def _legacy_sources(book, model, revenue_total):
         3: (annual, "Three-year median EBIT margin"), 4: (annual, "Three-year median effective tax rate"),
         5: (annual, "Three-year median D&A / revenue"),
         6: (annual, "Historical capex ratio with D&A floor and available interim evidence"),
-        9: (None, "Analyst assumption | terminal growth"), 10: (model["sources"]["Annual financials and revenue lines"], "Five-year median filed ROIC bounded 8%-40% | calculation on DCF rows 126-139"),
+        9: (None, "Analyst assumption | terminal growth"), 10: (None, "Analyst assumption | incremental ROIC for forecast reinvestment and the ROIC-based terminal check"),
         13: (None, "Analyst assumption | annual growth convergence"),
         15: (next((url for label, url in sources.items()
                    if label.startswith(("FY revenue guidance", "Reported current YTD sales"))), None),
@@ -132,11 +132,13 @@ def _legacy_sources(book, model, revenue_total):
 
 def _sensitivity(book, model):
     from ..fcfe_valuation import value_fcfe
-    from .equity import BRIDGE, G, KE, SHARES, T_BORROW, T_INTEREST, T_OTHER, VALUE, YEARS, FLOW
+    from .equity import BRIDGE, G, KE, SHARES, VALUE, YEARS, FLOW
     tab = "Sensitivity"
     book.put(tab, "A1", "FCFE DCF sensitivity | USD per share", "title")
-    book.input(tab, "H3", .005, basis="Analyst assumption | sensitivity cost of equity and terminal growth step", fmt=PCT)
-    book.put(tab, "G3", "Cost of equity / terminal growth step")
+    book.input(tab, "H3", .005, basis="docs/method-notes.md rule 4 | cost of equity step", fmt=PCT)
+    book.put(tab, "G3", "Cost of equity step")
+    book.input(tab, "H5", .0025, basis="docs/method-notes.md rule 4 | terminal growth step", fmt=PCT)
+    book.put(tab, "G5", "Terminal growth step")
     book.input(tab, "H4", .01, basis="Analyst assumption | sensitivity EBIT margin and revenue growth step", fmt=PCT)
     book.put(tab, "G4", "Margin / annual revenue growth step")
     for row in range(26, 33):
@@ -148,17 +150,15 @@ def _sensitivity(book, model):
     inputs, revenues, margin = model["fcfe_inputs"], model["revenue"], model["margin"]
     book.expected[tab] = {}
     for offset, col in enumerate("BCDEF", -2):
-        book.put(tab, f"{col}27", f"=DCF!$B${G}+({offset})*$H$3", "header", PCT)
+        book.put(tab, f"{col}27", f"=DCF!$B${G}+({offset})*$H$5", "header", PCT)
     for row, offset in enumerate(range(-2, 3), 28):
         book.put(tab, f"A{row}", f"=DCF!$B${KE}+({offset})*$H$3", "header", PCT)
         for step, col in enumerate("BCDEF", -2):
             pv = "+".join(f"DCF!${year}${FLOW}/(1+$A{row})^DCF!${year}${YEARS}" for year in "BCDEF")
-            terminal = (f"('{INCOME}'!$F$5*(1-{tax})*(1+{col}$27)*(1-{col}$27/Assumptions!$B$10)-DCF!$B${T_INTEREST}"
-                        f"+'{INCOME}'!$F$14*(1+{col}$27)*(1-{tax})+{col}$27*Schedules!$F$18)"
-                        f"/($A{row}-{col}$27)/(1+$A{row})^DCF!$F${YEARS}")
+            terminal = f"DCF!$F${FLOW}*(1+{col}$27)/($A{row}-{col}$27)/(1+$A{row})^DCF!$F${YEARS}"
             book.put(tab, f"{col}{row}", f"=({pv}+{terminal}+{BRIDGE})/DCF!$B${SHARES}", fmt=PRICE)
             book.expected[tab][f"{col}{row}"] = value_fcfe(
-                inputs, revenues, margin, model["cost_of_equity"] + offset*.005, model["growth"] + step*.005).value_per_share
+                inputs, revenues, margin, model["cost_of_equity"] + offset*.005, model["growth"] + step*.0025).value_per_share
     book.put("DCF", "A30", "Cost of equity × terminal growth sensitivity center")
     book.put("DCF", "D30", "=Sensitivity!D30", "total", PRICE)
     book.expected["DCF"]["D30"] = book.expected[tab]["D30"]
@@ -193,9 +193,8 @@ def _sensitivity(book, model):
                 stub = "*Assumptions!$B$12" if not i else ""
                 borrowing = f"'{CASH}'!{case_col}18-'{CASH}'!{case_col}19" + ("-Schedules!$B$40" if not i else "")
                 book.put(tab, f"{out}{start}", f"=(({formula}){stub}+{borrowing})/(1+DCF!$B${KE})^DCF!{case_col}20")
-            terminal = (f"(G{start}*A{start}*(1-{tax})*(1+DCF!$B${G})*(1-DCF!$B${G}/Assumptions!$B$10)"
-                        f"-DCF!$B${T_INTEREST}+DCF!$B${T_OTHER}+DCF!$B${T_BORROW})"
-                        f"/(DCF!$B${KE}-DCF!$B${G})/(1+DCF!$B${KE})^DCF!$F$20")
+            # Gordon growth on the grid's final-year FCFE; L is already discounted by the same factor.
+            terminal = f"L{start}*(1+DCF!$B${G})/(DCF!$B${KE}-DCF!$B${G})"
             book.put(tab, f"M{start}", f"={terminal}")
             book.put(tab, f"{col}{row}", f"=(SUM(H{start}:M{start})+{BRIDGE})/DCF!$B${SHARES}", fmt=PRICE)
     for col, label in zip("ABCDEFGHIJKLM", (
@@ -247,7 +246,7 @@ def _implied_margin(book, model):
     from .equity import G, KE, SHARES, VALUE, YEARS
     pv = "+".join(f"'{INCOME}'!{c}4/(1+DCF!B{KE})^DCF!{c}{YEARS}" + ("*Assumptions!B12" if c == "B" else "")
                   for c in "BCDEF")
-    terminal = f"'{INCOME}'!F4*(1+DCF!B{G})*(1-DCF!B{G}/Assumptions!B10)/(DCF!B{KE}-DCF!B{G})/(1+DCF!B{KE})^DCF!F{YEARS}"
+    terminal = f"'{INCOME}'!F4*(1+DCF!B{G})/(DCF!B{KE}-DCF!B{G})/(1+DCF!B{KE})^DCF!F{YEARS}"
     book.put("DCF", "A36", "Market-implied operating margin (FCFE)")
     book.put("DCF", "B36", f"=Assumptions!B3+Assumptions!B11+(Cover!B6-DCF!B{VALUE})*DCF!B{SHARES}"
                            f"/((1-Assumptions!B4)*({pv}+{terminal}))", "total", PCT)
@@ -319,7 +318,6 @@ def workbook_plan(model):
         if address[0] in "GHIJ" and type(record[0]) in (int,float):
             record[1] = "evidence"
     equity.dcf_block(book, model)
-    equity.terminal_roic(book, model)
     if model.get("beta"):
         equity.cost_of_equity(book, model)
     equity.scenarios(book, model, revenue_total)

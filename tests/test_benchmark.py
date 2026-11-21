@@ -135,5 +135,5 @@ def test_offline_real_export_and_pair_check(benchmark, tmp_path, monkeypatch):
     model = benchmark.prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"],
                                               data["candidates"])
     assert outcome["value"] == pytest.approx(model["fcfe"]["Base"].value_per_share)
-    assert outcome["valuation_basis"] == "stage2_fcfe" and outcome["beta_basis"] == "regression"
+    assert outcome["valuation_basis"] == "stage2_fcfe" and outcome["beta_basis"] == "50/50 historical and comparable"
     assert outcome["fcff_value_price_ratio"] == pytest.approx(model["scenarios"]["Base"].value_per_share / model["close"])

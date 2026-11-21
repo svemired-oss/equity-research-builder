@@ -61,27 +61,30 @@ def test_peer_screen_applies_size_band_session_and_issuer_rules():
     assert ps.needs_more(selection)
 
 
-def test_comparable_beta_unlevers_each_peer_and_relevers_at_the_subject():
-    peers = {"A": {"value": 1.2, "debt_to_equity": .5, "tax_rate": .2},
-             "B": {"value": .9, "debt_to_equity": 0., "tax_rate": .25},
-             "C": {"value": 1.5, "debt_to_equity": 1., "tax_rate": 0.},
-             "D": {"excluded": "Beta unavailable."}}
+def test_comparable_beta_unlevers_each_peer_and_relevers_the_mean_at_the_subject():
+    peers = {"A": {"value": 1.2, "debt_to_equity": .5, "tax_rate": .2, "months": 60},
+             "B": {"value": .9, "debt_to_equity": 0., "tax_rate": .25, "months": 60},
+             "C": {"value": 1.5, "debt_to_equity": 1., "tax_rate": 0., "months": 60},
+             "D": {"excluded": "Beta unavailable."},
+             "E": {"value": 1., "debt_to_equity": 0., "tax_rate": .2, "months": 30}}
     result = fv.comparable_beta(peers, 50., 200., .21)
-    unlevered = sorted((1.2/1.4, .9, 1.5/2))
-    assert result["unlevered_median"] == pytest.approx(unlevered[1])
-    assert result["value"] == pytest.approx(unlevered[1]*(1+.79*.25))
-    assert result["excluded"] == [["D", "Beta unavailable."]]
+    unlevered = (1.2/1.4, .9, 1.5/2)
+    assert result["unlevered_mean"] == pytest.approx(sum(unlevered)/3)
+    assert result["value"] == pytest.approx(sum(unlevered)/3*(1+.79*.25))
+    assert result["excluded"][0] == ["D", "Beta unavailable."] and "30 returns" in result["excluded"][1][1]
     assert fv.comparable_beta({"A": peers["A"]}, 50., 200., .21)["value"] is None
 
 
-def test_regression_beta_needs_ninety_weekly_returns():
+def test_historical_and_comparable_betas_are_weighted_fifty_fifty():
     comparable = {"value": .8, "reason": None}
-    assert fv.select_beta({"value": 1.1, "weeks": 104}, comparable) == (1.1, "regression")
-    assert fv.select_beta({"value": 1.1, "weeks": 89}, comparable) == (.8, "comparable")
-    with pytest.raises(ResearchGap, match="89 weekly returns"):
-        fv.select_beta({"value": 1.1, "weeks": 89}, {"value": None, "reason": "Comparable beta unavailable: 1 peer betas, 2 required."})
-    # Older caches that fell back to a peer median are read as having no subject regression.
-    assert fv.regression_evidence({"beta": {"value": 1, "peers": {}, "url": "u", "date": "d"}})["value"] is None
+    missing = {"value": None, "reason": "Comparable beta unavailable: 1 peer betas, 2 required."}
+    assert fv.select_beta({"value": 1.2, "months": 60}, comparable) == (pytest.approx(1.), "50/50 historical and comparable")
+    assert fv.select_beta({"value": 1.2, "months": 35}, comparable)[0] == .8
+    assert fv.select_beta({"value": 1.2, "months": 60}, missing)[0] == 1.2
+    with pytest.raises(ResearchGap, match="35 returns"):
+        fv.select_beta({"value": 1.2, "months": 35}, missing)
+    # Earlier two-year weekly evidence does not count as the five-year monthly regression.
+    assert fv.regression_evidence({"beta": {"value": 1, "weeks": 104, "url": "u", "date": "d"}})["value"] is None
 
 
 def test_other_and_equity_method_income_carry_at_the_historical_median():
@@ -115,10 +118,17 @@ def test_fcfe_engine_matches_a_hand_calculation():
         operating = income + r*.05 - (r*.1 - previous) - r*.06
         flows.append(operating*(.5 if i == 0 else 1))
         previous = r*.1
-    terminal = 150*.2*.8*1.02*(1-.2) - 40*.05*.8 + 1*1.02*.8 + .02*40
-    equity = sum(f/1.09**t for f, t in zip(flows, inputs.discount_years)) + terminal/.07/1.09**4.5 + 30
+    # Gordon growth on the final year's FCFE.
+    terminal = flows[-1]*1.02
+    pv = sum(f/1.09**t for f, t in zip(flows, inputs.discount_years))
+    equity = pv + terminal/.07/1.09**4.5 + 30
     assert result.post_cutoff_fcfe == pytest.approx(flows)
+    assert result.terminal_fcfe == pytest.approx(terminal)
     assert result.value_per_share == pytest.approx(equity/10)
+    # The ROIC-based terminal value is computed as a check only.
+    check = 150*.2*.8*1.02*(1-.2) - 40*.05*.8 + 1*1.02*.8 + .02*40
+    assert result.roic_terminal_fcfe == pytest.approx(check)
+    assert result.roic_value_per_share == pytest.approx((pv + check/.07/1.09**4.5 + 30)/10)
 
 
 def test_valuation_outside_half_to_double_the_close_stops_for_review():
@@ -160,8 +170,11 @@ def test_comps_with_fewer_than_three_peers_are_insufficient_and_never_set_the_ta
     summary = model["valuation_summary"]
     assert model["valuation_comps"]["value"] is None and model["valuation_comps"]["reason"].startswith("Insufficient peers: 2")
     assert summary["peer"] is None
-    assert summary["target"] == pytest.approx(model["fcfe"]["Base"].value_per_share*(1+model["cost_of_equity"])
-                                              - summary["dividends"])
+    base = model["fcfe"]["Base"]
+    projected = model["shares"] - model["buyback_spend"]/model["close"]
+    assert summary["projected_shares"] == pytest.approx(projected)
+    assert summary["target"] == pytest.approx((base.equity_value*(1+model["cost_of_equity"])
+                                               - summary["dividends"]*model["shares"] - model["buyback_spend"]) / projected)
 
 
 @pytest.mark.skipif(not which("soffice"), reason="Requires LibreOffice")

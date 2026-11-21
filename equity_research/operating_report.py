@@ -35,7 +35,9 @@ def fact_sheet(workbook):
                 ("fcff","Cover","B14"),("fcff_gap","Cover","B18"),("comps","Comps","B14"),("wacc","WACC","B9"),
                 ("ke","Cost of Equity","B33"),("rf","Cost of Equity","B3"),("erp","Cost of Equity","B4"),
                 ("beta","Cost of Equity","B31"),("beta_basis","Cost of Equity","B32"),
-                ("regression_beta","Cost of Equity","B11"),("regression_weeks","Cost of Equity","B8"),
+                ("regression_beta","Cost of Equity","B11"),("regression_months","Cost of Equity","B8"),
+                ("implied_erp","Cost of Equity","B5"),("roic_check","DCF","B125"),("capex_flag","DCF","B126"),
+                ("projected_shares","Schedules","B26"),
                 ("comparable_beta","Cost of Equity","B29"),("forward_beta","Cost of Equity","B14"),
                 ("bear_growth","Report Evidence","D8"),("bull_growth","Report Evidence","D9"),
                 ("peer_tier","Report Evidence","B12"),
@@ -193,11 +195,16 @@ def report_lines(sheet, digest, order):
     add(f"Base EBIT margin {f('margin','.2%')}. Terminal growth {f('growth','.2%')} is a labeled analyst assumption.")
     section("Valuation")
     add(f"DCF fair value {f('dcf','$')} from free cash flow to equity discounted at a {f('ke','.2%')} cost of equity. "
-        f"The 12-month target rolls this value forward at the cost of equity less expected dividends of {f('dividend','$')}.")
-    add(f"Cost of equity {f('ke','.2%')} = risk-free rate {f('rf','.2%')} + beta {f('beta','.2f')} × equity risk "
-        f"premium {f('erp','.2%')}. Beta basis {f('beta_basis')}.")
-    add(f"Historical regression beta {f('regression_beta','.2f')} from {f('regression_weeks',',.0f')} weekly returns. "
-        f"Comparable beta {f('comparable_beta','.2f')}. Forward beta {f('forward_beta')}.")
+        f"Terminal value is Gordon growth on the final-year FCFE; the ROIC-based terminal value gives "
+        f"{f('roic_check','$')} as a check. Final-year capex below D&A: {f('capex_flag')}.")
+    add(f"The 12-month target re-dates the FCFE equity value one year at the cost of equity, deducts expected "
+        f"dividends of {f('dividend','$')} per share and forecast buybacks, and divides by "
+        f"{f('projected_shares',',.1f')} million projected shares one year out.")
+    add(f"Cost of equity {f('ke','.2%')} = risk-free rate {f('rf','.2%')} + beta {f('beta','.2f')} × historical equity "
+        f"risk premium {f('erp','.2%')} (Damodaran implied ERP {f('implied_erp','.2%')} for reference). "
+        f"Beta basis {f('beta_basis')}.")
+    add(f"Historical beta {f('regression_beta','.2f')} from {f('regression_months',',.0f')} monthly returns over five years. "
+        f"Comparable beta {f('comparable_beta','.2f')} (mean of relevered peers). Forward beta {f('forward_beta')}.")
     add(f"FCFF at WACC cross-check {f('fcff','$')} at {f('wacc','.2%')} WACC, {f('fcff_gap','.1%')} from the FCFE value. "
         f"Exit-multiple FCFF {f('exit_dcf','$')}.")
     add(f"Terminal value divergence {f('terminal_gap','.1%')}. Cross-check {f('terminal_flag')}.")

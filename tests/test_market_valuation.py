@@ -5,7 +5,7 @@ from shutil import which
 
 import pytest
 
-from equity_research.market_valuation import dated_erp, weekly_beta, debt_cost
+from equity_research.market_valuation import HISTORICAL_ERP, dated_erp, monthly_beta, debt_cost
 from equity_research.model_template import export_operating
 from equity_research.operating_research import prepare_operating_model, revenue_candidates
 from equity_research.valuation_comps import multiple_summary, same_business, collect_forward_eps
@@ -13,23 +13,31 @@ from equity_research.valuation_comps import multiple_summary, same_business, col
 FIX = Path(__file__).parent / "fixtures"
 
 
-def test_weekly_regression_and_industry_median():
-    start = date(2024, 1, 5)
+def test_five_year_monthly_regression_uses_complete_month_ends():
     stock, index = {}, {}
-    a = b = 100
-    for week in range(105):
-        day = start + timedelta(weeks=week)
-        change = (week % 9 - 4)/100
-        a, b = a*(1+change), b*(1+1.6*change)
-        stock[day], index[day] = b, a
-    result = weekly_beta(stock,index,start,day)
-    assert result["weeks"] == 104
-    assert result["raw"] == pytest.approx(1.6)
-    assert result["value"] == pytest.approx(1.4)
-    with pytest.raises(ValueError, match="90"):
-        weekly_beta(dict(list(stock.items())[:50]),index,start,day)
-    # The subject regression is kept at any length; the model applies the 90-week rule.
-    assert weekly_beta(dict(list(stock.items())[:50]),index,start,day,minimum=0)["weeks"] == 49
+    a = b = 100.
+    day = date(2021, 10, 1)
+    while day <= date(2026, 11, 20):
+        if day.weekday() < 5:
+            index[day], stock[day] = a, b
+        day += timedelta(days=1)
+        if day.day == 1:
+            change = (day.month % 9 - 4)/100
+            a, b = a*(1+change), b*(1+1.6*change)
+    result = monthly_beta(stock, index, date(2021, 10, 1), date(2026, 11, 20))
+    # October 2021 to October 2026 month-ends: 60 returns; the incomplete November 2026 is excluded.
+    assert result["months"] == 60 and result["date"] == "2026-10-30"
+    assert result["raw"] == pytest.approx(1.6) and result["value"] == result["raw"]
+    assert "raw OLS" in result["basis"]
+    short = {d: v for d, v in stock.items() if d >= date(2024, 6, 1)}
+    with pytest.raises(ValueError, match="36"):
+        monthly_beta(short, index, date(2021, 10, 1), date(2026, 11, 20))
+    assert monthly_beta(short, index, date(2021, 10, 1), date(2026, 11, 20), minimum=3)["months"] < 36
+
+
+def test_historical_erp_is_dated_and_cited():
+    assert HISTORICAL_ERP["value"] == .065 and HISTORICAL_ERP["date"] == "2026-01-05"
+    assert "histretSP" in HISTORICAL_ERP["url"] and "method-notes" in HISTORICAL_ERP["basis"]
 
 
 def test_dated_erp_and_interest_debt_cost():
@@ -91,12 +99,13 @@ def fixture_data():
     packet = data["packet"]
     url = "https://example.com/evidence"
     packet["valuation_market"] = {
-        "erp":{"value":.045,"date":"2026-06-01","url":url,"basis":"Fixture ERP"},
-        "beta":{"value":1.2,"raw":1.3,"weeks":104,"start":"2024-06-28","date":"2026-06-30",
+        "erp":{"value":.065,"date":"2026-01-05","url":url,"basis":"Fixture historical ERP",
+               "implied":{"value":.045,"date":"2026-06-01","url":url,"basis":"Fixture implied ERP"}},
+        "beta":{"value":1.2,"raw":1.2,"months":60,"start":"2021-06-30","date":"2026-05-29",
                 "url":url,"index_url":url,"basis":"Fixture beta"},
         "debt":{"value":.06,"spread":.02,"url":url,"date":"2026-06-30","basis":"Fixture debt"},
         "range":{"low":20,"high":38,"date":"2026-06-30","url":url},
-        "peer_betas":{symbol:{"value":beta,"raw":beta,"weeks":104,"start":"2024-06-28","date":"2026-06-30","url":url,
+        "peer_betas":{symbol:{"value":beta,"raw":beta,"months":60,"start":"2021-06-30","date":"2026-05-29","url":url,
                               "index_url":url,"basis":"Fixture beta","debt":debt,"market_cap":300.,
                               "debt_to_equity":debt/300.,"tax_rate":.21,"tax_years":3,"balance_date":"2026-03-31",
                               "balance_url":url,"tax_url":url,"quote_url":url,"close":30.,"shares":10.}
@@ -113,22 +122,29 @@ def fixture_data():
 def test_wacc_and_target_calculation():
     model = fixture_model()
     cost = model["cost"]
-    equity = cost.risk_free_rate+.045*1.2
+    # Comparable beta: unlever each peer at its own D/E and tax, take the mean, relever at the subject's.
+    unlevered = sum(b/(1+.79*d/300) for b,d in ((1.1,30.),(.9,60.),(1.3,0.)))/3
+    leverage = model["bridge_debt"]/(model["close"]*model["shares"])
+    comparable = unlevered*(1+(1-cost.marginal_tax_rate)*leverage)
+    assert model["beta"]["comparable"]["value"] == pytest.approx(comparable)
+    # Historical (five-year monthly, 1.2) and comparable betas weighted 50/50 at the 6.5% historical ERP.
+    assert model["beta"]["source"] == "50/50 historical and comparable"
+    beta = .5*1.2 + .5*comparable
+    assert cost.levered_beta == pytest.approx(beta) and cost.equity_risk_premium == .065
+    equity = cost.risk_free_rate+.065*beta
     expected = (cost.common_equity_market_value_millions*equity +
                 cost.debt_market_value_millions*.06*(1-cost.marginal_tax_rate))/(
                 cost.common_equity_market_value_millions+cost.debt_market_value_millions)
     assert model["wacc"] == pytest.approx(expected)
     result = model["valuation_summary"]
     assert model["cost_of_equity"] == pytest.approx(equity)
-    # The target rolls the FCFE value forward at the cost of equity less dividends; peers never enter it.
-    assert result["target"] == pytest.approx(model["fcfe"]["Base"].value_per_share*(1+equity)-result["dividends"])
+    # The target re-dates the FCFE equity value, deducts dividends and buybacks, over the projected count.
+    projected = model["shares"] - model["buyback_spend"]/model["close"]
+    base = model["fcfe"]["Base"]
+    assert result["target"] == pytest.approx((base.equity_value*(1+equity) - result["dividends"]*model["shares"]
+                                              - model["buyback_spend"])/projected)
     assert result["peer"] == 30 and result["fcff"] == model["scenarios"]["Base"].value_per_share
     assert result["implied_cagr"] is not None
-    assert model["beta"]["source"] == "regression"
-    # Comparable beta: unlever each peer at its own D/E and tax, take the median, relever at the subject's.
-    unlevered = sorted(b/(1+.79*d/300) for b,d in ((1.1,30.),(.9,60.),(1.3,0.)))[1]
-    leverage = model["bridge_debt"]/(model["close"]*model["shares"])
-    assert model["beta"]["comparable"]["value"] == pytest.approx(unlevered*(1+(1-cost.marginal_tax_rate)*leverage))
 
 
 @pytest.mark.skipif(not which("soffice"), reason="Requires LibreOffice")
@@ -141,7 +157,11 @@ def test_phase_four_export(tmp_path):
     from openpyxl import load_workbook
     saved = load_workbook(book, data_only=True)
     coe = saved["Cost of Equity"]
-    assert coe["B32"].value == "Regression beta" and coe["B14"].value == "Unavailable: no data source"
+    assert coe["B32"].value == "Weighted historical and comparable" and coe["B14"].value == "Unavailable: no data source"
+    assert coe["B31"].value == pytest.approx(model["cost"].levered_beta) and coe["B5"].value == .045
+    dcf = saved["DCF"]
+    assert dcf["B125"].value == pytest.approx(model["fcfe"]["Base"].roic_value_per_share)
+    assert dcf["B126"].value in ("No", "Flag: capex below D&A")
     assert coe["B29"].value == pytest.approx(model["beta"]["comparable"]["value"])
     assert saved["Cover"]["B16"].value == pytest.approx(model["valuation_summary"]["target"])
     for row, case in ((20, "Bear"), (21, "Base"), (22, "Bull")):

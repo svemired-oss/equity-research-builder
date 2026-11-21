@@ -33,6 +33,7 @@ Baseline 2026-11-19: 6/50 (12%), 0 real drivers. Stage 1b (2026-11-19 cutoff): 1
 
 ## Decisions (2026-11-20)
 - FCFE at the cost of equity is the primary DCF; FCFF at WACC is a cross-check.
+- (2026-11-21) Valuation follows the "Rules for the automated model" in docs/method-notes.md: Gordon growth on final-year FCFE (g = 2.5%) with the ROIC-based terminal value as a check; CAPM at the 6.5% historical ERP with the implied ERP for reference; 5-year monthly historical beta and relevered peer-mean comparable beta weighted 50/50 (forward beta unavailable); buybacks at the trailing 3-year average spend with the target on the projected share count one year out; sensitivity Ke ±0.5% × g ±0.25%.
 - Peer multiples are a football-field cross-check only; the target comes from the DCF.
 - Code sets every number; the AI writes a one-line reason under each growth assumption, citing the filing or guidance passage.
 - As-reported line items, cost tables and days-based working capital arrive in v2, not v1.

@@ -10,9 +10,8 @@ SCENARIOS = "Scenarios"
 KE, G, CASH_ROW, INVEST, AFFILIATE, NCI, PREF, SHARES = 101, 102, 103, 104, 105, 106, 107, 108
 YEARS, FLOW, PV = 111, 112, 113
 T_NOPAT, T_INTEREST, T_OTHER, T_BORROW, T_FCFE, T_VALUE, T_PV, EQUITY, VALUE = range(115, 124)
-# Terminal ROIC calculation from filed history.
-ROIC_TOP, ROIC_FIRST = 126, 128
-ROIC_MEDIAN, ROIC_LOW_ROW, ROIC_HIGH_ROW, ROIC_USED, ROIC_PRIOR_ROW, ROIC_PRIOR_VALUE = range(134, 140)
+# Displayed checks below the FCFE value: the ROIC-based terminal and the final-year capex flag.
+CHECK_FCFE, CHECK_VALUE, CAPEX_FLAG = 124, 125, 126
 CASE_ROWS = {"Bear": -1, "Base": 0, "Bull": 1}
 TAX = "Assumptions!$B$4"
 BRIDGE = f"DCF!$B${CASH_ROW}+DCF!$B${INVEST}-DCF!$B${NCI}-DCF!$B${PREF}"
@@ -70,75 +69,92 @@ def cash_flow(book):
 
 
 def cost_of_equity(book, model):
-    """CAPM with the regression, comparable and (unavailable) forward betas."""
+    """CAPM with the historical ERP; five-year monthly historical and relevered peer-mean comparable betas, 50/50."""
+    from ..fcfe_valuation import HISTORICAL_WEIGHT, MIN_BETA_PEERS, REGRESSION_MIN_MONTHS
     tab = COE
     evidence = model["beta"]
     regression, comparable = evidence["regression"], evidence["comparable"]
     book.cells[tab] = {}
     book.put(tab, "A1", "Cost of equity | CAPM", "title")
-    book.put(tab, "A2", "Cost of equity = risk-free rate + selected beta × equity risk premium")
-    for row, label in ((3, "Risk-free rate"), (4, "Equity risk premium (S&P 500 implied)"),
-                       (6, "Historical beta | two-year weekly regression against the S&P 500"),
-                       (7, "Raw regression beta"), (8, "Matched weekly returns"), (9, "Blume market anchor"),
-                       (10, "Blume regression weight"), (11, "Adjusted regression beta"),
-                       (12, "Minimum weekly returns for the regression beta"), (14, "Forward beta"),
+    book.put(tab, "A2", "Cost of equity = risk-free rate + weighted beta × historical equity risk premium")
+    for row, label in ((3, "Risk-free rate"), (4, "Equity risk premium (Damodaran historical)"),
+                       (5, "Implied equity risk premium (Damodaran, reference only)"),
+                       (6, "Historical beta | five-year monthly regression against the S&P 500"),
+                       (7, "Raw regression beta (OLS slope, no adjustment)"), (8, "Matched monthly returns"),
+                       (9, "First month-end in the regression"), (10, "Minimum monthly returns"),
+                       (11, "Historical beta"), (12, "Cost of equity at the historical beta"), (14, "Forward beta"),
                        (16, "Comparable beta | each peer unlevered at its own D/E and tax rate"),
-                       (24, "Median unlevered peer beta"), (25, "Subject funded debt, USD millions"),
+                       (24, "Mean unlevered peer beta"), (25, "Subject funded debt, USD millions"),
                        (26, "Subject market equity, USD millions"), (27, "Subject tax rate"),
                        (28, "Subject debt / equity"), (29, "Relevered comparable beta"),
-                       (31, "Selected beta"), (32, "Selected beta basis"), (33, "Cost of equity")):
+                       (30, "Cost of equity at the comparable beta"),
+                       (31, "Weighted beta"), (32, "Beta weighting basis"), (33, "Cost of equity"),
+                       (34, "Weight on the historical beta"), (35, "Weight on the comparable beta")):
         book.put(tab, f"A{row}", label, "section" if row in (6, 16) else "text")
     book.put(tab, "B3", "=WACC!B3", fmt=PCT)
     book.put(tab, "B4", "=WACC!B4", fmt=PCT)
+    implied = evidence.get("implied_erp") or {}
+    if implied.get("value") is not None:
+        book.input(tab, "B5", implied["value"], implied["url"], f"{implied['date']} | {implied['basis']} | reference only", PCT)
+    else:
+        book.put(tab, "B5", "Unavailable")
+        book.put(tab, "C5", implied.get("unavailable", "No dated implied ERP was collected."), "note")
     if regression.get("raw") is not None:
         book.input(tab, "B7", regression["raw"], regression["url"],
-                   f"{regression['start']} to {regression['date']} | Regression vs {regression.get('index_basis', regression.get('index_url'))}")
+                   f"{regression['start']} to {regression['date']} | Monthly regression vs "
+                   f"{regression.get('index_basis', regression.get('index_url'))}", "0.000")
+        book.put(tab, "B9", regression["start"], "evidence")
     else:
         book.put(tab, "B7", "Unavailable")
         book.put(tab, "C7", regression.get("unavailable", "Subject regression unavailable."), "note")
-    book.input(tab, "B8", regression.get("weeks") or 0, regression.get("index_url") or regression.get("url"),
-               "Matched completed weekly returns")
-    book.input(tab, "B9", 1, basis="Blume adjustment | market beta anchor")
-    book.input(tab, "B10", 2/3, basis="Blume adjustment | weight on observed beta", fmt=PCT)
-    book.put(tab, "B11", '=IF(ISNUMBER(B7),B7*B10+B9*(1-B10),"Unavailable")')
-    book.input(tab, "B12", 90, basis="Analyst rule | use the comparable beta below 90 weekly returns")
+    book.input(tab, "B8", regression.get("months") or 0, regression.get("index_url") or regression.get("url"),
+               "Matched completed monthly returns")
+    book.input(tab, "B10", REGRESSION_MIN_MONTHS, basis="Analyst rule | the historical beta needs 36 monthly returns")
+    book.put(tab, "B11", '=IF(AND(ISNUMBER(B7),B8>=B10),B7,"Unavailable")', fmt="0.000")
+    book.put(tab, "B12", '=IF(ISNUMBER(B11),B3+B11*B4,"Unavailable")', fmt=PCT)
     book.put(tab, "B14", evidence["forward"])
-    book.put(tab, "C14", "No forward or predicted beta source is connected.", "note")
-    for col, label in zip("ABCDEFGH", ("Peer", "SIC tier", "Adjusted beta", "Funded debt", "Market equity",
+    book.put(tab, "C14", "Forward beta needs consensus estimates; no consensus source is connected.", "note")
+    for col, label in zip("ABCDEFGH", ("Peer", "SIC tier", "Monthly beta", "Funded debt", "Market equity",
                                       "Debt / equity", "Tax rate", "Unlevered beta"), strict=True):
         book.put(tab, f"{col}17", label, "header")
     tiers = {row["ticker"]: row["tier"] for row in (model.get("peer_selection") or {}).get("peers", ())}
     for row, item in enumerate(comparable["rows"][:5], 18):
         book.put(tab, f"A{row}", item["ticker"])
         book.put(tab, f"B{row}", tiers.get(item["ticker"], "SIC tier not recorded"))
-        book.input(tab, f"C{row}", item["value"], item["url"], f"{item['start']} to {item['date']} | {item['basis']}")
+        book.input(tab, f"C{row}", item["value"], item["url"],
+                   f"{item['start']} to {item['date']} | {item['basis']}, {item['months']} months", "0.000")
         book.input(tab, f"D{row}", item["debt"], item["balance_url"], f"{item['balance_date']} | {item.get('debt_basis', 'Funded debt from the filed balance sheet')}")
         book.input(tab, f"E{row}", item["market_cap"], item["quote_url"],
                    f"{item['shares']:,.1f} million shares × ${item['close']:.2f} close")
         book.put(tab, f"F{row}", f"=D{row}/E{row}", fmt="0.000")
         book.input(tab, f"G{row}", item["tax_rate"], item["tax_url"], f"Median filed effective tax rate, {item['tax_years']} years", PCT)
         book.put(tab, f"H{row}", f"=C{row}/(1+(1-G{row})*F{row})", fmt="0.000")
-    book.put(tab, "B24", '=IF(COUNT(H18:H22)>=2,MEDIAN(H18:H22),"Unavailable")', fmt="0.000")
+    book.put(tab, "B24", f'=IF(COUNT(H18:H22)>={MIN_BETA_PEERS},AVERAGE(H18:H22),"Unavailable")', fmt="0.000")
     book.put(tab, "B25", "=DCF!B8")
     book.put(tab, "B26", "=Cover!B6*DCF!B12")
     book.put(tab, "B27", f"={TAX}", fmt=PCT)
     book.put(tab, "B28", "=B25/B26", fmt="0.000")
     book.put(tab, "B29", '=IF(ISNUMBER(B24),B24*(1+(1-B27)*B28),"Unavailable")', fmt="0.000")
-    book.put(tab, "B31", "=IF(AND(ISNUMBER(B11),B8>=B12),B11,B29)", "total", "0.000")
-    book.put(tab, "B32", '=IF(AND(ISNUMBER(B11),B8>=B12),"Regression beta","Comparable beta")')
-    # WACC!B5 is this selected beta unless a Guided override replaces it there.
+    book.put(tab, "B30", '=IF(ISNUMBER(B29),B3+B29*B4,"Unavailable")', fmt=PCT)
+    book.input(tab, "B34", HISTORICAL_WEIGHT, basis="docs/method-notes.md rule 2 | forward beta unavailable, so historical and comparable are weighted 50/50", fmt=PCT)
+    book.put(tab, "B35", "=1-B34", fmt=PCT)
+    book.put(tab, "B31", "=IF(AND(ISNUMBER(B11),ISNUMBER(B29)),B34*B11+B35*B29,IF(ISNUMBER(B11),B11,B29))", "total", "0.000")
+    book.put(tab, "B32", '=IF(AND(ISNUMBER(B11),ISNUMBER(B29)),"Weighted historical and comparable",'
+                         'IF(ISNUMBER(B11),"Historical only: comparable unavailable","Comparable only: historical unavailable"))')
+    # WACC!B5 is this weighted beta unless a Guided override replaces it there.
     book.put(tab, "B33", "=B3+WACC!B5*B4", "total", PCT)
-    row = 36
-    book.put(tab, "A35", "Peers excluded from the comparable beta", "section")
+    row = 39
+    book.put(tab, "A38", "Peers excluded from the comparable beta", "section")
     for ticker, reason in comparable["excluded"]:
         book.put(tab, f"A{row}", ticker)
         book.put(tab, f"B{row}", reason, "note")
         row += 1
+    historical = evidence.get("historical")
     book.expected[tab] = {"B31": model["cost"].levered_beta, "B33": model["cost_of_equity"],
+                          "B11": historical if historical is not None else "Unavailable",
                           "B29": comparable["value"] if comparable["value"] is not None else "Unavailable"}
-    # WACC (the FCFF cross-check) uses the same selected beta.
+    # WACC (the FCFF cross-check) uses the same weighted beta.
     book.put("WACC", "B5", f"='{COE}'!B31")
-    book.sources.pop(("WACC", "B5"), None)
 
 
 def dcf_block(book, model):
@@ -169,21 +185,33 @@ def dcf_block(book, model):
         book.expected[tab][f"{col}{FLOW}"] = base.post_cutoff_fcfe[i]
         book.expected.setdefault(CASH, {})[f"{col}31"] = base.post_cutoff_fcfe[i]
     terminal = {
-        T_NOPAT: ("Terminal NOPAT after reinvestment", f"='{INCOME}'!F5*(1-{TAX})*(1+B{G})*(1-B{G}/Assumptions!B10)"),
-        T_INTEREST: ("Terminal after-tax interest on closing debt", f"=Schedules!F18*WACC!B6*(1-{TAX})"),
-        T_OTHER: ("Terminal after-tax other and equity-method income", f"='{INCOME}'!F14*(1+B{G})*(1-{TAX})"),
-        T_BORROW: ("Terminal net borrowing (debt grows at terminal growth)", f"=B{G}*Schedules!F18"),
-        T_FCFE: ("Terminal FCFE", f"=B{T_NOPAT}-B{T_INTEREST}+B{T_OTHER}+B{T_BORROW}"),
-        T_VALUE: ("Terminal equity value", f"=B{T_FCFE}/(B{KE}-B{G})"),
+        T_NOPAT: ("Check | terminal NOPAT after reinvestment at the incremental ROIC",
+                  f"='{INCOME}'!F5*(1-{TAX})*(1+B{G})*(1-B{G}/Assumptions!B10)"),
+        T_INTEREST: ("Check | terminal after-tax interest on closing debt", f"=Schedules!F18*WACC!B6*(1-{TAX})"),
+        T_OTHER: ("Check | terminal after-tax other and equity-method income", f"='{INCOME}'!F14*(1+B{G})*(1-{TAX})"),
+        T_BORROW: ("Check | terminal net borrowing (debt grows at terminal growth)", f"=B{G}*Schedules!F18"),
+        T_FCFE: ("Terminal FCFE | final-year FCFE × (1 + g), Gordon growth", f"=F{FLOW}*(1+B{G})"),
+        T_VALUE: ("Terminal equity value | terminal FCFE / (cost of equity − g)", f"=B{T_FCFE}/(B{KE}-B{G})"),
         T_PV: ("PV of terminal equity value", f"=B{T_VALUE}/(1+B{KE})^F{YEARS}"),
         EQUITY: ("Common equity value", f"=SUM(B{PV}:F{PV})+B{T_PV}+B{CASH_ROW}+B{INVEST}-B{NCI}-B{PREF}"),
         VALUE: ("FCFE value per share", f"=B{EQUITY}/B{SHARES}"),
+        CHECK_FCFE: ("Check | ROIC-based terminal FCFE (not used in the value)",
+                     f"=B{T_NOPAT}-B{T_INTEREST}+B{T_OTHER}+B{T_BORROW}"),
+        CHECK_VALUE: ("Check | value per share with the ROIC-based terminal value",
+                      f"=(SUM(B{PV}:F{PV})+B{CHECK_FCFE}/(B{KE}-B{G})/(1+B{KE})^F{YEARS}"
+                      f"+B{CASH_ROW}+B{INVEST}-B{NCI}-B{PREF})/B{SHARES}"),
+        CAPEX_FLAG: ("Flag | final forecast year capex below D&A (flagged, not changed)",
+                     '=IF(Schedules!F5<Schedules!F6,"Flag: capex below D&A","No")'),
     }
     for row, (label, formula) in terminal.items():
         book.put(tab, f"A{row}", label, "total" if row == VALUE else "text")
-        book.put(tab, f"B{row}", formula, "total" if row == VALUE else "text", PRICE if row == VALUE else None)
+        book.put(tab, f"B{row}", formula, "total" if row == VALUE else "text",
+                 PRICE if row in (VALUE, CHECK_VALUE) else None)
+    book.put(tab, f"A{T_NOPAT - 1}", "Terminal value | Gordon growth on final-year FCFE; ROIC-based rows are a check", "section")
     book.expected[tab].update({f"B{T_FCFE}": base.terminal_fcfe, f"B{T_PV}": base.terminal_present_value,
-                               f"B{EQUITY}": base.equity_value, f"B{VALUE}": base.value_per_share})
+                               f"B{EQUITY}": base.equity_value, f"B{VALUE}": base.value_per_share,
+                               f"B{CHECK_FCFE}": base.roic_terminal_fcfe, f"B{CHECK_VALUE}": base.roic_value_per_share,
+                               f"B{CAPEX_FLAG}": "Flag: capex below D&A" if model["capex_below_da"] else "No"})
     book.put("Cover", "A7", "DCF fair value | FCFE at cost of equity")
     book.put("Cover", "B7", f"=DCF!B{VALUE}", "total", PRICE)
     book.put("Checks", "A13", "FCFE cash flow difference")
@@ -231,10 +259,9 @@ def scenarios(book, model, revenue_total):
             stub = "*Assumptions!$B$12" if i == 0 else ""
             book.put(tab, f"{col}{flow}", f"=({operating}){stub}+{borrowing}")
             book.put(tab, f"{col}{pv}", f"={col}{flow}/(1+DCF!$B${KE})^DCF!{col}{YEARS}")
-        terminal = (f"(F{total}*$B${top+1}*(1-{TAX})*(1+DCF!$B${G})*(1-DCF!$B${G}/Assumptions!$B$10)"
-                    f"-DCF!$B${T_INTEREST}+DCF!$B${T_OTHER}+DCF!$B${T_BORROW})"
-                    f"/(DCF!$B${KE}-DCF!$B${G})/(1+DCF!$B${KE})^DCF!$F${YEARS}")
-        book.put(tab, f"A{top+6+lines}", "PV of terminal equity value")
+        # Gordon growth on the case's final-year FCFE; F{pv} already carries the year-5 discount.
+        terminal = f"F{pv}*(1+DCF!$B${G})/(DCF!$B${KE}-DCF!$B${G})"
+        book.put(tab, f"A{top+6+lines}", "PV of terminal equity value (Gordon growth on final-year FCFE)")
         book.put(tab, f"B{top+6+lines}", "=" + terminal)
         value = top + 7 + lines
         book.put(tab, f"A{value}", f"{case} FCFE value per share", "total")
@@ -252,49 +279,3 @@ def scenarios(book, model, revenue_total):
     book.expected["Checks"]["B14"] = 0
     return results
 
-
-def terminal_roic(book, model):
-    """Five-year filed ROIC table on the DCF sheet; Assumptions B10 links to the bounded median."""
-    tab, evidence = "DCF", model["roic_evidence"]
-    book.put(tab, f"A{ROIC_TOP}", "Terminal incremental ROIC | five-year median of filed NOPAT / invested capital", "section")
-    for col, label in zip("ABCDEFGHIJ", ("Fiscal year end", "Operating income", "Model tax rate", "NOPAT", "Total debt",
-                                          "Total equity", "Cash and short-term investments", "Invested capital", "ROIC",
-                                          "Excluded"), strict=True):
-        book.put(tab, f"{col}{ROIC_TOP + 1}", label, "header")
-    rows = evidence["rows"]
-    last = ROIC_FIRST + max(len(rows), 1) - 1
-    for k, item in enumerate(rows):
-        r = ROIC_FIRST + k
-        book.put(tab, f"A{r}", item["period_end"], "evidence")
-        if "invested_capital" in item:
-            for col, key in zip("BEFG", ("operating_income", "debt", "equity", "cash_investments"), strict=True):
-                book.input(tab, f"{col}{r}", item[key], item["url"],
-                           f"Filed 10-K {item['period_end']} | {key.replace('_', ' ')} on the valuation bridge basis")
-            book.put(tab, f"C{r}", f"={TAX}", fmt=PCT)
-            book.put(tab, f"D{r}", f"=B{r}*(1-C{r})")
-            book.put(tab, f"H{r}", f"=E{r}+F{r}-G{r}")
-        if "roic" in item:
-            book.put(tab, f"I{r}", f"=D{r}/H{r}", fmt=PCT)
-            book.expected[tab][f"I{r}"] = item["roic"]
-        if "excluded" in item:
-            book.put(tab, f"J{r}", item["excluded"])
-    labels = {ROIC_MEDIAN: "Median filed ROIC", ROIC_LOW_ROW: "Lower bound", ROIC_HIGH_ROW: "Upper bound",
-              ROIC_USED: "Terminal ROIC used (bounded median; former 15% when fewer than 3 usable years)",
-              ROIC_PRIOR_ROW: "Former fixed terminal ROIC, for comparison",
-              ROIC_PRIOR_VALUE: "Comparison: FCFE value per share at the former 15% (model-computed, not live)"}
-    for row, label in labels.items():
-        book.put(tab, f"A{row}", label, "total" if row == ROIC_USED else "text")
-    span = f"I{ROIC_FIRST}:I{last}"
-    book.put(tab, f"B{ROIC_MEDIAN}", f'=IF(COUNT({span})>0,MEDIAN({span}),"n/a")', fmt=PCT)
-    book.input(tab, f"B{ROIC_LOW_ROW}", .08, basis="Analyst bound on terminal ROIC", fmt=PCT)
-    book.input(tab, f"B{ROIC_HIGH_ROW}", .40, basis="Analyst bound on terminal ROIC", fmt=PCT)
-    book.input(tab, f"B{ROIC_PRIOR_ROW}", evidence["prior"], basis="Former fixed analyst assumption, comparison only", fmt=PCT)
-    book.put(tab, f"B{ROIC_USED}", f"=IF(COUNT({span})>=3,MIN(MAX(B{ROIC_MEDIAN},B{ROIC_LOW_ROW}),B{ROIC_HIGH_ROW}),"
-                                   f"B{ROIC_PRIOR_ROW})", "total", PCT)
-    book.put(tab, f"C{ROIC_USED}", evidence["basis"])
-    book.expected[tab][f"B{ROIC_USED}"] = evidence["value"]
-    book.input(tab, f"B{ROIC_PRIOR_VALUE}", model["roic_comparison"]["value_per_share"],
-               basis="Model-computed comparison with capex converging at the former 15% ROIC", fmt=PRICE)
-    if "roic" not in {item["target"] for item in model.get("overrides", ())}:
-        book.put("Assumptions", "B10", f"=DCF!B{ROIC_USED}", fmt=PCT)
-        book.expected.setdefault("Assumptions", {})["B10"] = model["roic"]

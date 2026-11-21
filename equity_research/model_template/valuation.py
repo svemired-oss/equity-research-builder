@@ -3,7 +3,7 @@
 from ..peer_selection import MIN_PEERS
 from ..valuation_summary import BUY, SELL, TERMINAL_GAP, GROWTH_MIN, GROWTH_MAX
 from ..valuation_comps import METRICS, SIZE_HIGH, SIZE_LOW
-from .equity import BRIDGE, G, KE, SHARES, T_BORROW, T_INTEREST, T_OTHER, VALUE, YEARS
+from .equity import BRIDGE, EQUITY, G, KE, SHARES, VALUE, YEARS
 
 PCT = "0.00%"
 PRICE = '"$"0.00'
@@ -135,9 +135,8 @@ def _reverse(book, model):
                        + ("-Schedules!$B$40" if i==1 else ""))
             book.put(tab,f"{col}{row}",f"=(({cash})"+("*Assumptions!$B$12" if i==1 else "")
                      +f"+{borrowing})/(1+$B${KE})^{forecast_col}${YEARS}")
-        terminal=(f"('Income Statement'!$L$4*(1+D{row})^5*SUM(Assumptions!$B$3,Assumptions!$B$11)*(1-Assumptions!$B$4)"
-                  f"*(1+$B${G})*(1-$B${G}/Assumptions!$B$10)-$B${T_INTEREST}+$B${T_OTHER}+$B${T_BORROW})"
-                  f"/($B${KE}-$B${G})/(1+$B${KE})^$F${YEARS}")
+        # Gordon growth on this row's final-year FCFE; J is already discounted by the same factor.
+        terminal=f"J{row}*(1+$B${G})/($B${KE}-$B${G})"
         book.put(tab,f"E{row}",f"=(SUM(F{row}:J{row})+{terminal}+{BRIDGE})/$B${SHARES}")
     book.put(tab,"B38",'=IF(AND(E46<=Cover!B6,E47>=Cover!B6),D83,"Unavailable")',fmt=PCT)
     value = model["valuation_summary"]["implied_cagr"]
@@ -174,12 +173,13 @@ def add_valuation(book, model):
         13:"Comps!B14",
         14:"DCF!B15",
         15:"(Schedules!B23*Assumptions!B12+Schedules!C23*(1-Assumptions!B12))/DCF!B12",
-        16:f"B7*(1+DCF!B{KE})-B15",
+        16:f"(DCF!B{EQUITY}*(1+DCF!B{KE})-B15*DCF!B12-Assumptions!B22)/Schedules!B26",
         17:"(B16+B15)/B6-1",
         18:"ABS(B7/B14-1)",
         9:'IF(B17>=Assumptions!B26,"Buy",IF(B17<=Assumptions!B27,"Sell","Hold"))',
     })
-    book.put("Cover","A12","The target is the FCFE value rolled forward 12 months at the cost of equity, less expected dividends.")
+    book.put("Cover","A12","The target re-dates the FCFE equity value one year at the cost of equity, deducts the year's "
+             "dividends and buybacks, and divides by the projected share count one year out (Schedules row 26).")
     for r in range(13,19):
         book.cells["Cover"][f"B{r}"][2] = PRICE if r <= 16 else PCT
     diagnostics = model["valuation_summary"]

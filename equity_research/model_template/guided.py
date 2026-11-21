@@ -11,8 +11,8 @@ ASSUMPTIONS = {
     4: ("Margins", .001, .499, "Use a positive effective tax rate below half of pretax earnings."),
     5: ("Capex and working capital", 0, .50, "D&A must be nonnegative and below half of revenue."),
     6: ("Capex and working capital", 0, .60, "Capital investment as a share of revenue."),
-    9: ("Terminal", .005, .04, "Growth must also stay below WACC and incremental ROIC across the sensitivity grid."),
-    10: ("Terminal", .05, .50, "Positive return on new investment with room above terminal growth."),
+    9: ("Terminal", .005, .04, "Gordon growth on final-year FCFE; must stay below the cost of equity and WACC across the sensitivity grid."),
+    10: ("Terminal", .05, .50, "Incremental ROIC for forecast reinvestment and the ROIC-based terminal check."),
     13: ("Drivers", 0, 1, "Fraction of the historical growth gap carried forward each year."),
     15: ("Drivers", 0, 0, "Enter positive USD millions within three times the automated anchor and above filed year-to-date sales."),
     16: ("Margins", 0, 1, "Cash dividends from zero to all positive net income."),
@@ -291,14 +291,14 @@ def verify_recalculation(book,case,model,changes):
         from dataclasses import replace
         from ..valuation_summary import implied_growth
         discount=[(1+ke)**-period.discount_years for period in result.periods]
-        terminal_slope=revenue_path[-1]*(1+growth)*(1-growth/roic)/(ke-growth)*discount[-1]
+        terminal_slope=revenue_path[-1]*(1+growth)/(ke-growth)*discount[-1]
         annual_slope=sum(sales*factor*(stub if i==0 else 1) for i,(sales,factor) in enumerate(
             zip(revenue_path,discount,strict=True)))
         sensitivity=(1-tax)*(annual_slope+terminal_slope)/inputs.shares
         equal("DCF","B36",base_margin+(close-fcfe.value_per_share)/sensitivity)
         for i in range(5):
             for j,col in enumerate("BCDEF"):
-                fair=value_fcfe(inputs,revenue_path,base_margin,ke+(i-2)*.005,growth+(j-2)*.005)
+                fair=value_fcfe(inputs,revenue_path,base_margin,ke+(i-2)*.005,growth+(j-2)*.0025)
                 equal("Sensitivity",f"{col}{28+i}",fair.value_per_share)
         if "valuation_summary" in model:
             revised={**model,"fcfe_inputs":inputs,"cost_of_equity":ke,"margin":base_margin}
@@ -318,7 +318,8 @@ def verify_recalculation(book,case,model,changes):
     if "valuation_summary" in model:
         equal("Cover","B14",result.value_per_share)
         dividend=(payout[0]*stub+payout[1]*(1-stub))/bridge.diluted_shares_millions
-        target=fcfe.value_per_share*(1+ke)-dividend
+        projected=bridge.diluted_shares_millions-a(22)/a(23)
+        target=(fcfe.equity_value*(1+ke)-dividend*bridge.diluted_shares_millions-a(22))/projected
         total=(target+dividend)/close-1
         equal("Cover","B15",dividend)
         equal("Cover","B16",target)

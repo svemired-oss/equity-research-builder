@@ -44,6 +44,18 @@ def dividends_per_share(model, result):
                zip(result.net_income[:2], (stub, 1 - stub), strict=True)) / model["shares"]
 
 
+def projected_shares(model):
+    """Common shares one year out: current shares less the average buyback spend repurchased at the close."""
+    return model["shares"] - model.get("buyback_spend", 0.) / model["close"]
+
+
+def twelve_month_target(model, equity_value, dividends):
+    """The FCFE equity value re-dated one year at the cost of equity, less the year's dividends and buybacks,
+    divided by the projected share count one year out."""
+    remaining = equity_value*(1+model["cost_of_equity"]) - dividends*model["shares"] - model.get("buyback_spend", 0.)
+    return remaining / projected_shares(model)
+
+
 def rate(total):
     return "Buy" if total >= BUY else "Sell" if total <= SELL else "Hold"
 
@@ -58,9 +70,10 @@ def summarize(model, comps):
     exit_value = ebitda*multiple["quartiles"][1] if multiple else None
     divergence = abs(exit_value/fcff.terminal_value_millions-1) if exit_value is not None else None
     dividends = dividends_per_share(model, base)
-    target = base.value_per_share*(1+model["cost_of_equity"])-dividends
+    target = twelve_month_target(model, base.equity_value, dividends)
     total = (target+dividends)/model["close"]-1
     return {"peer": peer, "fcff": fcff.value_per_share, "target": target, "dividends": dividends, "return": total,
+            "projected_shares": projected_shares(model), "buyback_spend": model.get("buyback_spend", 0.),
             "rating": rate(total), "fcff_gap": abs(base.value_per_share/fcff.value_per_share-1),
             "peer_gap": abs(base.value_per_share/peer-1) if peer and peer > 0 else None,
             "exit_value": exit_value, "terminal_gap": divergence,

@@ -93,9 +93,11 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
                       comps_peers=len(comps.get("rows", ())),
                       peer_value_price_ratio=(recommendation["peer"] / model["close"]
                                               if recommendation["peer"] is not None else None))
-    if "roic_evidence" in model and not legacy:
-        result.update(terminal_roic=model["roic"], roic_basis=model["roic_evidence"]["basis"],
-                      prior_roic_value_price_ratio=model["roic_comparison"]["value_per_share"] / model["close"])
+    if "fcfe" in model and not legacy:
+        base = model["fcfe"]["Base"]
+        result.update(roic_check_value_price_ratio=base.roic_value_per_share / model["close"],
+                      capex_below_da=model["capex_below_da"], buyback_spend=model.get("buyback_spend"),
+                      erp=model["cost"].equity_risk_premium)
     review = verify_valuation_range(model)
     if review:
         model["notes"] += (review,)
@@ -236,14 +238,15 @@ def write_results(output, results):
                   f"- Sectors without any verified value: {', '.join(without) if without else 'none'}.",
                   f"- Ratings among verified pairs: Buy {ratings['Buy']}, Hold {ratings['Hold']}, Sell {ratings['Sell']}."])
     lines.extend(["", "## Valuation detail for verified pairs", "",
-                  "| Ticker | FCFE value / price | At former 15% ROIC | Terminal ROIC | FCFF / price | Cost of equity | Beta basis | Peer tier | Peers | Comps peers | Rating |",
-                  "| --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | ---: | --- |"])
+                  "| Ticker | FCFE value / price | ROIC-terminal check / price | Final-year capex < D&A | FCFF / price | Cost of equity | Beta | Beta basis | Peer tier | Peers | Comps peers | Rating |",
+                  "| --- | ---: | ---: | --- | ---: | ---: | ---: | --- | --- | --- | ---: | --- |"])
     for row in results:
         if row["status"] == "PASS" and row.get("valuation_basis") == "stage2_fcfe":
             number = lambda key, spec: format(row[key], spec) if row.get(key) is not None else "—"
-            lines.append(f"| {row['ticker']} | {number('value_price_ratio', '.4f')} | {number('prior_roic_value_price_ratio', '.4f')} | "
-                         f"{number('terminal_roic', '.1%')} | {number('fcff_value_price_ratio', '.4f')} | "
-                         f"{number('cost_of_equity', '.2%')} | {row.get('beta_basis', '—')} | {row.get('peer_tier', '—')} | "
+            flag = {True: "Flag", False: "No"}.get(row.get("capex_below_da"), "—")
+            lines.append(f"| {row['ticker']} | {number('value_price_ratio', '.4f')} | {number('roic_check_value_price_ratio', '.4f')} | "
+                         f"{flag} | {number('fcff_value_price_ratio', '.4f')} | "
+                         f"{number('cost_of_equity', '.2%')} | {number('beta', '.2f')} | {row.get('beta_basis', '—')} | {row.get('peer_tier', '—')} | "
                          f"{' '.join(row.get('peers', ())) or 'none'} | {row.get('comps_peers', '—')} | {row.get('rating', '—')} |")
     lines.extend(["", "## Per-ticker outcomes", "",
              "| Ticker | Sector | Status | Driver | Stage | Value / price | Reason |",

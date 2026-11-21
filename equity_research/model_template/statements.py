@@ -184,9 +184,16 @@ def build_statements(book, model, revenue_total):
         book.input("Assumptions",f"B{row}",1,basis="Analyst multiplier on the filed operating balance-to-sales ratio",fmt="0.00%")
     book.put("Assumptions", "A19", "Cost of revenue / sales")
     book.formulas("Assumptions", "B", {19: f"""IF(COUNT('{INCOME}'!{base}11)=1,'{INCOME}'!{base}11/'{INCOME}'!{base}4,"Unavailable")"""})
-    for row, label in ((20, "Annual debt issuance"), (21, "Annual debt repayment"), (22, "Annual buybacks")):
+    for row, label in ((20, "Annual debt issuance"), (21, "Annual debt repayment")):
         book.put("Assumptions", f"A{row}", label)
         book.input("Assumptions", f"B{row}", 0, basis="Analyst assumption | no future capital transaction modeled")
+    book.put("Assumptions", "A22", "Annual buybacks, USD millions (trailing three-year average filed spend)")
+    years = model.get("buyback_years") or ()
+    filed = "; ".join(f"{end}: " + (f"{value / 1e6:,.0f}" if type(value) in (int, float) else "not filed, counted as 0")
+                      for end, _, value in years)
+    book.input("Assumptions", "B22", model.get("buyback_spend", 0.), years[-1][1] if years else None,
+               f"docs/method-notes.md rule 3 | mean of filed PaymentsForRepurchaseOfCommonStock, USD millions ({filed})"
+               if years else "No buyback history; no forecast repurchases")
     start = model.get("financing_start") or {}
     book.put("Schedules", "A40", "Year-1 debt change to the latest 10-Q")
     book.put("Schedules", "A41", "Year-1 repurchases already in the latest 10-Q share count")

@@ -97,21 +97,14 @@ def test_forecast_dates_saved_calendar_cases(case):
 def test_prepare_model_frozen_outputs_and_guided_change():
     data = read("operating.json")
     candidates = revenue_candidates(data["packet"])
-    filed = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"], candidates)
-    evidence = filed["roic_evidence"]
-    assert filed["roic"] == evidence["value"] and .08 <= filed["roic"] <= .40
-    assert filed["roic_comparison"]["roic"] == .15
-    # Frozen values were recorded with the former fixed 15% terminal ROIC; pin it to keep them as a regression lock.
-    prior = [{"target": "roic", "value": .15, "reason": "Former fixed terminal ROIC"}]
-    model = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"], candidates, prior)
-    assert filed["roic_comparison"]["value_per_share"] == pytest.approx(model["fcfe"]["Base"].value_per_share)
+    model = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"], candidates)
     expected = read("expected.json")["operating"]
     assert model["wacc"] == pytest.approx(expected["wacc"])
     assert model["revenue"] == pytest.approx(expected["revenue"])
     # Frozen FCFF values use the margin-only cases; Stage 2 bull and bear also shift revenue growth.
     assert [model["legacy_scenarios"][name].value_per_share for name in ("Bear", "Base", "Bull")] == pytest.approx(expected["values"])
     revised = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"], candidates,
-        [*prior, {"target": "margin", "value": model["margin"] + .01, "reason": "Synthetic margin sensitivity"}])
+        [{"target": "margin", "value": model["margin"] + .01, "reason": "Synthetic margin sensitivity"}])
     assert revised["scenarios"]["Base"].value_per_share == pytest.approx(expected["guided_value"])
     assert revised["scenarios"]["Base"].value_per_share > model["scenarios"]["Base"].value_per_share
     assert model["history"] == revised["history"]
