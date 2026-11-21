@@ -42,14 +42,20 @@ def normalized_margin(book, model):
         url = item["url"]
         _evidence(book, TAB, f"{col}51", item["operating_income"], url, f"{item['period_end']} | filed OperatingIncomeLoss")
         _evidence(book, TAB, f"{col}52", item["charges"], url,
-                   f"{item['period_end']} | larger of RestructuringSettlementAndImpairmentProvisions or restructuring + "
-                   "impairments + LitigationSettlementExpense")
+                   f"{item['period_end']} | largest of the 10-K Other operating charges line (when its note itemizes "
+                   "impairments, remeasurements or restructuring), RestructuringSettlementAndImpairmentProvisions, or "
+                   "restructuring + impairments + litigation + contingent consideration remeasurement")
         _evidence(book, TAB, f"{col}53", item["gain"], url,
                    f"{item['period_end']} | filed gain (loss) on asset sales, assumed within operating income")
         book.put(TAB, f"{col}54", f"={col}51+{col}52-{col}53")
+        if item.get("company_line") is not None:
+            book.put(TAB, f"{col}60", item["company_line"], "evidence")
+            book.cite(TAB, f"{col}60", url, f"{item['period_end']} | 10-K income-statement line Other operating charges")
         _evidence(book, TAB, f"{col}55", item["revenue"], url, f"{item['period_end']} | filed revenue")
         book.put(TAB, f"{col}56", f"={col}51/{col}55", fmt=PCT)
         book.put(TAB, f"{col}57", f"={col}54/{col}55", fmt=PCT)
+    if any(item.get("company_line") is not None for item in rows):
+        book.put(TAB, "A60", "Memo | company Other operating charges line (note itemizes impairments, remeasurements, restructuring)")
     last = "BCD"[len(rows) - 1]
     book.put(TAB, f"A{NORMALIZED_MEDIAN}", "Three-year median normalized operating margin (base EBIT margin, B3)", "total")
     book.put(TAB, f"B{NORMALIZED_MEDIAN}", f"=MEDIAN(B57:{last}57)", "total", PCT)

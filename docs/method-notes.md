@@ -60,11 +60,13 @@ the same method.
 4. Sensitivity table: Ke +/- 0.5% and g +/- 0.25%.
 5. Normalized margin (Stage 2d): remove disclosed unusual items from each historical year's operating income before
    taking the 3-year median operating margin: impairments, restructuring, litigation settlements, "other operating
-   charges", and asset-sale gains or losses. Use the larger of the combined restructuring and impairment provision or
-   restructuring + impairments + litigation, so an item inside the aggregate is not counted twice. Other operating
-   charges are removed only through those tags: the generic us-gaap OtherCostAndExpenseOperating tag holds recurring
-   other operating expense for most filers (META, UPS, CSX and DAL in the 2026-11-21 run), so it is not treated as
-   unusual. Asset-sale gains are assumed to sit within operating income. Show the reported and normalized margins
+   charges", changes in the fair value of contingent consideration, and asset-sale gains or losses. Use the largest of
+   (a) a company-specific income-statement line labeled "Other operating charges" whose 10-K note itemizes
+   impairments, remeasurements or restructuring (read from the filing's inline XBRL; KO 2024: $4,163 million),
+   (b) the combined restructuring and impairment provision, or (c) restructuring + impairments + litigation +
+   contingent consideration remeasurement, so an item inside an aggregate is not counted twice. The generic us-gaap
+   OtherCostAndExpenseOperating tag holds recurring other operating expense for most filers (META, UPS, CSX and DAL
+   in the 2026-11-21 run), so it is not treated as unusual on its own. Asset-sale gains are assumed to sit within operating income. Show the reported and normalized margins
    side by side (Assumptions rows 50-59).
 6. Growth path: year 1 from guidance where filed (otherwise each line's recent growth faded halfway toward terminal
    growth); years 2-5 fade linearly from the 3-year consolidated revenue CAGR in year 2 to 4% nominal in year 5,

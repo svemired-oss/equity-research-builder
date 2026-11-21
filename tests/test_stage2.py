@@ -341,3 +341,40 @@ def test_forecast_income_statement_shows_each_nonoperating_line(tmp_path):
     assert assumptions["B45"].value == pytest.approx(model["leverage"]["ratio"])
     assert assumptions["B58"].value == pytest.approx(model["margin"]) and assumptions["B59"].value == pytest.approx(model["reported_margin"])
     assert saved["Schedules"]["F18"].value == pytest.approx(model["fcfe"]["Base"].closing_debt)
+
+
+def test_company_other_operating_charges_line_counts_only_with_an_itemized_note():
+    # KO 2024: "Other operating charges" of $4,163 million, tagged with a generic us-gaap concept.
+    from equity_research import company_charges as cc
+    from equity_research.filing_xbrl import FilingInstance, XbrlFact
+    from equity_research.operating_research import normalized_operating_income
+    from datetime import date
+    row = ('<tr><td>Other operating charges</td><td><ix:nonFraction name="us-gaap:OtherSellingGeneralAndAdministrativeExpense" '
+           'contextRef="c1">4,163</ix:nonFraction></td></tr>')
+    note = "<p>Other Operating Charges</p><p>The charges include a remeasurement of contingent consideration and impairments.</p>"
+    assert cc.income_statement_concept(f"<table>{row}</table>") == "us-gaap:OtherSellingGeneralAndAdministrativeExpense"
+    assert cc.note_itemizes(note) and not cc.note_itemizes("<p>Other Operating Charges</p><p>Freight and rent.</p>")
+    assert cc.income_statement_concept("<table><tr><td>Other operating expense</td><td>1</td></tr></table>") is None
+    fact = XbrlFact("us-gaap:OtherSellingGeneralAndAdministrativeExpense", date(2024, 1, 1), date(2024, 12, 31), (), "USD", 4163e6)
+    dimensioned = XbrlFact(fact.concept, fact.start, fact.end, (("a", "b"),), "USD", 1e6)
+    instance = FilingInstance("u", (fact, dimensioned))
+    assert cc.values_from_instance(instance, fact.concept, {"2024-12-31"}) == {"2024-12-31": 4163e6}
+    metrics = {"operating_income": 9992e6, "unusual_intangible_impairment": 886e6, "unusual_asset_impairment": 63e6}
+    assert normalized_operating_income(metrics, 4163e6)[1] == 4163e6
+    # Contingent consideration remeasurement counts with the other components.
+    assert normalized_operating_income({**metrics, "unusual_contingent_consideration": 3109e6})[1] == 886e6 + 3109e6
+
+
+@pytest.mark.skipif(not which("soffice"), reason="Requires LibreOffice")
+def test_disclosure_is_on_the_cover_and_the_first_pdf_page(tmp_path):
+    from openpyxl import load_workbook
+    from pypdf import PdfReader
+    from equity_research.model_template import export_operating
+    from equity_research.model_template.report_inputs import DISCLOSURE
+    data = fixture_data()
+    model = prepare_operating_model(data["packet"], data["treasury"], data["quote"], data["selection"],
+                                    revenue_candidates(data["packet"]))
+    book, pdf = export_operating(model, tmp_path)
+    assert load_workbook(book)["Cover"]["A25"].value == DISCLOSURE
+    first = " ".join(PdfReader(pdf).pages[0].extract_text().split())
+    assert DISCLOSURE in first

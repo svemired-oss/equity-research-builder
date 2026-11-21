@@ -1,6 +1,9 @@
 """Write reportable scenario results and source evidence into the workbook."""
 from ..report_evidence import clean_passage
 
+DISCLOSURE = ("Forecasts are built from filed history and company guidance; they do not use consensus estimates and "
+              "tend to be conservative for fast-growing companies. Ratings are model output, not investment advice.")
+
 
 def add_report_inputs(book, model, revenue_total):
     tab = "Report Evidence"
@@ -40,7 +43,8 @@ def add_report_inputs(book, model, revenue_total):
     book.put(tab,"B11","='Cost of Equity'!B32" if model.get("beta") else "Legacy beta of 1.0")
     selection = model.get("peer_selection") or {}
     book.put(tab,"B12",selection.get("tier","Not recorded"))
-    for col,label in zip("ABCD",("Evidence type","Filed date","Verbatim passage","Filing URL"),strict=True):
+    book.put("Cover","A25",DISCLOSURE,"note")
+    for col,label in zip("ABCDE",("Evidence type","Filed date","Verbatim passage","Filing URL","Filing section"),strict=True):
         book.put(tab,f"{col}14",label,"header")
     for row, evidence in enumerate(model.get("report_evidence",()),15):
         for col,key in zip("ABCD",("kind","filed_on","text","url"),strict=True):
@@ -50,4 +54,6 @@ def add_report_inputs(book, model, revenue_total):
             if not isinstance(value,str) or not value or value.lstrip().startswith(("=","@")):
                 raise ValueError("Invalid workbook report evidence.")
             book.put(tab,f"{col}{row}",value,"note")
+        if evidence.get("section"):
+            book.put(tab,f"E{row}",clean_passage(evidence["section"]),"note")
 

@@ -204,21 +204,26 @@ def _read(metrics, key):
 LONG_RUN_GROWTH = .04  # docs/method-notes.md, Stage 2d: years 2-5 fade from the 3-year revenue CAGR to 4% nominal.
 
 
-def normalized_operating_income(metrics):
+def normalized_operating_income(metrics, company_charges=None):
     """Operating income with disclosed unusual items removed, USD (filed units).
 
-    Charges: the larger of the combined restructuring and impairment provision or restructuring +
-    impairments + litigation settlements (so an item inside the aggregate is not counted twice).
-    Asset-sale gains are removed and losses added back, assuming they sit within operating income.
-    The generic OtherCostAndExpenseOperating tag is not used: most filers (META, UPS, CSX, DAL in the
-    2026-11-21 run) report recurring other operating expense under it, not unusual charges.
+    Charges: the largest of (1) a company-specific income-statement line labeled "Other operating
+    charges" whose 10-K note itemizes impairments, remeasurements or restructuring (company_charges),
+    (2) the combined restructuring and impairment provision, or (3) restructuring + impairments +
+    litigation settlements + changes in the fair value of contingent consideration. The maximum keeps
+    an item inside an aggregate from being counted twice. Asset-sale gains are removed and losses
+    added back, assuming they sit within operating income. The generic OtherCostAndExpenseOperating
+    tag is not used: most filers (META, UPS, CSX, DAL in the 2026-11-21 run) report recurring other
+    operating expense under it.
     """
     value = lambda key: metrics.get(key) if type(metrics.get(key)) in (int, float) and isfinite(metrics.get(key)) else 0.
     impairment = max(value("unusual_asset_impairment"), value("unusual_goodwill_and_intangible_impairment"),
                      value("unusual_goodwill_impairment") + value("unusual_intangible_impairment")
                      + value("unusual_long_lived_impairment"))
-    components = value("unusual_restructuring") + impairment + value("unusual_litigation")
-    charges = max(value("unusual_restructuring_and_impairment"), components, 0.)
+    components = (value("unusual_restructuring") + impairment + value("unusual_litigation")
+                  + value("unusual_contingent_consideration"))
+    company = company_charges if type(company_charges) in (int, float) and isfinite(company_charges) else 0.
+    charges = max(company, value("unusual_restructuring_and_impairment"), components, 0.)
     gain = value("unusual_asset_sale_gain")
     return _read(metrics, "operating_income") + charges - gain, charges, gain
 
@@ -389,10 +394,12 @@ def prepare_operating_model(packet, treasury, quote, selection, candidates, over
         sales = _read(m, "revenue")
         if sales <= 0:
             raise ResearchGap("A positive revenue base is required.")
-        normalized, charges, gain = normalized_operating_income(m)
+        company = ((packet.get("company_operating_charges") or {}).get("values") or {}).get(period["period_end"])
+        normalized, charges, gain = normalized_operating_income(m, company)
         normalization.append({"period_end": period["period_end"], "url": period["filing"]["url"],
                               "revenue": sales / 1e6, "operating_income": _read(m, "operating_income") / 1e6,
-                              "charges": charges / 1e6, "gain": gain / 1e6, "normalized": normalized / 1e6})
+                              "charges": charges / 1e6, "gain": gain / 1e6, "normalized": normalized / 1e6,
+                              "company_line": company / 1e6 if type(company) in (int, float) else None})
         ratios.append((normalized / sales, _read(m, "depreciation_amortization") / sales,
                        _read(m, "capex") / sales, _read(m, "income_taxes") / max(1, _read(m, "income_before_taxes"))))
         if m.get("dividends_paid") is not None and (m.get("net_income") or 0) > 0:

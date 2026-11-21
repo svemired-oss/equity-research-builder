@@ -99,6 +99,8 @@ def replay(ticker, evidence, folder, result, *, legacy=False, artifacts=None):
                       capex_below_da=model["capex_below_da"], buyback_spend=model.get("buyback_spend"),
                       erp=model["cost"].equity_risk_premium, normalized_margin=model["margin"],
                       reported_margin=model.get("reported_margin"), leverage=model.get("leverage", {}).get("ratio"))
+    evidence_kinds = [record.get("kind") for record in model.get("report_evidence", ())]
+    result["report_sections"] = {kind: evidence_kinds.count(kind) for kind in ("business", "industry", "risk")}
     review = verify_valuation_range(model)
     if review:
         model["notes"] += (review,)
@@ -238,6 +240,19 @@ def write_results(output, results):
                   f"- Single-value sectors (reported, not gated): {', '.join(single) if single else 'none'}.",
                   f"- Sectors without any verified value: {', '.join(without) if without else 'none'}.",
                   f"- Ratings among verified pairs: Buy {ratings['Buy']}, Hold {ratings['Hold']}, Sell {ratings['Sell']}."])
+    passes = [r for r in results if r["status"] == "PASS"]
+    filled = [r for r in passes if all((r.get("report_sections") or {}).get(k, 0) > 0 for k in ("business", "industry", "risk"))]
+    missing = [f"{r['ticker']} ({', '.join(k for k in ('business', 'industry', 'risk') if not (r.get('report_sections') or {}).get(k))})"
+               for r in passes if r not in filled]
+    lines.extend(["", "## Stage 4a gate", "",
+                  f"- Passing tickers with business, industry and risk sections filled from the 10-K: {len(filled)}/{len(passes)} — "
+                  f"{'met' if passes and len(filled) == len(passes) else 'not met'}.",
+                  f"- Missing sections: {'; '.join(missing) if missing else 'none'}.",
+                  f"- Passing tickers with five Item 1A risk headings: "
+                  f"{sum((r.get('report_sections') or {}).get('risk', 0) >= 5 for r in passes)}/{len(passes)}.",
+                  "", "| Ticker | Business | Industry | Risk headings |", "| --- | ---: | ---: | ---: |",
+                  *(f"| {r['ticker']} | {r['report_sections'].get('business', 0)} | {r['report_sections'].get('industry', 0)} | "
+                    f"{r['report_sections'].get('risk', 0)} |" for r in passes if r.get("report_sections"))])
     lines.extend(["", "## Valuation detail for verified pairs", "",
                   "| Ticker | FCFE value / price | ROIC-terminal check / price | Final-year capex < D&A | FCFF / price | Cost of equity | Beta | Beta basis | Normalized margin | Reported margin | Debt / EBITDA | Peer tier | Peers | Comps peers | Rating |",
                   "| --- | ---: | ---: | --- | ---: | ---: | ---: | --- | ---: | ---: | ---: | --- | --- | ---: | --- |"])

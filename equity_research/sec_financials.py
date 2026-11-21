@@ -41,6 +41,10 @@ _DURATION_METRICS = {
                                       "ImpairmentOfIntangibleAssetsIndefinitelivedExcludingGoodwill"),
     "unusual_long_lived_impairment": ("ImpairmentOfLongLivedAssetsHeldForUse",),
     "unusual_litigation": ("LitigationSettlementExpense",),
+    # Changes in the fair value of contingent consideration (a remeasurement charge when the liability rises).
+    "unusual_contingent_consideration": (
+        "BusinessCombinationContingentConsiderationArrangementsChangeInAmountOfContingentConsiderationLiability1",
+        "BusinessCombinationContingentConsiderationArrangementsChangeInAmountOfContingentConsiderationLiability"),
     "unusual_asset_sale_gain": ("GainLossOnSaleOfPropertyPlantEquipment", "GainLossOnDispositionOfAssets",
                                 "GainLossOnDispositionOfAssets1"),
     "depreciation_amortization": ("DepreciationDepletionAndAmortization", "DepreciationAndAmortization"),

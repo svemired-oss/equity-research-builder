@@ -11,16 +11,44 @@ from equity_research.report_evidence import annual_passages
 from test_market_valuation import fixture_model
 
 
-def test_business_and_risk_passages_are_scoped():
-    html = (
-        "<p>Item 1. Business</p><p>Our customers compete in numerous industry markets across the world.</p>"
-        "<p>Item 1A. Risk Factors</p><p>\ufffdCustomer demand and component supply could materially affect operating results.</p>"
-        "<p>Item 2. Properties</p><p>We sell office property in unrelated international markets.</p>"
-    )
+def test_business_industry_and_risk_passages_follow_the_stage_4a_rules():
+    p = lambda text: f"<p>{text}</p>"
+    html = "".join((
+        p("Item 1. Business."), p("General"),
+        p("When used in this report, the terms we and our mean Example Corp and its subsidiaries, collectively, "
+          "unless the context indicates otherwise."),
+        p("Our purpose is to delight every customer, and our values guide everything we do across the whole company."),
+        p("Example Corp designs and sells industrial pumps and valves through two segments, Fluid Systems and Flow "
+          "Controls, to municipal and industrial customers in 40 countries."),
+        p("Sustainability"),
+        p("We aim to reach net-zero emissions by 2040 and publish an annual ESG report describing our progress on "
+          "environmental and social commitments."),
+        p("Competition"),
+        p("The pump industry is fragmented and competitive. We compete with global manufacturers and regional "
+          "specialists on price, efficiency, service coverage and delivery times."),
+        p("Item 1A. Risk Factors"), p("RISKS RELATED TO OUR OPERATIONS"),
+        p("Fluctuations in foreign currency exchange rates could adversely affect our financial results."),
+        p("A slowdown in municipal water infrastructure spending could reduce demand for our pumps and valves."),
+        p("Delays at our Fluid Systems foundries could limit pump deliveries to industrial customers."),
+        p("Price competition from regional pump specialists could reduce our margins on municipal orders."),
+        p("Loss of service coverage in key countries could weaken demand for Flow Controls valves."),
+        p("Failure to win efficiency certifications for our pumps may reduce sales to industrial customers."),
+        p("Municipal budgets depend on tax receipts and bond issuance, which vary with local economic conditions and "
+          "political priorities, and orders can be deferred for several quarters when budgets tighten."),
+        p("Item 2. Properties"), p("We sell office property in unrelated international markets near our headquarters."),
+    ))
     result = annual_passages(html)
-    assert "customers compete" in result["industry"][0]
-    assert result["risk"][0].startswith("Customer demand and component supply")
-    assert all("property" not in text for passages in result.values() for text in passages)
+    business = [text for _, text in result["business"]]
+    assert business[0].startswith("Example Corp designs and sells industrial pumps")
+    assert not any(word in " ".join(business) for word in ("purpose", "the terms", "net-zero"))
+    assert result["industry"] == [("Competition", "The pump industry is fragmented and competitive. We compete with "
+                                   "global manufacturers and regional specialists on price, efficiency, service coverage "
+                                   "and delivery times.")]
+    risks = [text for _, text in result["risk"]]
+    # The five most specific headings, in filing order: the generic currency risk and the body paragraph are left out.
+    assert len(risks) == 5 and risks[0].startswith("A slowdown in municipal water infrastructure")
+    assert not any("foreign currency" in r or "Municipal budgets" in r for r in risks)
+    assert all("property" not in text for rows in result.values() for _, text in rows)
 
 
 @pytest.mark.skipif(not which("soffice"), reason="Requires LibreOffice")

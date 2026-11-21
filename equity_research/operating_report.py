@@ -28,7 +28,7 @@ def fact_sheet(workbook):
                 facts[key] = {"value":value, "cell":f"{tab}!{cell}"}
                 return value
             for key, tab, cell in (
-                ("company","Cover","A1"),("ticker","Report Evidence","B2"),("date","Report Evidence","B3"),
+                ("company","Cover","A1"),("disclosure","Cover","A25"),("ticker","Report Evidence","B2"),("date","Report Evidence","B3"),
                 ("method","Report Evidence","B5"),("method_basis","Report Evidence","B6"),
                 ("rating","Cover","B9"),("close","Cover","B6"),("dcf","Cover","B7"),("upside","Cover","B8"),
                 ("target","Cover","B16"),("total_return","Cover","B17"),("dividend","Cover","B15"),
@@ -169,6 +169,7 @@ def report_lines(sheet, digest, order):
             add(empty)
     add(f"{f('company')} | Equity research","Title")
     add(f"{f('ticker')} | Valuation cutoff {f('date')}")
+    add(f("disclosure"))
     section("Summary")
     add(f"Rating {f('rating')} | Price target {f('target','$')} | Expected total return {f('total_return','+.1%')}")
     add(f"DCF fair value {f('dcf','$')} | Reference close {f('close','$')} | DCF upside {f('upside','+.1%')}")
@@ -189,7 +190,6 @@ def report_lines(sheet, digest, order):
             f"{f('year_F')} {f(f'segment_{i}_F',',.1f')}")
     section("Industry context")
     extracts("industry","No verified industry excerpt was retained from the annual Business section.")
-    extracts("risk","No verified industry risk excerpt was retained from the annual Risk Factors section.")
     section("Forecast")
     for col in "BCDEF":
         add(f"{f(f'year_{col}')} | Revenue ${f(f'sales_{col}',',.1f')} million")
@@ -244,6 +244,7 @@ def report_lines(sheet, digest, order):
         add(f"{case.title()} | Revenue growth change {f(case+'_growth','pp')} | EBIT margin change {f(case+'_shift','pp')} | "
             f"FCFE value {f(case+'_value','$')}")
     section("Risks")
+    add("The most specific Item 1A risk-factor headings from the annual report.","Heading3")
     extracts("risk","No verified risk excerpt was retained from the annual filing.")
     section("Sources")
     for url in sources:
